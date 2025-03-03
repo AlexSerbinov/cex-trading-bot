@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/tradingBotMain.php';
-require_once __DIR__ . '/Logger.php';
+require_once __DIR__ . '/logger.php';
 
 /**
  * Клас для управління кількома ботами для різних пар
@@ -15,14 +15,25 @@ class TradingBotManager
     private array $bots = [];
     private array $lastRunTime = [];
     private int $rotationInterval = 1000; // мс між запусками ботів
+    private array $dynamicConfig = [];
 
     /**
      * Конструктор
      */
     public function __construct()
     {
-        $this->logger = new Logger();
+        $this->logger = Logger::getInstance();
+        $this->loadDynamicConfig();
         $this->initializeBots();
+    }
+
+    /**
+     * Завантаження динамічної конфігурації
+     */
+    private function loadDynamicConfig(): void
+    {
+        // Тепер ми не потребуємо цього методу, оскільки Config сам завантажує динамічну конфігурацію
+        // Але залишаємо його для сумісності
     }
 
     /**
@@ -30,13 +41,19 @@ class TradingBotManager
      */
     private function initializeBots(): void
     {
+        // Отримуємо список активних пар з Config
         $enabledPairs = Config::getEnabledPairs();
+        
         $this->logger->log(
             sprintf('Ініціалізація ботів для %d пар: %s', count($enabledPairs), implode(', ', $enabledPairs)),
         );
 
         foreach ($enabledPairs as $pair) {
-            $this->bots[$pair] = new TradingBot($pair);
+            // Отримуємо конфігурацію для пари з Config
+            $pairConfig = Config::getPairConfig($pair);
+            
+            // Створюємо бота з конфігурацією
+            $this->bots[$pair] = new TradingBot($pair, $pairConfig);
             $this->lastRunTime[$pair] = 0;
             $this->logger->log(sprintf('Бот для пари %s ініціалізовано', $pair));
         }
@@ -58,6 +75,9 @@ class TradingBotManager
 
         // Основний цикл
         while (true) {
+            // Перевіряємо, чи є оновлення в конфігурації
+            $this->checkConfigUpdates();
+            
             $currentTime = $this->getCurrentTimeMs();
 
             foreach ($this->bots as $pair => $bot) {
@@ -72,6 +92,35 @@ class TradingBotManager
             usleep(100000); // Пауза 100 мс між перевірками
         }
     }
+    
+    /**
+     * Перевірка оновлень конфігурації
+     */
+    private function checkConfigUpdates(): void
+    {
+        // Отримуємо список активних пар з Config
+        $enabledPairs = Config::getEnabledPairs();
+        
+        // Зупиняємо неактивні боти
+        foreach (array_keys($this->bots) as $pair) {
+            if (!in_array($pair, $enabledPairs)) {
+                $this->logger->log(sprintf('Зупинка бота для пари %s', $pair));
+                unset($this->bots[$pair]);
+                unset($this->lastRunTime[$pair]);
+            }
+        }
+        
+        // Додаємо нові боти
+        foreach ($enabledPairs as $pair) {
+            if (!isset($this->bots[$pair])) {
+                $this->logger->log(sprintf('Додавання нового бота для пари %s', $pair));
+                $pairConfig = Config::getPairConfig($pair);
+                $this->bots[$pair] = new TradingBot($pair, $pairConfig);
+                $this->lastRunTime[$pair] = 0;
+                $this->bots[$pair]->initialize();
+            }
+        }
+    }
 
     /**
      * Отримати поточний час у мілісекундах
@@ -84,6 +133,8 @@ class TradingBotManager
     }
 }
 
-// Запуск менеджера ботів
-$manager = new TradingBotManager();
-$manager->runAllBots();
+// Запуск менеджера ботів, якщо файл викликано напряму
+if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
+    $manager = new TradingBotManager();
+    $manager->runAllBots();
+}

@@ -17,8 +17,10 @@ class Config
     public const MARKET_MAKER_ORDER_PROBABILITY = 0.99; // Configurable probability for market maker orders (0.0 to 1.0)
 
     // Delay constants (in milliseconds)
-    public const DELAY_RUN_MIN = 100; // 0.1 second
-    public const DELAY_RUN_MAX = 500; // 0.5 seconds
+    public const DELAY_RUN_MIN = 1000000; // 1 секунда
+    public const DELAY_RUN_MAX = 5000000; // 5 секунд
+    public const DELAY_ORDER_MIN = 500000; // 0.5 секунди
+    public const DELAY_ORDER_MAX = 2000000; // 2 секунди
     public const DELAY_CLEAR_MIN = 10; // 10 ms
     public const DELAY_CLEAR_MAX = 25; // 25 ms
     public const DELAY_INIT_MIN = 15; // 15 ms
@@ -26,69 +28,141 @@ class Config
     public const DELAY_MAINTAIN_MIN = 100; // 100 ms
     public const DELAY_MAINTAIN_MAX = 200; // 200 ms
 
-    // Конфігурація для кожної пари
-    public const TRADING_PAIRS = [
-        'LTC_USDT' => [
-            'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=LTCUSDT',
-            'bot_balance' => 50.0,
-            'min_orders' => 15,
-            'max_orders' => 17,
-            'price_deviation_percent' => 5.0, // Відхилення ціни в %
-            'enabled' => true,
-        ],
-        'ETH_USDT' => [
-            'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=ETHUSDT',
-            'bot_balance' => 2.0,
-            'min_orders' => 15,
-            'max_orders' => 17,
-            'price_deviation_percent' => 5.0,
-            'enabled' => true,
-        ],
-        'BTC_USDT' => [
-            'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=BTCUSDT',
-            'bot_balance' => 0.5,
-            'min_orders' => 15,
-            'max_orders' => 17,
-            'price_deviation_percent' => 5.0,
-            'enabled' => false
-        ],
-        'LTC_ETH' => [
-            'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=LTCETH',
-            'bot_balance' => 0.5,
-            'min_orders' => 15,
-            'max_orders' => 17,
-            'price_deviation_percent' => 5.0,
-            'enabled' => true,
-        ],
-        // add other pairs if needed
-    ];
-
+    // Шлях до файлу динамічної конфігурації
+    private static string $dynamicConfigFile = __DIR__ . '/data/dynamic_config.json';
+    
+    // Кеш динамічної конфігурації
+    private static ?array $dynamicConfig = null;
+    
     /**
-     * Get the configuration for a specific pair
-     *
-     * @param string $pair The trading pair
-     * @return array The configuration for the pair
+     * Завантаження динамічної конфігурації
      */
-    public static function getPairConfig(string $pair): array
+    private static function loadDynamicConfig(): void
     {
-        if (!isset(self::TRADING_PAIRS[$pair])) {
-            throw new RuntimeException("Configuration for pair {$pair} not found");
+        if (self::$dynamicConfig === null) {
+            if (file_exists(self::$dynamicConfigFile)) {
+                self::$dynamicConfig = json_decode(file_get_contents(self::$dynamicConfigFile), true) ?: [];
+            } else {
+                self::$dynamicConfig = [];
+            }
         }
-
-        return self::TRADING_PAIRS[$pair];
     }
-
+    
     /**
-     * Get a list of active pairs
-     *
-     * @return array List of active pairs
+     * Отримання списку активних пар
      */
     public static function getEnabledPairs(): array
     {
-        return array_keys(
-            array_filter(self::TRADING_PAIRS, function ($config) {
-                return $config['enabled'] === true;
-            }),
-        );
+        self::loadDynamicConfig();
+        
+        $enabledPairs = [];
+        foreach (self::$dynamicConfig as $pair => $config) {
+            if ($config['enabled']) {
+                $enabledPairs[] = $pair;
+            }
+        }
+        
+        // Якщо немає активних пар у динамічній конфігурації, використовуємо статичні
+        if (empty($enabledPairs)) {
+            $enabledPairs = ['ETH_BTC', 'LTC_USDT', 'ETH_USDT', 'LTC_ETH'];
+        }
+        
+        return $enabledPairs;
+    }
+    
+    /**
+     * Отримання конфігурації для пари
+     */
+    public static function getPairConfig(string $pair): array
+    {
+        self::loadDynamicConfig();
+        
+        // Якщо є динамічна конфігурація для пари, використовуємо її
+        if (isset(self::$dynamicConfig[$pair])) {
+            return self::$dynamicConfig[$pair];
+        }
+        
+        // Інакше повертаємо статичну конфігурацію
+        switch ($pair) {
+            case 'ETH_BTC':
+                return [
+                    'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=ETHBTC',
+                    'bot_balance' => 10,
+                    'min_orders' => 15,
+                    'max_orders' => 17,
+                    'price_deviation_percent' => 5,
+                    'enabled' => true,
+                ];
+            case 'LTC_USDT':
+                return [
+                    'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=LTCUSDT',
+                    'bot_balance' => 10,
+                    'min_orders' => 15,
+                    'max_orders' => 17,
+                    'price_deviation_percent' => 5,
+                    'enabled' => true,
+                ];
+            case 'ETH_USDT':
+                return [
+                    'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=ETHUSDT',
+                    'bot_balance' => 10,
+                    'min_orders' => 15,
+                    'max_orders' => 17,
+                    'price_deviation_percent' => 5,
+                    'enabled' => true,
+                ];
+            case 'LTC_ETH':
+                return [
+                    'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=LTCETH',
+                    'bot_balance' => 10,
+                    'min_orders' => 15,
+                    'max_orders' => 17,
+                    'price_deviation_percent' => 5,
+                    'enabled' => true,
+                ];
+            default:
+                return [
+                    'external_api_url' => "https://api.kraken.com/0/public/Depth?pair=" . str_replace('_', '', $pair),
+                    'bot_balance' => 10,
+                    'min_orders' => 15,
+                    'max_orders' => 17,
+                    'price_deviation_percent' => 5,
+                    'enabled' => true,
+                ];
+        }
+    }
+    
+    /**
+     * Оновлення динамічної конфігурації
+     */
+    public static function updateDynamicConfig(string $pair, array $config): void
+    {
+        self::loadDynamicConfig();
+        
+        // Оновлюємо конфігурацію для пари
+        self::$dynamicConfig[$pair] = $config;
+        
+        // Зберігаємо оновлену конфігурацію
+        $dir = dirname(self::$dynamicConfigFile);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        
+        file_put_contents(self::$dynamicConfigFile, json_encode(self::$dynamicConfig, JSON_PRETTY_PRINT));
+    }
+    
+    /**
+     * Вимкнення пари в конфігурації
+     */
+    public static function disablePair(string $pair): void
+    {
+        self::loadDynamicConfig();
+        
+        if (isset(self::$dynamicConfig[$pair])) {
+            self::$dynamicConfig[$pair]['enabled'] = false;
+            
+            // Зберігаємо оновлену конфігурацію
+            file_put_contents(self::$dynamicConfigFile, json_encode(self::$dynamicConfig, JSON_PRETTY_PRINT));
+        }
     }
 }

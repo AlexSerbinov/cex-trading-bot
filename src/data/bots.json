@@ -1,0 +1,80 @@
+{
+    "1": {
+        "market": "ETH_BTC",
+        "trade_amount_min": 1,
+        "trade_amount_max": 10,
+        "frequency_from": 1,
+        "frequency_to": 2,
+        "price_factor": 5,
+        "exchange": "kraken",
+        "id": 1,
+        "status": "active",
+        "created_at": "2025-03-03 08:47:10",
+        "active_orders": []
+    },
+    "2": {
+        "market": "LTC_USDT",
+        "trade_amount_min": 1,
+        "trade_amount_max": 10,
+        "frequency_from": 1,
+        "frequency_to": 2,
+        "price_factor": 5,
+        "exchange": "kraken",
+        "id": 2,
+        "status": "active",
+        "created_at": "2025-03-03 08:47:34",
+        "active_orders": []
+    },
+    "3": {
+        "market": "LTC_USDT",
+        "trade_amount_min": 1,
+        "trade_amount_max": 10,
+        "frequency_from": 1,
+        "frequency_to": 2,
+        "price_factor": 5,
+        "exchange": "kraken",
+        "id": 3,
+        "status": "active",
+        "created_at": "2025-03-03 08:50:44",
+        "active_orders": []
+    },
+    "4": {
+        "market": "LTC_USDT",
+        "trade_amount_min": 1,
+        "trade_amount_max": 10,
+        "frequency_from": 1,
+        "frequency_to": 2,
+        "price_factor": 5,
+        "exchange": "kraken",
+        "id": 4,
+        "status": "active",
+        "created_at": "2025-03-03 08:50:54",
+        "active_orders": []
+    },
+    "5": {
+        "market": "LTC_USDT",
+        "trade_amount_min": 1,
+        "trade_amount_max": 10,
+        "frequency_from": 1,
+        "frequency_to": 2,
+        "price_factor": 5,
+        "exchange": "kraken",
+        "id": 5,
+        "status": "active",
+        "created_at": "2025-03-03 09:14:23",
+        "active_orders": []
+    },
+    "6": {
+        "market": "LTC_ETH",
+        "trade_amount_min": 1,
+        "trade_amount_max": 10,
+        "frequency_from": 1,
+        "frequency_to": 2,
+        "price_factor": 5,
+        "exchange": "kraken",
+        "id": 6,
+        "status": "active",
+        "created_at": "2025-03-03 09:29:24",
+        "active_orders": []
+    }
+}

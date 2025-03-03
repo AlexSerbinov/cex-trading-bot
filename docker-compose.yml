@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+    trading-bot:
+        build: .
+        volumes:
+            - ./src/data:/app/src/data
+        ports:
+            - '5560:8080'
+        restart: unless-stopped
+        command: php src/TradingBotManager.php
+
+    api:
+        build: .
+        volumes:
+            - ./src/data:/app/src/data
+        ports:
+            - '5561:8080'
+        restart: unless-stopped
+        command: php -S 0.0.0.0:8080 src/api.php

@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/ApiClient.php';
-require_once __DIR__ . '/Logger.php';
+require_once __DIR__ . '/apiClient.php';
+require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/MockOrderBook.php';
 
 /**
@@ -19,19 +19,26 @@ class TradingBot
     private string $pair;
     private array $pairConfig;
     private bool $initialized = false;
+    private ?array $dynamicConfig;
 
     /**
      * Constructor for TradingBot.
      *
      * @param string $pair Trading pair for this bot instance
+     * @param array|null $dynamicConfig Dynamic configuration for the pair
      */
-    public function __construct(string $pair)
+    public function __construct(string $pair, ?array $dynamicConfig = null)
     {
         $this->pair = $pair;
-        $this->pairConfig = Config::getPairConfig($pair);
+        
+        // Отримуємо конфігурацію для пари
+        $this->pairConfig = $dynamicConfig ?? Config::getPairConfig($pair);
+        
         $this->apiClient = new ApiClient();
-        $this->logger = new Logger();
+        $this->logger = Logger::getInstance();
         $this->mockOrderBook = new MockOrderBook();
+        
+        $this->logger->log("Створено бота для пари {$pair}");
     }
 
     /**
@@ -52,46 +59,32 @@ class TradingBot
     }
 
     /**
-     * Runs a single cycle of the bot operation
+     * Runs a single trading cycle.
      */
     public function runSingleCycle(): void
     {
         if (!$this->initialized) {
-            $this->initialize();
+            $this->logger->log("[{$this->pair}] Бот не ініціалізовано, пропускаємо цикл");
+            return;
         }
-
+        
+        $this->logger->log("[{$this->pair}] Запуск циклу торгівлі");
+        
         try {
-            $externalOrderBook = $this->getExternalOrderBook();
+            // Отримуємо книгу ордерів
+            $orderBook = $this->getExternalOrderBook();
+            $this->logger->log("[{$this->pair}] Отримано книгу ордерів: " . count($orderBook['bids']) . " бідів, " . count($orderBook['asks']) . " асків");
+            
+            // Отримуємо поточні ордери
             $pendingOrders = $this->getPendingOrders();
-            $currentBids = $this->getCurrentOrderBook(2); // Bids
-            $currentAsks = $this->getCurrentOrderBook(1); // Asks
-
-            $marketPrice = $this->calculateMarketPrice($externalOrderBook);
-            $this->logger->log(
-                sprintf(
-                    '[%s] Ринкова ціна: %.6f, найкращий бід = %.6f, найкращий аск = %.6f',
-                    $this->pair,
-                    $marketPrice,
-                    $externalOrderBook['bids'][0][0],
-                    $externalOrderBook['asks'][0][0],
-                ),
-            );
-
-            $this->logger->log(
-                sprintf(
-                    '[%s] Поточні біди: %d, Поточні аски: %d, Відкриті ордери: %d',
-                    $this->pair,
-                    count($currentBids),
-                    count($currentAsks),
-                    count($pendingOrders),
-                ),
-            );
-
-            $this->maintainOrderCount($currentBids, $currentAsks, $marketPrice, $pendingOrders);
-
-            $this->performRandomAction($currentBids, $currentAsks, $pendingOrders, $marketPrice);
+            $this->logger->log("[{$this->pair}] Отримано поточні ордери: " . count($pendingOrders));
+            
+            // Підтримуємо ордери
+            $this->maintainOrders($orderBook, $pendingOrders);
+            
+            $this->logger->log("[{$this->pair}] Цикл торгівлі завершено успішно");
         } catch (Exception $e) {
-            $this->logger->error("[{$this->pair}] Помилка: " . $e->getMessage());
+            $this->logger->error("[{$this->pair}] Помилка в циклі торгівлі: " . $e->getMessage());
         }
     }
 
@@ -650,5 +643,44 @@ class TradingBot
     private function calculateMarketPrice(array $orderBook): float
     {
         return (floatval($orderBook['bids'][0][0]) + floatval($orderBook['asks'][0][0])) / 2;
+    }
+
+    /**
+     * Підтримує ордери на основі книги ордерів та поточних ордерів
+     */
+    private function maintainOrders(array $orderBook, array $pendingOrders): void
+    {
+        // Розраховуємо ринкову ціну
+        $marketPrice = $this->calculateMarketPrice($orderBook);
+        
+        // Отримуємо поточні біди та аски
+        $currentBids = $this->getCurrentOrderBook(2); // Bids
+        $currentAsks = $this->getCurrentOrderBook(1); // Asks
+        
+        $this->logger->log(
+            sprintf(
+                '[%s] Ринкова ціна: %.6f, найкращий бід = %.6f, найкращий аск = %.6f',
+                $this->pair,
+                $marketPrice,
+                $orderBook['bids'][0][0],
+                $orderBook['asks'][0][0],
+            ),
+        );
+        
+        $this->logger->log(
+            sprintf(
+                '[%s] Поточні біди: %d, Поточні аски: %d, Відкриті ордери: %d',
+                $this->pair,
+                count($currentBids),
+                count($currentAsks),
+                count($pendingOrders),
+            ),
+        );
+        
+        // Підтримуємо кількість ордерів
+        $this->maintainOrderCount($currentBids, $currentAsks, $marketPrice, $pendingOrders);
+        
+        // Виконуємо випадкову дію
+        $this->performRandomAction($currentBids, $currentAsks, $pendingOrders, $marketPrice);
     }
 }
