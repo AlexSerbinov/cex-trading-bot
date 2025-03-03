@@ -1,68 +1,298 @@
+# Multi-Pair Trading Bot for Cryptocurrency Exchange
 
-# TradingBot README
+This trading bot simulates trading activity on a cryptocurrency exchange by creating and managing orders for multiple trading pairs simultaneously. It's designed to create market liquidity by maintaining a specified number of buy and sell orders and periodically executing trades across various trading pairs.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [File Structure](#file-structure)
+- [Configuration](#configuration)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Managing Multiple Pairs](#managing-multiple-pairs)
+- [Monitoring](#monitoring)
+- [Troubleshooting](#troubleshooting)
+- [Future Improvements](#future-improvements)
 
 ## Overview
-This is the initial version (v1.0) of the TradingBot, an automated bot written in PHP designed to simulate trades on a cryptocurrency exchange. Currently, this version operates solely with the Litecoin-USDT (LTC_USDT) trading pair, leveraging real-time data from the Kraken exchange API to manage limit and market orders, maintaining an order book of 15-17 orders, and performing random trading actions.
+
+The trading bot connects to your exchange API and simulates trading activity by:
+
+- Maintaining a specified number of buy and sell orders for each pair
+- Periodically placing and canceling orders
+- Executing market trades to simulate real trading activity
+- Supporting multiple trading pairs simultaneously with independent processes
 
 ## Features
-- **Single Pair Support**: Works with the LTC_USDT trading pair, fetching order book data from Kraken and interacting with a custom trade server.
-- **Order Management**: Maintains 15-17 limit orders (bids and asks) and executes market maker orders with a configurable probability (default 70%).
-- **Logging**: Provides detailed logging of all actions, including order placements, cancellations, and errors, with timestamps in the console.
-- **Error Handling**: Implements retry logic for API requests to Kraken with up to 3 retries in case of failures.
-- **Configurable Delays**: Uses configurable delays (in milliseconds) for various operations to simulate realistic trading behavior.
 
-## Requirements
-- PHP 8.0 or higher
-- PHP CURL extension (`php-curl` module) for API requests
+- **Multi-pair support**: Run dozens of trading pairs simultaneously
+- **Independent processes**: Each pair runs in its own process for stability
+- **Configurable parameters per pair**: Customize settings for each trading pair
+- **Automatic order book maintenance**: Keeps order books within specified limits
+- **Random trading patterns**: Simulates real market activity with varied behaviors
+- **Graceful error handling**: Automatic retries and error recovery
+- **Flexible deployment**: Run all pairs or select specific pairs as needed
+
+## File Structure
+
+- **config.php**: Configuration settings for the bot and trading pairs
+- **tradingBotMain.php**: Main bot logic for order management and trading
+- **ApiClient.php**: Handles API communication with the exchange
+- **Logger.php**: Logging functionality
+- **MockOrderBook.php**: Generates mock order book data for testing
+- **TradingBotManager.php**: Manages multiple bot instances (one per pair)
+- **bot.php**: Command-line script to run a single bot for a specific pair
+- **manager.php**: Script to launch multiple bots for all enabled pairs
+- **stop.php**: Script to stop all running bots
+
+## Configuration
+
+The bot is configured through the `config.php` file. Key configuration options include:
+
+### Trading Pair Configuration
+
+Each trading pair has its own configuration:
+
+```php
+public const TRADING_PAIRS = [
+    'LTC_USDT' => [
+        'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=LTCUSDT',
+        'bot_balance' => 50.0,
+        'min_orders' => 15,
+        'max_orders' => 17,
+        'price_deviation_percent' => 5.0,
+        'enabled' => true,
+    ],
+    'ETH_USDT' => [
+        'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=ETHUSDT',
+        'bot_balance' => 2.0,
+        'min_orders' => 15,
+        'max_orders' => 17,
+        'price_deviation_percent' => 5.0,
+        'enabled' => true,
+    ],
+    'BTC_USDT' => [
+        'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=BTCUSDT',
+        'bot_balance' => 0.5,
+        'min_orders' => 15,
+        'max_orders' => 17,
+        'price_deviation_percent' => 5.0,
+        'enabled' => false,  // Disabled pair
+    ],
+    // Add more pairs as needed
+];
+```
+
+Parameters for each pair:
+
+- **external_api_url**: URL to fetch external order book data
+- **bot_balance**: Available balance for the bot to use
+- **min_orders**: Minimum number of orders to maintain
+- **max_orders**: Maximum number of orders to maintain
+- **price_deviation_percent**: Maximum price deviation from market price
+- **enabled**: Whether this pair is active (true/false)
 
 ## Installation
-1. Clone or download this repository to your local machine.
-2. Ensure PHP 8+ and the CURL extension are installed:
-   ```bash
-   sudo apt-get install php-curl  # On Ubuntu/Debian
-   sudo yum install php-curl      # On CentOS/RHEL
-   ```
-3. Place all PHP files (`TradingBot.php`, `ApiClient.php`, `Logger.php`, and any other required files) in the same directory.
-4. Run the bot from the command line:
-   ```bash
-   php TradingBot.php
-   ```
+
+### Prerequisites
+
+- PHP 7.4 or higher
+- PHP cURL extension
+- Access to your exchange API
+
+### Setup
+
+1. Clone the repository:
+
+    ```bash
+    git clone https://github.com/yourusername/trading-bot.git
+    cd trading-bot
+    ```
+
+2. Configure your trading pairs in `config.php`
+
+3. Create a logs directory:
+    ```bash
+    mkdir -p logs
+    ```
 
 ## Usage
-The bot runs continuously, simulating trading for the LTC_USDT pair. It logs all actions to the console, including:
-- Initialization of the order book
-- Placement and cancellation of limit orders
-- Execution of market orders (simulated)
-- Errors or retries for API calls
 
-To adjust the bot's behavior, modify the constants in the code (or future configuration files if implemented). For example, change `MARKET_MAKER_ORDER_PROBABILITY` to adjust the frequency of market orders or `DELAY_*` constants to modify operation delays.
+### Running a Single Pair
 
-## Current Limitations
-- **Single Pair Support**: This version only supports the LTC_USDT trading pair. It does not handle multiple pairs simultaneously.
-- **Single Exchange**: The bot currently works only with the Kraken exchange API and a specific trade server (`http://164.68.117.90:18080`).
+To run the bot for a single trading pair:
 
-## Future Enhancements
-To expand the TradingBot into a more robust trading system, the following features and improvements are planned for future versions:
+```bash
+php bot.php LTC_USDT
+```
 
-1. **Multiple Pair Support**: Extend the bot to handle multiple trading pairs (e.g., ETH_USDT, BTC_USDT) simultaneously, allowing parallel operation for each pair.
-2. **API Development**: Develop a RESTful or WebSocket API to allow external control, monitoring, and configuration of the bot, enabling integration with other systems or user interfaces.
-3. **Multi-Exchange Support**: Add support for multiple cryptocurrency exchanges (e.g., Binance, Coinbase, Bitfinex) to fetch order book data and execute trades across different platforms.
-4. **Exchange Integration**: Research and integrate additional exchanges as data sources, ensuring compatibility with their APIs, authentication methods, and order types.
+Replace `LTC_USDT` with the desired trading pair.
 
-## Contributing
-Contributions are welcome! If you'd like to contribute to this project, please:
-- Fork the repository
-- Create a new branch for your feature or bug fix
-- Submit a pull request with your changes
+### Running All Enabled Pairs
 
-## License
-This project is currently unlicensed. Please contact the maintainers for licensing information or usage permissions.
+To run the bot for all enabled pairs:
 
-## Contact
-For questions or support, reach out to the project maintainers via [your contact information here, if applicable].
+```bash
+php manager.php
+```
 
----
+This will start a separate process for each enabled pair defined in the configuration.
 
-### Notes
-- This README assumes the bot is run in a development or testing environment. For production use, consider adding error logging to files, implementing configuration management (e.g., via JSON or environment variables), and enhancing security.
-- The bot uses simulated market orders (`placeMarketOrder` returns `true` for simulation purposes). For real trading, update this method to interact with the actual exchange API.
+### Stopping All Bots
+
+To stop all running bots:
+
+```bash
+php stop.php
+```
+
+## Managing Multiple Pairs
+
+The bot is designed to handle multiple trading pairs simultaneously, with each pair running in its own process.
+
+### How Multi-Pair Support Works
+
+1. **Independent Configuration**: Each pair has its own configuration in `config.php`
+2. **Process Isolation**: Each pair runs in a separate PHP process
+3. **Resource Management**: Each bot instance manages its own resources
+4. **Selective Enabling**: Pairs can be enabled/disabled via configuration
+
+### Adding a New Pair
+
+To add a new trading pair:
+
+1. Add the pair configuration to `config.php`:
+
+    ```php
+    'NEW_PAIR' => [
+        'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=NEWPAIR',
+        'bot_balance' => 10.0,
+        'min_orders' => 15,
+        'max_orders' => 17,
+        'price_deviation_percent' => 5.0,
+        'enabled' => true,
+    ],
+    ```
+
+2. Run the manager to start all enabled pairs including the new one:
+    ```bash
+    php manager.php
+    ```
+
+### Managing Specific Pairs
+
+You can selectively run specific pairs:
+
+```bash
+# Run just two specific pairs
+php bot.php LTC_USDT > logs/ltc_usdt.log 2>&1 &
+php bot.php ETH_USDT > logs/eth_usdt.log 2>&1 &
+```
+
+### Disabling a Pair
+
+To disable a pair without removing it from configuration:
+
+1. Set `'enabled' => false` in the pair's configuration
+2. Restart the manager or stop the specific pair process
+
+## Monitoring
+
+The bot logs all activities to the console. For production use, consider redirecting output to log files:
+
+```bash
+php bot.php LTC_USDT > logs/ltc_usdt.log 2>&1 &
+```
+
+You can monitor the logs in real-time using:
+
+```bash
+tail -f logs/ltc_usdt.log
+```
+
+For multiple pairs, you can use:
+
+```bash
+tail -f logs/*.log
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **API Connection Errors**
+
+    - Check your network connection
+    - Verify the API URL in the configuration
+    - Ensure your API credentials are correct
+
+2. **Insufficient Balance**
+
+    - Adjust the `bot_balance` parameter in the configuration
+    - Check your actual balance on the exchange
+
+3. **High CPU Usage**
+
+    - Increase the delay parameters in the configuration
+    - Reduce the number of active pairs
+    - Consider distributing pairs across multiple servers
+
+4. **Process Management**
+    - If processes don't stop properly, use `ps aux | grep php` to find them
+    - Kill manually with `kill -9 PID`
+
+### Debugging
+
+For debugging, you can enable mock data mode by defining the constant:
+
+```php
+define('USE_MOCK_DATA', true);
+```
+
+This will use the MockOrderBook class instead of making actual API calls.
+
+## Future Improvements
+
+### API Management Interface
+
+A planned enhancement is to add a REST API for managing the trading bots:
+
+- **Features**:
+
+    - Start/stop individual pairs via API
+    - Modify pair configurations without restarting
+    - Get real-time status of all running bots
+    - View performance metrics and logs
+    - Adjust trading parameters on-the-fly
+
+- **Implementation Plan**:
+    - Create a lightweight API server using PHP or Node.js
+    - Implement authentication for secure access
+    - Develop endpoints for all management functions
+    - Add a web dashboard for visual management
+
+### Multi-Exchange Support
+
+Another major planned improvement is supporting multiple exchanges:
+
+- **Features**:
+
+    - Connect to multiple exchanges simultaneously
+    - Configure different strategies per exchange
+    - Cross-exchange arbitrage capabilities
+    - Unified configuration interface for all exchanges
+
+- **Implementation Plan**:
+    - Create abstraction layer for exchange APIs
+    - Implement adapters for major exchanges (Binance, Coinbase, etc.)
+    - Develop exchange-specific configuration options
+    - Add support for exchange-specific features
+
+### Additional Planned Improvements
+
+- **Advanced Trading Strategies**: Implement more sophisticated trading algorithms
+- **Performance Optimization**: Reduce resource usage for high-volume pairs
+- **Distributed Architecture**: Support for running bots across multiple servers
+- **Data Analysis Tools**: Add tools for analyzing bot performance and market data
+- **Alerting System**: Implement notifications for critical events and anomalies
