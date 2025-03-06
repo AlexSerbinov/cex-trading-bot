@@ -26,11 +26,15 @@ class TradingBotManager
         $this->botProcess = new BotProcess();
         $this->configFile = __DIR__ . '/../../data/bots_config.json';
         
-        // Registering a signal handler for proper termination
-        pcntl_signal(SIGTERM, [$this, 'handleSignal']);
-        pcntl_signal(SIGINT, [$this, 'handleSignal']);
-        // Adding SIGHUP handling for better compatibility
-        pcntl_signal(SIGHUP, [$this, 'handleSignal']);
+        // Перевірка наявності функції pcntl_signal
+        if (function_exists('pcntl_signal')) {
+            // Встановлюємо обробники сигналів
+            pcntl_signal(SIGTERM, [$this, 'handleSignal']);
+            pcntl_signal(SIGINT, [$this, 'handleSignal']);
+        } else {
+            // Альтернативний код для середовищ без підтримки pcntl
+            $this->logger->log("PCNTL extension not available. Signal handling disabled.");
+        }
     }
 
     /**

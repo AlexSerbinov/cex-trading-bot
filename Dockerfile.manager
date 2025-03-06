@@ -1,0 +1,20 @@
+FROM php:8.1.0-cli
+
+# Installing dependencies and PHP extensions
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libzip-dev \
+    && docker-php-ext-install zip pcntl
+
+# Creating working directory
+WORKDIR /app
+
+# Copying project files
+COPY . /app/
+
+# Setting write permissions for data directories
+RUN mkdir -p /app/data/logs /app/data/pids && chmod -R 777 /app/data
+
+# Default command
+CMD ["php", "src/core/TradingBotManager.php"] 
