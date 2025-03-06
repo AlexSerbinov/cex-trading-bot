@@ -16,8 +16,14 @@ WORKDIR /app
 # Copying project files
 COPY . /app/
 
+# Copy swagger.json to API directory
+RUN cp /app/swagger.json /app/src/api/
+
 # Setting write permissions for data directories
 RUN mkdir -p /app/data/logs /app/data/pids && chmod -R 777 /app/data
+
+# Create symbolic link for swagger.json
+RUN ln -sf /app/swagger.json /app/src/api/swagger.json
 
 # Exposing ports for API and frontend
 EXPOSE 8080
