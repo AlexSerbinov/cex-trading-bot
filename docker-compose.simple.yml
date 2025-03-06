@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+    api:
+        image: php:8.1.0-cli
+        volumes:
+            - ./src/api:/app/api
+        ports:
+            - '5561:8080'
+        command: php -S 0.0.0.0:8080 -t /app/api
+        working_dir: /app
+
+networks:
+    default:
+        driver: bridge 
