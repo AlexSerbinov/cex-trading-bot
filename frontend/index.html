@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="uk">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Trading Bot Admin</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css" />
+        <link rel="stylesheet" href="css/styles.css" />
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <img src="img/logo.svg" alt="Trading Bot" width="30" height="30" class="d-inline-block align-text-top me-2" />
+                    Trading Bot Admin
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" id="nav-bots">Bots</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mt-4">
+            <div class="row">
+                <div class="col-12">
+                    <div id="alerts-container"></div>
+                </div>
+            </div>
+
+            <!-- Main container for content -->
+            <div id="main-content">
+                <!-- List of bots -->
+                <div id="bot-list-container">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Bots list</h2>
+                        <button id="create-bot-btn" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Create bot</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>
+                                        Pair
+                                        <i
+                                            class="bi bi-info-circle text-primary info-icon"
+                                            data-bs-toggle="tooltip"
+                                            title="Trading pair in format BASE_QUOTE (e.g., BTC_USDT). This defines which cryptocurrencies the bot will trade."
+                                        ></i>
+                                    </th>
+                                    <th>Exchange <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="The exchange from which the bot will copy the OrderBook."></i></th>
+                                    <th>Status <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Current status of the bot - Active (running) or Inactive (stopped)."></i></th>
+                                    <th>Min/Max amount <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Minimum and maximum trade amounts for each operation."></i></th>
+                                    <th>Frequency (sec) <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Time interval range between bot actions in seconds."></i></th>
+                                    <th>Deviation (%) <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Price deviation percentage and market gap settings."></i></th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bot-list">
+                                <!-- Here will be the list of bots -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Form for creating/editing a bot -->
+                <div id="bot-form-container" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 id="form-title">Creating a new bot</h2>
+                        <button id="back-to-list-btn" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to list</button>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="bot-form">
+                                <div class="mb-3">
+                                    <label for="market" class="form-label"
+                                        >Trading pair
+                                        <i
+                                            class="bi bi-info-circle text-primary info-icon"
+                                            data-bs-toggle="tooltip"
+                                            title="Trading pair in format BASE_QUOTE (e.g., BTC_USDT). This defines which cryptocurrencies the bot will trade. The first currency (BASE) is what you're buying/selling, and the second (QUOTE) is what you're paying/receiving."
+                                        ></i
+                                    ></label>
+                                    <input type="text" class="form-control" id="market" name="market" required />
+                                    <div class="form-text">For example: BTC_USDT</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="exchange" class="form-label"
+                                        >Exchange
+                                        <i
+                                            class="bi bi-info-circle text-primary info-icon"
+                                            data-bs-toggle="tooltip"
+                                            title="The exchange from which the bot will copy the OrderBook. The bot retrieves the OrderBook from the selected exchange, taking, for example, the 15 closest buy and sell orders and placing them on our exchange. Additionally, parameters such as MarketGap and Price Percentage are applied to adjust the orders accordingly."
+                                        ></i
+                                    ></label>
+                                    <select class="form-select" id="exchange" name="exchange" required>
+                                        <option value="binance">Binance</option>
+                                        <option value="kraken">Kraken</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="trade_amount_min" class="form-label"
+                                        >Minimum trade amount
+                                        <i
+                                            class="bi bi-info-circle text-primary info-icon"
+                                            data-bs-toggle="tooltip"
+                                            title="Minimum amount of the base currency for each trade. The bot will randomly choose a trade amount between min and max values. Lower values create more frequent but smaller trades, while higher values create less frequent but larger trades. This affects the bot's trading volume and risk exposure."
+                                        ></i
+                                    ></label>
+                                    <input type="number" class="form-control" id="trade_amount_min" name="trade_amount_min" step="0.01" min="0.01" value="0.1" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="trade_amount_max" class="form-label"
+                                        >Maximum trade amount
+                                        <i
+                                            class="bi bi-info-circle text-primary info-icon"
+                                            data-bs-toggle="tooltip"
+                                            title="Maximum amount of the base currency for each trade. The bot will randomly choose a trade amount between min and max values. Higher values allow for larger trades, which can create more significant price movements and higher trading volume. This should not exceed your available balance."
+                                        ></i
+                                    ></label>
+                                    <input type="number" class="form-control" id="trade_amount_max" name="trade_amount_max" step="0.01" min="0.01" value="1.0" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="frequency_from" class="form-label"
+                                        >Minimum trade frequency (sec)
+                                        <i
+                                            class="bi bi-info-circle text-primary info-icon"
+                                            data-bs-toggle="tooltip"
+                                            title="Minimum time interval (in seconds) between bot actions. The bot will randomly wait between min and max frequency values before performing the next action. Lower values create more frequent trading activity, which increases liquidity but may also increase fees and system load."
+                                        ></i
+                                    ></label>
+                                    <input type="number" class="form-control" id="frequency_from" name="frequency_from" min="1" value="30" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="frequency_to" class="form-label"
+                                        >Maximum trade frequency (sec)
+                                        <i
+                                            class="bi bi-info-circle text-primary info-icon"
+                                            data-bs-toggle="tooltip"
+                                            title="Maximum time interval (in seconds) between bot actions. The bot will randomly wait between min and max frequency values before performing the next action. Higher values create less frequent trading, which can make the bot's behavior more unpredictable and natural-looking."
+                                        ></i
+                                    ></label>
+                                    <input type="number" class="form-control" id="frequency_to" name="frequency_to" min="1" value="60" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="price_factor" class="form-label"
+                                        >Price deviation (%)
+                                        <i
+                                            class="bi bi-info-circle text-primary info-icon"
+                                            data-bs-toggle="tooltip"
+                                            title="Maximum percentage deviation from the market price when creating orders. This parameter determines how far from the current market price the bot will place its orders. Higher values create a wider price range for orders, simulating more volatile market conditions. Lower values keep orders closer to the current market price, creating tighter spreads."
+                                        ></i
+                                    ></label>
+                                    <input type="number" class="form-control" id="price_factor" name="price_factor" step="0.01" min="0.01" required />
+                                    <div class="form-text">Maximum price deviation from the market price in percent</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="market_gap" class="form-label"
+                                        >Market gap (%)
+                                        <i
+                                            class="bi bi-info-circle text-primary info-icon"
+                                            data-bs-toggle="tooltip"
+                                            title="Percentage step from the best price on the external exchange. This parameter controls the gap between the best buy and sell orders, thereby regulating the spread. A higher Market Gap creates a larger spread between buy and sell prices, which acts as a protective mechanism to control liquidity and reduce risks. For example, with a 1% Market Gap, if BTC is trading at $100,000, with best buy at $100,002 and best sell at $99,999, your bot will place orders at $99,002 for buying and $100,999 for selling, creating a wider spread."
+                                        ></i
+                                    ></label>
+                                    <input type="number" class="form-control" id="market_gap" name="market_gap" step="0.01" min="0" value="0.05" required />
+                                    <div class="form-text">Percentage step from the best price on the external exchange</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bot details -->
+                <div id="bot-details-container" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Bot details</h2>
+                        <button id="back-from-details-btn" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to list</button>
+                    </div>
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Bot information</h5>
+                            <div class="bot-actions">
+                                <button id="edit-bot-btn" class="btn btn-sm btn-primary me-2"><i class="bi bi-pencil"></i> Edit</button>
+                                <button id="toggle-bot-btn" class="btn btn-sm btn-success me-2"><i class="bi bi-play-fill"></i> Enable</button>
+                                <button id="delete-bot-btn" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Delete</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="bot-details">
+                                <!-- Here will be the bot details -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal window for confirmation of deletion -->
+        <div class="modal fade" id="delete-confirm-modal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm deletion</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete the bot <span id="delete-bot-name"></span>?</p>
+                        <p class="text-danger">This action is irreversible!</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="./js/api.js"></script>
+        <script src="./js/botList.js"></script>
+        <script src="./js/botDetails.js"></script>
+        <script src="./js/botForm.js"></script>
+        <script src="./js/app.js"></script>
+    </body>
+</html>

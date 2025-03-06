@@ -1,26 +1,27 @@
 FROM php:8.1-cli
 
-# Встановлення залежностей
+# Installing dependencies
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
     libzip-dev \
     && docker-php-ext-install zip
 
-# Встановлення Composer
+# Installing Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Створення робочої директорії
+# Creating working directory
 WORKDIR /app
 
-# Копіювання файлів проекту
+# Copying project files
 COPY . /app/
 
-# Встановлення прав на запис для директорії з логами
-RUN mkdir -p /app/src/data && chmod -R 777 /app/src/data
+# Setting write permissions for data directories
+RUN mkdir -p /app/data/logs /app/data/pids && chmod -R 777 /app/data
 
-# Відкриття порту для API
+# Exposing ports for API and frontend
 EXPOSE 8080
+EXPOSE 80
 
-# Запуск бота за замовчуванням
-CMD ["php", "src/TradingBotManager.php"] 
+# Default command (will be overridden by docker-compose)
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "src/api"] 

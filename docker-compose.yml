@@ -4,17 +4,38 @@ services:
     trading-bot:
         build: .
         volumes:
-            - ./src/data:/app/src/data
+            - ./data:/app/data
+            - ./config:/app/config
         ports:
-            - '5560:8080'
+            - '5560:8080'  # For API access if needed
         restart: unless-stopped
-        command: php src/TradingBotManager.php
+        command: php src/core/TradingBotManager.php
+        networks:
+            - bot-network
 
     api:
         build: .
         volumes:
-            - ./src/data:/app/src/data
+            - ./data:/app/data
+            - ./config:/app/config
         ports:
-            - '5561:8080'
+            - '5561:8080'  # API port
         restart: unless-stopped
-        command: php -S 0.0.0.0:8080 src/api.php
+        command: php -S 0.0.0.0:8080 -t src/api
+        networks:
+            - bot-network
+
+    frontend:
+        build: .
+        volumes:
+            - ./frontend:/app/frontend
+        ports:
+            - '5562:80'  # Frontend port
+        restart: unless-stopped
+        command: php -S 0.0.0.0:80 -t frontend
+        networks:
+            - bot-network
+
+networks:
+    bot-network:
+        driver: bridge

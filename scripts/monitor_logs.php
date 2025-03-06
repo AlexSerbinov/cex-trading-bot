@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/../src/core/Logger.php';
 
-$logger = new Logger(false);
+$logger = Logger::getInstance(false);
 $logFile = $logger->getLogFile();
 
-echo "Моніторинг файлу логів: {$logFile}" . PHP_EOL;
-echo "Натисніть Ctrl+C для виходу" . PHP_EOL;
+echo "Monitoring the log file: {$logFile}" . PHP_EOL;
+echo "Press Ctrl+C to exit" . PHP_EOL;
 
 $lastSize = 0;
 

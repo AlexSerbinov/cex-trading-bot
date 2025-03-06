@@ -12,17 +12,17 @@ class Logger
     private static ?Logger $instance = null;
 
     /**
-     * Конструктор
+     * Constructor
      * 
-     * @param bool $consoleOutput Виводити логи в консоль
-     * @param string|null $logFile Шлях до файлу логів (якщо null, використовується стандартний шлях)
+     * @param bool $consoleOutput Output logs to the console
+     * @param string|null $logFile Path to the log file (if null, the default path is used)
      */
     private function __construct(bool $consoleOutput = true, ?string $logFile = null)
     {
         $this->consoleOutput = $consoleOutput;
-        $this->logFile = $logFile ?? __DIR__ . '/data/bot.log';
+        $this->logFile = $logFile ?? __DIR__ . '/../../data/logs/bot.log';
         
-        // Створюємо директорію для логів, якщо вона не існує
+        // Creating the log directory if it does not exist
         $logDir = dirname($this->logFile);
         if (!is_dir($logDir)) {
             mkdir($logDir, 0755, true);
@@ -30,7 +30,7 @@ class Logger
     }
     
     /**
-     * Отримання екземпляру класу (Singleton)
+     * Getting an instance of the class (Singleton)
      */
     public static function getInstance(bool $consoleOutput = true, ?string $logFile = null): Logger
     {
@@ -44,18 +44,19 @@ class Logger
      * Logs a message.
      *
      * @param string $message Message to log
+     * @param bool $includeTimestamp Whether to include timestamp
      */
-    public function log(string $message): void
+    public function log(string $message, bool $includeTimestamp = true): void
     {
-        $logMessage = '[' . date('Y-m-d H:i:s') . '] ' . $message . PHP_EOL;
+        $logMessage = $includeTimestamp ? '[' . date('Y-m-d H:i:s') . '] ' . $message : $message;
         
-        // Виводимо в консоль, якщо потрібно
-        if ($this->consoleOutput) {
-            echo $logMessage;
+        // Adding a message to the file
+        file_put_contents($this->logFile, $logMessage . PHP_EOL, FILE_APPEND);
+        
+        // Output to the console only if the option is enabled and NOT in the context of an API request
+        if ($this->consoleOutput && php_sapi_name() === 'cli') {
+            echo $logMessage . PHP_EOL;
         }
-        
-        // Записуємо в файл
-        file_put_contents($this->logFile, $logMessage, FILE_APPEND);
     }
 
     /**
@@ -69,9 +70,19 @@ class Logger
     }
     
     /**
-     * Отримати шлях до файлу логів
+     * Logs a debug message.
+     *
+     * @param string $message Debug message to log
+     */
+    public function debug(string $message): void
+    {
+        $this->log('DEBUG: ' . $message);
+    }
+    
+    /**
+     * Getting the path to the log file
      * 
-     * @return string Шлях до файлу логів
+     * @return string The path to the log file
      */
     public function getLogFile(): string
     {
@@ -79,7 +90,7 @@ class Logger
     }
     
     /**
-     * Очистити файл логів
+     * Clearing the log file
      */
     public function clearLog(): void
     {
@@ -87,10 +98,10 @@ class Logger
     }
     
     /**
-     * Отримати вміст файлу логів
+     * Getting the content of the log file
      * 
-     * @param int $lines Кількість останніх рядків для отримання (0 - всі)
-     * @return string Вміст файлу логів
+     * @param int $lines The number of the last lines to get (0 - all)
+     * @return string The content of the log file
      */
     public function getLogContent(int $lines = 0): string
     {
@@ -104,11 +115,11 @@ class Logger
             return $content;
         }
         
-        // Отримуємо останні N рядків
+        // Getting the last N lines
         $logLines = explode(PHP_EOL, $content);
-        $logLines = array_filter($logLines); // Видаляємо порожні рядки
+        $logLines = array_filter($logLines); // Removing empty lines
         $logLines = array_slice($logLines, -$lines);
         
         return implode(PHP_EOL, $logLines);
     }
-}
+} 

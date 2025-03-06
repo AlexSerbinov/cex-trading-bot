@@ -1,24 +1,24 @@
 <?php
-// Скрипт для запуску одного бота для конкретної пари
+// Script for running a single bot for a specific pair
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/tradingBotMain.php';
 
-// Отримуємо пару з аргументів командного рядка
+// Getting the pair from the command line arguments
 if ($argc < 2) {
-    echo "Використання: php bot.php PAIR_NAME\n";
+    echo "Usage: php bot.php PAIR_NAME\n";
     exit(1);
 }
 
 $pair = $argv[1];
 
-// Перевіряємо, чи існує конфігурація для пари
+// Checking if the configuration exists for the pair
 try {
     $pairConfig = Config::getPairConfig($pair);
 } catch (RuntimeException $e) {
-    echo "Помилка: " . $e->getMessage() . "\n";
+    echo "Error: " . $e->getMessage() . "\n";
     exit(1);
 }
 
-// Запускаємо бота для цієї пари
+// Running the bot for this pair
 $bot = new TradingBot($pair);
 $bot->run(); 

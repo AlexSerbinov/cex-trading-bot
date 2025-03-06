@@ -1,298 +1,294 @@
-# Multi-Pair Trading Bot for Cryptocurrency Exchange
+# Cryptocurrency Market Making Bot
 
-This trading bot simulates trading activity on a cryptocurrency exchange by creating and managing orders for multiple trading pairs simultaneously. It's designed to create market liquidity by maintaining a specified number of buy and sell orders and periodically executing trades across various trading pairs.
+A sophisticated market making bot designed to create and maintain liquidity on cryptocurrency exchanges by simulating realistic trading activity. This bot copies order books from external exchanges, applies customizable parameters, and places orders on your exchange to create natural market depth and trading patterns.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
-- [File Structure](#file-structure)
-- [Configuration](#configuration)
+- [Architecture](#architecture)
 - [Installation](#installation)
-- [Usage](#usage)
-- [Managing Multiple Pairs](#managing-multiple-pairs)
+- [Configuration](#configuration)
+- [Bot Parameters](#bot-parameters)
+- [API Reference](#api-reference)
+- [Web Interface](#web-interface)
 - [Monitoring](#monitoring)
 - [Troubleshooting](#troubleshooting)
-- [Future Improvements](#future-improvements)
 
 ## Overview
 
-The trading bot connects to your exchange API and simulates trading activity by:
+This market making bot is designed to:
 
-- Maintaining a specified number of buy and sell orders for each pair
-- Periodically placing and canceling orders
-- Executing market trades to simulate real trading activity
-- Supporting multiple trading pairs simultaneously with independent processes
+1. Copy order books from external exchanges (like Binance or Kraken)
+2. Apply customizable parameters to adjust order placement
+3. Create realistic market depth by maintaining buy and sell orders
+4. Execute trades periodically to simulate natural market activity
+5. Support multiple trading pairs simultaneously
+6. Provide a user-friendly web interface for configuration and monitoring
+
+The bot runs as a background process for each trading pair, continuously maintaining orders and executing trades based on the configured parameters.
 
 ## Features
 
-- **Multi-pair support**: Run dozens of trading pairs simultaneously
-- **Independent processes**: Each pair runs in its own process for stability
-- **Configurable parameters per pair**: Customize settings for each trading pair
-- **Automatic order book maintenance**: Keeps order books within specified limits
-- **Random trading patterns**: Simulates real market activity with varied behaviors
-- **Graceful error handling**: Automatic retries and error recovery
-- **Flexible deployment**: Run all pairs or select specific pairs as needed
+- **Multi-pair support**: Run independent bots for multiple trading pairs
+- **External order book mirroring**: Copy and adjust real market data
+- **Customizable trading parameters**: Fine-tune each bot's behavior
+- **Process management**: Start, stop, and monitor bots through API or web interface
+- **Realistic trading simulation**: Create natural-looking market activity
+- **Persistent configuration**: Store settings in JSON configuration files
+- **RESTful API**: Control bots programmatically
+- **Web dashboard**: User-friendly interface for management
 
-## File Structure
+## Architecture
 
-- **config.php**: Configuration settings for the bot and trading pairs
-- **tradingBotMain.php**: Main bot logic for order management and trading
-- **ApiClient.php**: Handles API communication with the exchange
-- **Logger.php**: Logging functionality
-- **MockOrderBook.php**: Generates mock order book data for testing
-- **TradingBotManager.php**: Manages multiple bot instances (one per pair)
-- **bot.php**: Command-line script to run a single bot for a specific pair
-- **manager.php**: Script to launch multiple bots for all enabled pairs
-- **stop.php**: Script to stop all running bots
+The system consists of several components:
 
-## Configuration
+1. **Core Trading Logic** (`src/core/`):
+   - `TradingBot.php`: Main bot logic for order management and trading
+   - `BotProcess.php`: Process management for running bots in the background
+   - `ApiClient.php`: Communication with the trading server
+   - `ExchangeManager.php`: Fetching data from external exchanges
+   - `Logger.php`: Logging functionality
 
-The bot is configured through the `config.php` file. Key configuration options include:
+2. **API Layer** (`src/api/`):
+   - `BotManager.php`: High-level bot management
+   - `BotStorage.php`: Configuration storage and retrieval
+   - `index.php`: RESTful API endpoints
 
-### Trading Pair Configuration
+3. **Web Interface** (`frontend/`):
+   - HTML/CSS/JavaScript dashboard for bot management
+   - Real-time status monitoring
+   - Configuration interface
 
-Each trading pair has its own configuration:
-
-```php
-public const TRADING_PAIRS = [
-    'LTC_USDT' => [
-        'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=LTCUSDT',
-        'bot_balance' => 50.0,
-        'min_orders' => 15,
-        'max_orders' => 17,
-        'price_deviation_percent' => 5.0,
-        'enabled' => true,
-    ],
-    'ETH_USDT' => [
-        'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=ETHUSDT',
-        'bot_balance' => 2.0,
-        'min_orders' => 15,
-        'max_orders' => 17,
-        'price_deviation_percent' => 5.0,
-        'enabled' => true,
-    ],
-    'BTC_USDT' => [
-        'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=BTCUSDT',
-        'bot_balance' => 0.5,
-        'min_orders' => 15,
-        'max_orders' => 17,
-        'price_deviation_percent' => 5.0,
-        'enabled' => false,  // Disabled pair
-    ],
-    // Add more pairs as needed
-];
-```
-
-Parameters for each pair:
-
-- **external_api_url**: URL to fetch external order book data
-- **bot_balance**: Available balance for the bot to use
-- **min_orders**: Minimum number of orders to maintain
-- **max_orders**: Maximum number of orders to maintain
-- **price_deviation_percent**: Maximum price deviation from market price
-- **enabled**: Whether this pair is active (true/false)
+4. **Configuration** (`config/`, `data/`):
+   - `config.php`: System-wide configuration
+   - `bots_config.json`: Individual bot configurations
 
 ## Installation
 
 ### Prerequisites
 
 - PHP 7.4 or higher
-- PHP cURL extension
-- Access to your exchange API
+- Web server (Apache or Nginx)
+- Access to a trading server API
 
 ### Setup
 
 1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/trading-bot.git
+   cd trading-bot
+   ```
 
-    ```bash
-    git clone https://github.com/yourusername/trading-bot.git
-    cd trading-bot
-    ```
+2. Configure your web server to point to the project directory
 
-2. Configure your trading pairs in `config.php`
+3. Set up the data directory:
+   ```bash
+   mkdir -p data/pids
+   chmod -R 755 data
+   ```
 
-3. Create a logs directory:
-    ```bash
-    mkdir -p logs
-    ```
+4. Update the configuration in `config/config.php`:
+   - Set `TRADE_SERVER_URL` to your trading server endpoint
+   - Configure other system parameters as needed
 
-## Usage
+5. Access the web interface at `http://your-server/`
 
-### Running a Single Pair
+## Configuration
 
-To run the bot for a single trading pair:
+The bot can be configured in two ways:
 
-```bash
-php bot.php LTC_USDT
+1. **Via Web Interface**: The easiest method for most users
+2. **Via API**: For programmatic control
+3. **Direct Configuration File**: For advanced users
+
+### Configuration File
+
+The main configuration file is located at `data/bots_config.json`. This file stores settings for all bots in the following format:
+
+```json
+{
+  "BTC_USDT": {
+    "id": 1,
+    "exchange": "binance",
+    "min_orders": 2,
+    "max_orders": 4,
+    "price_deviation_percent": 0.5,
+    "market_gap": 0.05,
+    "frequency_from": 30,
+    "frequency_to": 60,
+    "bot_balance": 10,
+    "isActive": true,
+    "created_at": "2023-05-15 10:00:00",
+    "updated_at": "2023-05-15 10:00:00",
+    "trade_amount_min": 0.1,
+    "trade_amount_max": 1.0
+  }
+}
 ```
 
-Replace `LTC_USDT` with the desired trading pair.
+**Note**: When you create or update a bot through the API or web interface, the configuration file is automatically updated. Manual changes to this file may be overwritten.
 
-### Running All Enabled Pairs
+## Bot Parameters
 
-To run the bot for all enabled pairs:
+Each bot has the following configurable parameters:
 
-```bash
-php manager.php
-```
+| Parameter | Description | Default | Impact |
+|-----------|-------------|---------|--------|
+| **market** | Trading pair in format BASE_QUOTE (e.g., BTC_USDT) | - | Defines which cryptocurrencies the bot will trade |
+| **exchange** | External exchange to copy order book from (binance, kraken) | binance | Determines the source of market data |
+| **trade_amount_min** | Minimum amount of base currency for each trade | 0.1 | Lower values create more frequent but smaller trades |
+| **trade_amount_max** | Maximum amount of base currency for each trade | 1.0 | Higher values allow for larger trades and more significant price movements |
+| **frequency_from** | Minimum time interval between bot actions (seconds) | 30 | Lower values increase trading frequency and liquidity |
+| **frequency_to** | Maximum time interval between bot actions (seconds) | 60 | Higher values make trading patterns more unpredictable |
+| **price_factor** | Maximum percentage deviation from market price | 0.5 | Higher values create wider price ranges for orders |
+| **market_gap** | Percentage step from best price on external exchange | 0.05 | Controls the spread between buy and sell orders |
 
-This will start a separate process for each enabled pair defined in the configuration.
+### Parameter Details
 
-### Stopping All Bots
+#### Market Gap
 
-To stop all running bots:
+The Market Gap parameter is particularly important as it controls the gap between the best buy and sell orders, thereby regulating the spread. A higher Market Gap creates a larger spread between buy and sell prices, which acts as a protective mechanism to control liquidity and reduce risks.
 
-```bash
-php stop.php
-```
+For example, with a 1% Market Gap:
+- If BTC is trading at $100,000 on the external exchange
+- With best buy at $100,002 and best sell at $99,999
+- Your bot will place orders at $99,002 for buying and $100,999 for selling
+- This creates a wider spread, reducing the risk of immediate fills
 
-## Managing Multiple Pairs
+#### Price Factor
 
-The bot is designed to handle multiple trading pairs simultaneously, with each pair running in its own process.
+The Price Factor determines how far from the current market price the bot will place its orders. Higher values create a wider price range for orders, simulating more volatile market conditions. Lower values keep orders closer to the current market price, creating tighter spreads.
 
-### How Multi-Pair Support Works
+## How the Bot Works
 
-1. **Independent Configuration**: Each pair has its own configuration in `config.php`
-2. **Process Isolation**: Each pair runs in a separate PHP process
-3. **Resource Management**: Each bot instance manages its own resources
-4. **Selective Enabling**: Pairs can be enabled/disabled via configuration
+1. **Initialization**:
+   - The bot loads its configuration from the storage
+   - It connects to the trading server and external exchange
 
-### Adding a New Pair
+2. **Order Book Copying**:
+   - The bot retrieves the order book from the selected external exchange
+   - It takes a configurable number of the closest buy and sell orders
 
-To add a new trading pair:
+3. **Order Adjustment**:
+   - The bot applies the Market Gap parameter to create a spread
+   - It applies the Price Factor to determine the range of order placement
+   - It randomly varies order sizes within the configured min/max range
 
-1. Add the pair configuration to `config.php`:
+4. **Order Placement**:
+   - The bot places buy and sell orders on your exchange
+   - Orders are distributed to create natural-looking market depth
 
-    ```php
-    'NEW_PAIR' => [
-        'external_api_url' => 'https://api.kraken.com/0/public/Depth?pair=NEWPAIR',
-        'bot_balance' => 10.0,
-        'min_orders' => 15,
-        'max_orders' => 17,
-        'price_deviation_percent' => 5.0,
-        'enabled' => true,
-    ],
-    ```
+5. **Maintenance Loop**:
+   - The bot periodically checks the status of its orders
+   - It cancels and replaces orders as needed
+   - It executes trades at random intervals to simulate activity
+   - It waits for a random time period (between frequency_from and frequency_to)
+   - The loop continues until the bot is stopped
 
-2. Run the manager to start all enabled pairs including the new one:
-    ```bash
-    php manager.php
-    ```
+6. **Process Management**:
+   - Each bot runs as a separate background process
+   - The BotProcess class manages starting, stopping, and monitoring these processes
 
-### Managing Specific Pairs
+## API Reference
 
-You can selectively run specific pairs:
+The bot provides a RESTful API for management:
 
-```bash
-# Run just two specific pairs
-php bot.php LTC_USDT > logs/ltc_usdt.log 2>&1 &
-php bot.php ETH_USDT > logs/eth_usdt.log 2>&1 &
-```
+### Bot Management
 
-### Disabling a Pair
+- `GET /api/bots` - List all bots
+- `GET /api/bots/{id}` - Get bot details
+- `POST /api/bots` - Create a new bot
+- `PUT /api/bots/{id}` - Update bot configuration
+- `DELETE /api/bots/{id}` - Delete a bot
 
-To disable a pair without removing it from configuration:
+### Bot Control
 
-1. Set `'enabled' => false` in the pair's configuration
-2. Restart the manager or stop the specific pair process
+- `PUT /api/bots/{id}/enable` - Start a bot
+- `PUT /api/bots/{id}/disable` - Stop a bot
+- `PUT /api/bots/{id}/update-balance` - Update bot's balance
+
+### System Information
+
+- `GET /api/exchanges` - List supported exchanges
+- `GET /api/pairs` - List available trading pairs
+- `GET /api/logs` - Get system logs
+
+## Web Interface
+
+The web interface provides a user-friendly way to manage bots:
+
+### Main Dashboard
+
+The main dashboard displays a list of all bots with key information:
+- ID and trading pair
+- Exchange
+- Status (active/inactive)
+- Min/Max trade amounts
+- Frequency range
+- Price deviation and market gap settings
+
+### Bot Creation
+
+To create a new bot:
+1. Click the "Create Bot" button
+2. Fill in the required parameters
+3. Click "Save"
+
+### Bot Details
+
+Click on a bot in the list to view detailed information:
+- All configuration parameters
+- Creation and update timestamps
+- Controls for enabling/disabling the bot
+- Edit and delete options
 
 ## Monitoring
 
-The bot logs all activities to the console. For production use, consider redirecting output to log files:
+The bot provides several ways to monitor its activity:
 
-```bash
-php bot.php LTC_USDT > logs/ltc_usdt.log 2>&1 &
-```
-
-You can monitor the logs in real-time using:
-
-```bash
-tail -f logs/ltc_usdt.log
-```
-
-For multiple pairs, you can use:
-
-```bash
-tail -f logs/*.log
-```
+1. **Web Interface**: View bot status and configuration
+2. **Logs**: Access detailed logs via API or file system
+3. **Process Status**: Check running processes with system tools
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **API Connection Errors**
+1. **Bot not starting**:
+   - Check if the process is already running
+   - Verify the configuration parameters
+   - Check logs for errors
 
-    - Check your network connection
-    - Verify the API URL in the configuration
-    - Ensure your API credentials are correct
+2. **Orders not appearing**:
+   - Verify connection to the trading server
+   - Check if the bot has sufficient balance
+   - Ensure the trading pair exists on your exchange
 
-2. **Insufficient Balance**
+3. **Unexpected behavior**:
+   - Review the configuration parameters
+   - Check external exchange connectivity
+   - Verify system resources (memory, CPU)
 
-    - Adjust the `bot_balance` parameter in the configuration
-    - Check your actual balance on the exchange
+### Log Analysis
 
-3. **High CPU Usage**
+Logs are stored in the `data/logs` directory and can be accessed via:
+- API: `GET /api/logs`
+- File system: Check the log files directly
 
-    - Increase the delay parameters in the configuration
-    - Reduce the number of active pairs
-    - Consider distributing pairs across multiple servers
+## Advanced Usage
 
-4. **Process Management**
-    - If processes don't stop properly, use `ps aux | grep php` to find them
-    - Kill manually with `kill -9 PID`
+### Multiple Exchange Support
 
-### Debugging
+The bot can copy order books from different exchanges for different pairs. For example:
+- BTC_USDT from Binance
+- ETH_USDT from Kraken
 
-For debugging, you can enable mock data mode by defining the constant:
+This allows you to create diverse market conditions based on different external sources.
 
-```php
-define('USE_MOCK_DATA', true);
-```
+### Custom Trading Strategies
 
-This will use the MockOrderBook class instead of making actual API calls.
-
-## Future Improvements
-
-### API Management Interface
-
-A planned enhancement is to add a REST API for managing the trading bots:
-
-- **Features**:
-
-    - Start/stop individual pairs via API
-    - Modify pair configurations without restarting
-    - Get real-time status of all running bots
-    - View performance metrics and logs
-    - Adjust trading parameters on-the-fly
-
-- **Implementation Plan**:
-    - Create a lightweight API server using PHP or Node.js
-    - Implement authentication for secure access
-    - Develop endpoints for all management functions
-    - Add a web dashboard for visual management
-
-### Multi-Exchange Support
-
-Another major planned improvement is supporting multiple exchanges:
-
-- **Features**:
-
-    - Connect to multiple exchanges simultaneously
-    - Configure different strategies per exchange
-    - Cross-exchange arbitrage capabilities
-    - Unified configuration interface for all exchanges
-
-- **Implementation Plan**:
-    - Create abstraction layer for exchange APIs
-    - Implement adapters for major exchanges (Binance, Coinbase, etc.)
-    - Develop exchange-specific configuration options
-    - Add support for exchange-specific features
-
-### Additional Planned Improvements
-
-- **Advanced Trading Strategies**: Implement more sophisticated trading algorithms
-- **Performance Optimization**: Reduce resource usage for high-volume pairs
-- **Distributed Architecture**: Support for running bots across multiple servers
-- **Data Analysis Tools**: Add tools for analyzing bot performance and market data
-- **Alerting System**: Implement notifications for critical events and anomalies
+While the bot is primarily designed for market making, you can adjust parameters to implement different strategies:
+- Tight spreads with small orders for high-liquidity pairs
+- Wide spreads with larger orders for low-liquidity pairs
+- Varying frequencies to match typical trading patterns for specific assets

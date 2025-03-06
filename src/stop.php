@@ -1,23 +1,23 @@
 <?php
-// Скрипт для зупинки ботів
+// Script for stopping bots
 require_once __DIR__ . '/Logger.php';
 
 $logger = new Logger();
 
-// Завантажуємо PIDs запущених ботів
+// Loading the PIDs of running bots
 if (!file_exists(__DIR__ . '/running_bots.json')) {
-    $logger->log('Немає запущених ботів');
+    $logger->log('No running bots');
     exit(0);
 }
 
 $processes = json_decode(file_get_contents(__DIR__ . '/running_bots.json'), true);
 
 foreach ($processes as $pair => $pid) {
-    // Зупиняємо процес
+    // Stopping the process
     exec("kill $pid");
-    $logger->log(sprintf('Зупинено бота для пари %s (PID: %s)', $pair, $pid));
+    $logger->log(sprintf('Stopped bot for pair %s (PID: %s)', $pair, $pid));
 }
 
-// Видаляємо файл з PIDs
+// Deleting the PIDs file
 unlink(__DIR__ . '/running_bots.json');
-$logger->log('Всі боти зупинено'); 
+$logger->log('All bots stopped'); 

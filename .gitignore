@@ -4,5 +4,49 @@
 /package-lock.json
 /package.json
 /.prettierrc
-/utils/OrderBookConsoleTool.ts
-/node_modules/
+/utils/OrderBookConsoleTool.ts/node_modules/
+# IDE and editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Dependency directories
+vendor/
+node_modules/
+
+# Logs and runtime data
+data/logs/
+data/pids/
+*.log
+*.pid
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Docker related
+.docker/
+
+# Composer
+composer.phar
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# Build artifacts
+dist/
+build/
+
+# Specific project files that should not be tracked
+ETHBTC.pid
+LTCETH.pid
+LTCUSDT.pid
+bot.log

@@ -1,0 +1,94 @@
+/* General styles */
+body {
+    background-color: #f8f9fa;
+}
+
+/* Card styles */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 0.5rem;
+    border: none;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* Table styles */
+.table {
+    vertical-align: middle;
+}
+
+/* Bot status styles */
+.status-badge {
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 700;
+    border-radius: 0.25rem;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-inactive {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+/* Action buttons styles */
+.action-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Bot details styles */
+.bot-detail-row {
+    display: flex;
+    margin-bottom: 0.5rem;
+}
+
+.bot-detail-label {
+    font-weight: 600;
+    width: 200px;
+}
+
+.bot-detail-value {
+    flex: 1;
+}
+
+/* Notifications styles */
+.alert {
+    margin-bottom: 1rem;
+}
+
+/* Loading animation */
+.spinner-border {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+}
+
+/* Logo styles */
+.navbar-brand img {
+    margin-right: 0.5rem;
+}
+
+/* Information icon styles */
+.info-icon {
+    cursor: help;
+    margin-left: 5px;
+    font-size: 0.9rem;
+}
+
+/* Tooltip styles */
+.tooltip-inner {
+    max-width: 300px;
+    text-align: left;
+    padding: 10px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+} 
