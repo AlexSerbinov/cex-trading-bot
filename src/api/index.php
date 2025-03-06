@@ -90,6 +90,18 @@ try {
                 exit;
             }
             
+            // Перетворення плоскої структури в структуру з вкладеним масивом settings
+            if (!isset($data['settings']) && isset($data['trade_amount_min'])) {
+                $data['settings'] = [
+                    'trade_amount_min' => $data['trade_amount_min'] ?? 0.1,
+                    'trade_amount_max' => $data['trade_amount_max'] ?? 1,
+                    'frequency_from' => $data['frequency_from'] ?? 30,
+                    'frequency_to' => $data['frequency_to'] ?? 60,
+                    'price_factor' => $data['price_factor'] ?? 0.01,
+                    'market_gap' => $data['market_gap'] ?? 0.05,
+                ];
+            }
+            
             $bot = $botManager->addBot($data);
             echo json_encode($bot);
             exit;
@@ -129,7 +141,7 @@ try {
                 exit;
             }
             
-            echo json_encode(['success' => true, 'message' => 'Bot deleted']);
+            echo json_encode(['success' => true, 'message' => "Bot with ID {$id} deleted successfully"]);
             exit;
         }
         

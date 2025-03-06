@@ -20,6 +20,7 @@ class TradingBot
     private bool $initialized = false;
     private ?array $dynamicConfig;
     private ExchangeManager $exchangeManager;
+    private array $openOrders = [];
 
     /**
      * Constructor for TradingBot.
@@ -208,30 +209,20 @@ class TradingBot
      */
     public function clearAllOrders(): void
     {
-        $this->logger->log("Clearing all orders for the pair {$this->pair}...");
+        $this->logger->log("[{$this->pair}] Clearing all orders");
         
-        try {
-            // Getting all open orders
-            $pendingOrders = $this->getPendingOrders();
-            
-            if (empty($pendingOrders)) {
-                $this->logger->log("There are no open orders for the pair {$this->pair}");
-                return;
-            }
-            
-            // Cancelling each order
-            foreach ($pendingOrders as $order) {
-                $this->cancelOrder($order['id']);
-                $this->logger->log("[{$this->pair}] Cancelled order: {$order['id']}");
-                
-                // Small delay between cancellations
-                usleep(mt_rand(Config::DELAY_CLEAR_MIN * 1000, Config::DELAY_CLEAR_MAX * 1000));
-            }
-            
-            $this->logger->log("All existing orders for the pair {$this->pair} have been cleared.");
-        } catch (Exception $e) {
-            $this->logger->error("[{$this->pair}] Error clearing orders: " . $e->getMessage());
+        // Отримання списку відкритих ордерів
+        $openOrders = $this->exchangeManager->getOpenOrders($this->pair);
+        $this->logger->log("[{$this->pair}] Found " . count($openOrders) . " open orders to clear");
+        
+        foreach ($openOrders as $order) {
+            $this->logger->log("[{$this->pair}] Attempting to cancel order: {$order['id']}");
+            $this->cancelOrder($order['id']);
+            // Додаємо невелику затримку між скасуваннями ордерів
+            usleep(100000); // 100 мс
         }
+        
+        $this->logger->log("[{$this->pair}] All orders cleared");
     }
 
     /**
@@ -245,6 +236,7 @@ class TradingBot
      */
     private function placeLimitOrder(int $side, string $amount, string $price)
     {
+        $this->logger->log("[{$this->pair}] Placing a limit order for side={$side}, amount={$amount}, price={$price} with fees: " . Config::TAKER_FEE . " and " . Config::MAKER_FEE);
         $body = [
             'method' => 'order.put_limit',
             'params' => [
@@ -285,26 +277,27 @@ class TradingBot
      */
     private function cancelOrder(int $orderId)
     {
-        $body = [
-            'method' => 'order.cancel',
-            'params' => [Config::BOT_USER_ID, $this->pair, $orderId],
-            'id' => 1,
-        ];
-        $response = $this->apiClient->post(Config::TRADE_SERVER_URL, json_encode($body));
-        $data = json_decode($response, true);
-
-        if ($data['error'] !== null) {
-            $this->logger->log(
-                sprintf(
-                    '[%s] Result of cancelling order %d: %s',
-                    $this->pair,
-                    $orderId,
-                    json_encode($data, JSON_PRETTY_PRINT),
-                ),
-            );
+        try {
+            $this->logger->log("[{$this->pair}] Cancelling order {$orderId}");
+            $result = $this->exchangeManager->cancelOrder($orderId, $this->pair);
+            // $this->logger->log("[{$this->pair}] Result of cancelling order {$orderId}: " . json_encode($result, JSON_PRETTY_PRINT));
+            
+            // Перевірка на помилку "order not found"
+            if (isset($result['error']) && isset($result['error']['code']) && $result['error']['code'] == 10) {
+                $this->logger->log("[{$this->pair}] Order {$orderId} already executed or cancelled, ignoring error");
+                return true; // Вважаємо, що ордер успішно скасовано
+            }
+            
+            if (!isset($result['result']) || $result['result'] === null) {
+                $this->logger->error("[{$this->pair}] Failed to cancel order {$orderId}: " . json_encode($result));
+                return false;
+            }
+            
+            return isset($result['result']) && $result['result'] !== null;
+        } catch (Exception $e) {
+            $this->logger->error("[{$this->pair}] Error cancelling order {$orderId}: " . $e->getMessage());
+            return false;
         }
-
-        return $data;
     }
 
     /**
@@ -370,25 +363,69 @@ class TradingBot
     }
 
     /**
-     * Initializes the order book based on external data.
+     * Initializes the order book with initial orders.
+     *
+     * @param array $orderBook Order book from external source
      */
     private function initializeOrderBook(array $orderBook): void
     {
-        $botBalance = $this->pairConfig['bot_balance'];
-        $scaledBids = $this->scaleVolumes($orderBook['bids'], $botBalance / 2, true); // Half balance for bids
-        $scaledAsks = $this->scaleVolumes($orderBook['asks'], $botBalance / 2, false); // Half balance for asks
-        $minOrders = $this->pairConfig['min_orders'];
-
-        foreach (array_slice($scaledBids, 0, $minOrders) as $bid) {
-            $this->placeLimitOrder($bid['side'], $bid['amount'], $bid['price']);
-            $this->logger->log(sprintf('[%s] Initialized bid: %s @ %s', $this->pair, $bid['amount'], $bid['price']));
-            $this->randomDelay(Config::DELAY_INIT_MIN, Config::DELAY_INIT_MAX);
+        // Отримуємо налаштування для мінімального та максимального обсягу торгівлі
+        $tradeAmountMin = $this->pairConfig['trade_amount_min'] ?? 0.1;
+        $tradeAmountMax = $this->pairConfig['trade_amount_max'] ?? 1.0;
+        
+        // Перевіряємо, що значення не нульові
+        if ($tradeAmountMin <= 0) {
+            $this->logger->error("[{$this->pair}] Invalid trade_amount_min: {$tradeAmountMin}, using default 0.1");
+            $tradeAmountMin = 0.1;
         }
-
-        foreach (array_slice($scaledAsks, 0, $minOrders) as $ask) {
-            $this->placeLimitOrder($ask['side'], $ask['amount'], $ask['price']);
-            $this->logger->log(sprintf('[%s] Initialized ask: %s @ %s', $this->pair, $ask['amount'], $ask['price']));
-            $this->randomDelay(Config::DELAY_INIT_MIN, Config::DELAY_INIT_MAX);
+        
+        if ($tradeAmountMax <= 0) {
+            $this->logger->error("[{$this->pair}] Invalid trade_amount_max: {$tradeAmountMax}, using default 1.0");
+            $tradeAmountMax = 1.0;
+        }
+        
+        // Переконуємося, що min не більше max
+        if ($tradeAmountMin > $tradeAmountMax) {
+            $this->logger->error("[{$this->pair}] trade_amount_min > trade_amount_max, swapping values");
+            $temp = $tradeAmountMin;
+            $tradeAmountMin = $tradeAmountMax;
+            $tradeAmountMax = $temp;
+        }
+        
+        // Розрахунок ринкової ціни
+        $marketPrice = $this->calculateMarketPrice($orderBook);
+        
+        // Створення початкових ордерів
+        $minOrders = $this->pairConfig['min_orders'] ?? 2;
+        $maxOrders = $this->pairConfig['max_orders'] ?? 4;
+        
+        // Випадкова кількість ордерів в діапазоні
+        $numOrders = mt_rand($minOrders, $maxOrders);
+        
+        $this->logger->log("[{$this->pair}] Initializing order book with {$numOrders} orders, market price: {$marketPrice}");
+        
+        for ($i = 0; $i < $numOrders; $i++) {
+            // Випадковий вибір сторони (bid або ask)
+            $side = mt_rand(1, 2);
+            
+            // Генерація випадкового обсягу в діапазоні
+            $randomFactor = mt_rand() / mt_getrandmax();
+            $amount = $tradeAmountMin + $randomFactor * ($tradeAmountMax - $tradeAmountMin);
+            $formattedAmount = number_format($amount, 8, '.', '');
+            
+            // Переконуємося, що обсяг не нульовий після форматування
+            if ((float)$formattedAmount <= 0) {
+                $this->logger->error("[{$this->pair}] Generated zero amount after formatting: original={$amount}, formatted={$formattedAmount}, using minimum");
+                $formattedAmount = number_format($tradeAmountMin, 8, '.', '');
+            }
+            
+            // Розрахунок ціни для ордера
+            $price = $this->calculateOrderPrice($marketPrice, $side);
+            
+            $this->logger->log("[{$this->pair}] Initialized " . ($side == 1 ? "ask" : "bid") . ": {$formattedAmount} @ " . number_format($price, 8, '.', ''));
+            
+            // Розміщення ордера
+            $this->placeLimitOrder($side, $formattedAmount, number_format($price, 8, '.', ''));
         }
     }
 
@@ -701,5 +738,15 @@ class TradingBot
         
         // Performing a random action
         $this->performRandomAction($currentBids, $currentAsks, $pendingOrders, $marketPrice);
+    }
+
+    // Оновлення списку відкритих ордерів перед кожною операцією
+    private function updateOpenOrders() {
+        try {
+            $this->openOrders = $this->exchangeManager->getOpenOrders($this->pair);
+            $this->logger->log("[{$this->pair}] Updated open orders list, found " . count($this->openOrders) . " orders");
+        } catch (Exception $e) {
+            $this->logger->error("[{$this->pair}] Error updating open orders: " . $e->getMessage());
+        }
     }
 }

@@ -543,4 +543,54 @@ class ExchangeManager
             return [];
         }
     }
+
+    public function getOpenOrders(string $pair): array
+    {
+        $this->logger->log("[{$pair}] Getting open orders");
+        
+        $body = [
+            'method' => 'order.pending',
+            'params' => [Config::BOT_USER_ID, $pair, 0, 100],
+            'id' => 1,
+        ];
+        
+        try {
+            $response = $this->apiClient->post(Config::TRADE_SERVER_URL, json_encode($body));
+            $data = json_decode($response, true);
+            
+            // $this->logger->log("[{$pair}] Open orders response: " . json_encode($data));
+            
+            if (isset($data['result']['records']) && is_array($data['result']['records'])) {
+                return $data['result']['records'];
+            }
+            
+            $this->logger->error("[{$pair}] Failed to get open orders: " . json_encode($data));
+            return [];
+        } catch (Exception $e) {
+            $this->logger->error("[{$pair}] Exception when getting open orders: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function cancelOrder(int $orderId, string $pair): array
+    {
+        $this->logger->log("Cancelling order {$orderId} for pair {$pair}");
+        
+        $body = [
+            'method' => 'order.cancel',
+            'params' => [Config::BOT_USER_ID, $pair, $orderId],
+            'id' => 1,
+        ];
+        
+        try {
+            $response = $this->apiClient->post(Config::TRADE_SERVER_URL, json_encode($body));
+            $data = json_decode($response, true);
+            
+            
+            return $data;
+        } catch (Exception $e) {
+            $this->logger->error("Exception when cancelling order: " . $e->getMessage());
+            return ['error' => ['message' => $e->getMessage()]];
+        }
+    }
 } 

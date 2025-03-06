@@ -7,8 +7,8 @@ declare(strict_types=1);
  */
 class Config
 {
-    public const TRADE_SERVER_URL = 'http://195.7.7.93:18080';
-    // public const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // - 90 demo
+    // public const TRADE_SERVER_URL = 'http://195.7.7.93:18080';
+    public const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // - 90 demo
     public const BOT_USER_ID = 5;
     public const TAKER_FEE = '0.07';
     public const MAKER_FEE = '0.02';
@@ -234,55 +234,48 @@ class Config
     }
     
     /**
-     * Updating bot data
+     * Updating a bot
      */
-    public static function updateBot($id, array $botData): ?array
+    public static function updateBot(int $id, array $botData): ?array
     {
         self::loadConfig();
         
-        // If $id is a numeric ID of a bot
-        if (is_numeric($id)) {
-            $id = (int)$id;
-            // Search for a bot by ID
-            $foundPair = null;
-            foreach (self::$config as $pair => $config) {
-                if (isset($config['id']) && $config['id'] === $id) {
-                    $foundPair = $pair;
-                    break;
-                }
-            }
-            
-            if (!$foundPair) {
-                return null;        
-            }
-            
-            $pair = $foundPair;
-        } else {
-            // If $id is already a pair name
-            $pair = $id;
-            
-            if (!isset(self::$config[$pair])) {
-                return null;
+        // Search for a bot by ID
+        $foundPair = null;
+        foreach (self::$config as $pair => $config) {
+            if (isset($config['id']) && $config['id'] === $id) {
+                $foundPair = $pair;
+                break;
             }
         }
         
-        // If the pair is changing, move the configuration
-        if (isset($botData['market']) && $botData['market'] !== $pair) {
-            $newPair = $botData['market'];
-            unset($botData['market']);
+        if ($foundPair === null) {
+            return null;
+        }
+        
+        // Check if the market has changed
+        $newPair = $botData['market'] ?? $foundPair;
+        
+        if ($newPair !== $foundPair) {
+            // If the market has changed, check if the new market already exists
+            if (isset(self::$config[$newPair])) {
+                return null;
+            }
             
-            // Copy the existing configuration
-            $config = self::$config[$pair];
+            // Copy the configuration
+            $config = self::$config[$foundPair];
             
             // Update the configuration
             foreach ($botData as $key => $value) {
-                $config[$key] = $value;
+                if ($key !== 'id') { // Don't change the ID
+                    $config[$key] = $value;
+                }
             }
             
             // Make sure the frequency is specified in seconds
-            if (isset($config['frequency_from']) && isset($config['frequency_to'])) {
-                $config['frequency_from'] = (int)$config['frequency_from'];
-                $config['frequency_to'] = (int)$config['frequency_to'];
+            if (isset($botData['frequency_from']) && isset($botData['frequency_to'])) {
+                $config['frequency_from'] = (int)$botData['frequency_from'];
+                $config['frequency_to'] = (int)$botData['frequency_to'];
                 
                 // Make sure the value is not less than 1 second
                 if ($config['frequency_from'] < 1) {
@@ -300,7 +293,7 @@ class Config
             }
             
             // Remove the old configuration and add the new one
-            unset(self::$config[$pair]);
+            unset(self::$config[$foundPair]);
             self::$config[$newPair] = $config;
             
             // Save the configuration
@@ -334,17 +327,37 @@ class Config
                 }
             }
             
+            // Оновлюємо налаштування, якщо вони є
+            if (isset($botData['settings']) && is_array($botData['settings'])) {
+                foreach ($botData['settings'] as $key => $value) {
+                    self::$config[$foundPair]['settings'][$key] = $value;
+                    
+                    // Також оновлюємо відповідні поля в кореневому об'єкті для сумісності
+                    if ($key === 'trade_amount_min' || $key === 'trade_amount_max' || 
+                        $key === 'frequency_from' || $key === 'frequency_to') {
+                        self::$config[$foundPair][$key] = $value;
+                    } else if ($key === 'price_factor') {
+                        self::$config[$foundPair]['price_deviation_percent'] = $value;
+                    } else if ($key === 'market_gap') {
+                        self::$config[$foundPair]['market_gap'] = $value;
+                    }
+                }
+                
+                // Видаляємо налаштування з botData, оскільки вони вже оброблені
+                unset($botData['settings']);
+            }
+            
             // Update the configuration
             foreach ($botData as $key => $value) {
-                self::$config[$pair][$key] = $value;
+                self::$config[$foundPair][$key] = $value;
             }
             
             // Save the configuration
             self::saveConfig();
             
             // Return the full bot data
-            $bot = self::$config[$pair];
-            $bot['market'] = $pair;
+            $bot = self::$config[$foundPair];
+            $bot['market'] = $foundPair;
             $bot['status'] = $bot['isActive'] ? 'active' : 'disabled';
             return $bot;
         }
@@ -360,7 +373,7 @@ class Config
         // Search for a bot by ID
         $foundPair = null;
         foreach (self::$config as $pair => $config) {
-            if (isset($config['id']) && $config['id'] === $id) {
+            if (isset($config['id']) && (int)$config['id'] === $id) {
                 $foundPair = $pair;
                 break;
             }

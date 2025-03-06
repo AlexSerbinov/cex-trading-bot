@@ -119,11 +119,14 @@ class BotManager
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
             'settings' => [
+                'min_orders' => $data['min_orders'] ?? 2,
+                'max_orders' => $data['max_orders'] ?? 4,
                 'trade_amount_min' => $data['trade_amount_min'] ?? 0.1,
                 'trade_amount_max' => $data['trade_amount_max'] ?? 1.0,
                 'frequency_from' => $data['frequency_from'] ?? 30,
                 'frequency_to' => $data['frequency_to'] ?? 60,
-                'price_factor' => $data['price_factor'] ?? 0.01
+                'price_factor' => $data['price_factor'] ?? 0.01,
+                'market_gap' => $data['market_gap'] ?? 0.05
             ]
         ];
         
@@ -170,49 +173,82 @@ class BotManager
      */
     public function updateBot(int $id, array $data): ?array
     {
+        $this->logger->log("Updating bot with ID {$id}: " . json_encode($data));
+        
         // Get the bot from storage
         $storage = BotStorage::getInstance();
         $bot = $storage->getBotById($id);
         
         if (!$bot) {
+            $this->logger->error("Bot with ID {$id} not found");
             return null;
         }
         
-        // Check if the exchange can be changed
-        if (isset($data['exchange']) && $data['exchange'] !== $bot['exchange']) {
-            throw new InvalidArgumentException("Changing the exchange for an existing bot is not supported");
-        }
-        
-        // Check if the pair can be changed
-        if (isset($data['market']) && $data['market'] !== $bot['market']) {
-            throw new InvalidArgumentException("Changing the pair for an existing bot is not supported");
-        }
-        
-        // Update the settings
-        if (isset($data['settings'])) {
+        // Перевіряємо наявність налаштувань
+        if (isset($data['settings']) && is_array($data['settings'])) {
+            // Оновлюємо налаштування
             foreach ($data['settings'] as $key => $value) {
-                $bot['settings'][$key] = $value;
+                // Перевіряємо, що значення не null
+                if ($value !== null) {
+                    $bot['settings'][$key] = $value;
+                    
+                    // Також оновлюємо відповідні поля в кореневому об'єкті для сумісності
+                    if ($key === 'trade_amount_min' || $key === 'trade_amount_max' || 
+                        $key === 'frequency_from' || $key === 'frequency_to') {
+                        $bot[$key] = $value;
+                    } else if ($key === 'price_factor') {
+                        $bot['price_deviation_percent'] = $value;
+                    } else if ($key === 'market_gap') {
+                        $bot['market_gap'] = $value;
+                    }
+                }
             }
         }
         
-        // Update the status if it is specified
-        if (isset($data['isActive'])) {
-            $bot['isActive'] = (bool)$data['isActive'];
+        // Оновлюємо інші поля
+        foreach ($data as $key => $value) {
+            // Пропускаємо налаштування, оскільки вони вже оброблені
+            if ($key === 'settings') {
+                continue;
+            }
+            
+            // Пропускаємо ID, оскільки його не можна змінювати
+            if ($key === 'id') {
+                continue;
+            }
+            
+            // Пропускаємо market, оскільки його не можна змінювати
+            if ($key === 'market') {
+                continue;
+            }
+            
+            // Оновлюємо поле
+            if ($value !== null) {
+                $bot[$key] = $value;
+            }
         }
         
-        // Update the bot in storage
+        // Оновлюємо дату оновлення
+        $bot['updated_at'] = date('Y-m-d H:i:s');
+        
+        // Зберігаємо оновленого бота
         $updatedBot = $storage->updateBot($id, $bot);
         
         if (!$updatedBot) {
+            $this->logger->error("Failed to update bot with ID {$id}");
             return null;
         }
         
-        // Update the bot in configuration
-        Config::updateBot($bot['market'], [
-            'market' => $bot['market'],
-            'isActive' => $bot['isActive'],
-            'settings' => $bot['settings']
-        ]);
+        // Якщо статус бота змінився, оновлюємо процес
+        if (isset($data['isActive'])) {
+            if ($data['isActive']) {
+                $this->enableBot($id);
+            } else {
+                $this->disableBot($id);
+            }
+        }
+        
+        $this->logger->log("Bot with ID {$id} updated successfully");
         
         return $this->formatBotForResponse($updatedBot);
     }
@@ -222,25 +258,33 @@ class BotManager
      */
     public function deleteBot(int $id): bool
     {
+        $this->logger->log("Attempting to delete bot with ID {$id}");
+        
         // Get the bot from storage
         $storage = BotStorage::getInstance();
         $bot = $storage->getBotById($id);
         
         if (!$bot) {
+            $this->logger->error("Bot with ID {$id} not found for deletion");
             return false;
         }
         
-        // Stop the process for the pair
-        $this->botProcess->stopProcess($bot['market']);
+        $market = $bot['market'];
+        $this->logger->log("Found bot with ID {$id} and market {$market} for deletion");
         
-        // Delete the bot from configuration
-        Config::disableBot($bot['market']);
+        // Stop the process for the pair
+        $this->botProcess->stopProcess($market);
         
         // Delete the bot from storage
         $result = $storage->deleteBot($id);
         
         if ($result) {
-            $this->logger->log("Deleted bot: ID={$id}, Pair={$bot['market']}");
+            $this->logger->log("Deleted bot: ID={$id}, Pair={$market}");
+            
+            // Delete the bot from configuration
+            Config::deleteBot($id);
+        } else {
+            $this->logger->error("Failed to delete bot with ID {$id}");
         }
         
         return $result;
@@ -328,8 +372,8 @@ class BotManager
         ];
         
         if ($requireAllFields) {
-            foreach ($requiredFields as $field) {
-                if (!isset($botData[$field])) {
+        foreach ($requiredFields as $field) {
+            if (!isset($botData[$field])) {
                     throw new InvalidArgumentException("Missing required field: {$field}");
                 }
             }
@@ -337,17 +381,17 @@ class BotManager
         
         // Check the correctness of the values
         if (isset($botData['trade_amount_min']) && isset($botData['trade_amount_max'])) {
-            if ($botData['trade_amount_min'] <= 0 || $botData['trade_amount_max'] <= 0) {
+        if ($botData['trade_amount_min'] <= 0 || $botData['trade_amount_max'] <= 0) {
                 throw new InvalidArgumentException("Trade amount must be greater than zero");
-            }
-            
-            if ($botData['trade_amount_min'] > $botData['trade_amount_max']) {
+        }
+        
+        if ($botData['trade_amount_min'] > $botData['trade_amount_max']) {
                 throw new InvalidArgumentException("Minimum trade amount cannot be greater than maximum trade amount");
             }
         }
         
         if (isset($botData['frequency_from']) && isset($botData['frequency_to'])) {
-            if ($botData['frequency_from'] <= 0 || $botData['frequency_to'] <= 0) {
+        if ($botData['frequency_from'] <= 0 || $botData['frequency_to'] <= 0) {
                 throw new InvalidArgumentException("Frequency must be greater than zero");
             }
             
@@ -366,26 +410,42 @@ class BotManager
             }
         }
     }
-    
+
     /**
      * Formatting bot data for API response
      */
-    private function formatBotForResponse(array $bot): array
+    private function formatBotForResponse(?array $bot): ?array
     {
+        if (!$bot) {
+            return null;
+        }
+        
+        $this->logger->log("Formatting bot for response: " . json_encode($bot));
+        
+        // Додаємо значення за замовчуванням для відсутніх полів
+        $isActive = isset($bot['isActive']) ? $bot['isActive'] : true;
+        $createdAt = isset($bot['created_at']) ? $bot['created_at'] : date('Y-m-d H:i:s');
+        $updatedAt = isset($bot['updated_at']) ? $bot['updated_at'] : date('Y-m-d H:i:s');
+        
+        // Отримуємо налаштування з вкладеного масиву settings або з кореневих полів
+        $settings = $bot['settings'] ?? [];
+        
         return [
             'id' => $bot['id'],
             'market' => $bot['market'],
             'exchange' => $bot['exchange'],
-            'isActive' => $bot['isActive'],
-            'created_at' => $bot['created_at'],
-            'updated_at' => $bot['updated_at'],
+            'isActive' => $isActive,
+            'created_at' => $createdAt,
+            'updated_at' => $updatedAt,
             'settings' => [
-                'trade_amount_min' => $bot['settings']['trade_amount_min'],
-                'trade_amount_max' => $bot['settings']['trade_amount_max'],
-                'frequency_from' => $bot['settings']['frequency_from'],
-                'frequency_to' => $bot['settings']['frequency_to'],
-                'price_factor' => $bot['settings']['price_factor'],
-                'market_gap' => $bot['settings']['market_gap'] ?? 0.05,
+                'min_orders' => $settings['min_orders'] ?? ($bot['min_orders'] ?? 2),
+                'max_orders' => $settings['max_orders'] ?? ($bot['max_orders'] ?? 4),
+                'trade_amount_min' => $settings['trade_amount_min'] ?? ($bot['trade_amount_min'] ?? 0.1),
+                'trade_amount_max' => $settings['trade_amount_max'] ?? ($bot['trade_amount_max'] ?? 1.0),
+                'frequency_from' => $settings['frequency_from'] ?? ($bot['frequency_from'] ?? 30),
+                'frequency_to' => $settings['frequency_to'] ?? ($bot['frequency_to'] ?? 60),
+                'price_factor' => $settings['price_factor'] ?? ($bot['price_deviation_percent'] ?? 0.01),
+                'market_gap' => $settings['market_gap'] ?? ($bot['market_gap'] ?? 0.05)
             ]
         ];
     }
@@ -468,5 +528,92 @@ class BotManager
         }
         
         return $this->formatBotForResponse($updatedBot);
+    }
+
+    /**
+     * Creating a new bot
+     */
+    public function createBot(array $data): ?array
+    {
+        // Validation
+        if (!isset($data['market']) || !isset($data['exchange'])) {
+            throw new InvalidArgumentException('Market and exchange are required');
+        }
+        
+        // Перевірка на порожню пару
+        if (empty($data['market'])) {
+            throw new InvalidArgumentException('Market cannot be empty');
+        }
+        
+        // Log incoming data
+        $this->logger->log("Creating bot with data: " . json_encode($data));
+        
+        // Check if the bot already exists
+        $storage = BotStorage::getInstance();
+        $existingBot = $storage->getBotByMarket($data['market']);
+        
+        if ($existingBot) {
+            throw new InvalidArgumentException("Bot for market {$data['market']} already exists");
+        }
+        
+        // Create a new bot
+        $bot = [
+            'id' => $storage->getNextId(),
+            'market' => $data['market'],
+            'exchange' => $data['exchange'],
+            'isActive' => false,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+            'settings' => [
+                'trade_amount_min' => $data['settings']['trade_amount_min'],
+                'trade_amount_max' => $data['settings']['trade_amount_max'],
+                'frequency_from' => $data['settings']['frequency_from'],
+                'frequency_to' => $data['settings']['frequency_to'],
+                'price_factor' => $data['settings']['price_deviation_percent'],
+                'market_gap' => $data['settings']['market_gap'],
+            ]
+        ];
+        
+        // Log prepared bot
+        $this->logger->log("Bot prepared for storage: " . json_encode($bot));
+        
+        // Save the bot
+        $createdBot = $storage->addBot($bot);
+        
+        if ($createdBot) {
+            $this->logger->log("Created bot: ID={$bot['id']}, Pair={$bot['market']}, Exchange={$bot['exchange']}");
+            $this->logger->log("Created bot settings: " . json_encode($createdBot['settings'] ?? []));
+        }
+        
+        return $this->formatBotForResponse($createdBot);
+    }
+
+    public function cancelAllOrders(int $botId): bool
+    {
+        // Get the bot
+        $bot = $this->getBotById($botId);
+        
+        if (!$bot) {
+            return false;
+        }
+        
+        // Get all open orders for this bot
+        $openOrders = $this->getOpenOrders($botId);
+        
+        if (empty($openOrders)) {
+            return true;
+        }
+        
+        // Cancel each order
+        $exchangeManager = ExchangeManager::getInstance();
+        foreach ($openOrders as $order) {
+            $result = $exchangeManager->cancelOrder($order['id'], $bot['market']);
+            
+            if (!isset($result['result']) || $result['result'] === null) {
+                $this->logger->error("Failed to cancel order {$order['id']} for bot {$botId}");
+            }
+        }
+        
+        return true;
     }
 } 

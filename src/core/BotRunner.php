@@ -93,7 +93,7 @@ try {
             if (file_exists($configFile)) {
                 $currentModTime = filemtime($configFile);
                 if ($currentModTime > $lastConfigModTime) {
-                    $logger->log("Виявлено зміни в конфігурації, оновлюємо налаштування бота");
+                    $logger->log("Changes in the configuration detected, updating the bot settings");
                     
                     // Checking if the pair is still active
                     $enabledPairs = Config::getEnabledPairs();

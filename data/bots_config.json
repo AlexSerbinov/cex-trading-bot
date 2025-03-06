@@ -1,58 +1,38 @@
 {
     "LTC_USDT": {
-        "id": 1,
+        "id": 2,
+        "market": "LTC_USDT",
         "exchange": "binance",
-        "min_orders": 2,
-        "max_orders": 4,
-        "price_deviation_percent": 5,
-        "market_gap": 0.05,
-        "frequency_from": 30,
-        "frequency_to": 40,
-        "bot_balance": 10,
         "isActive": true,
-        "created_at": "2025-03-06 08:01:51",
-        "updated_at": "2025-03-06 13:25:51",
-        "trade_amount_min": 0.1,
-        "trade_amount_max": 3,
+        "created_at": "2025-03-06 17:46:54",
+        "updated_at": "2025-03-06 17:46:54",
         "settings": {
-            "trade_amount_min": 0.2,
-            "trade_amount_max": 3,
+            "min_orders": 2,
+            "max_orders": 4,
+            "trade_amount_min": 0.1,
+            "trade_amount_max": 1,
             "frequency_from": 30,
-            "frequency_to": 40,
-            "price_factor": 5,
+            "frequency_to": 60,
+            "price_factor": 0.01,
             "market_gap": 0.05
         }
     },
-    "ETH_BTC": {
-        "id": 2,
-        "exchange": "kraken",
-        "min_orders": 2,
-        "max_orders": 4,
-        "price_deviation_percent": 0.01,
-        "market_gap": 0.1,
-        "frequency_from": 30,
-        "frequency_to": 65,
-        "bot_balance": 10,
-        "isActive": true,
-        "created_at": "2025-03-06 10:10:30",
-        "updated_at": "2025-03-06 10:10:30",
-        "trade_amount_min": 0.1,
-        "trade_amount_max": 1
-    },
-    "LTC_ETH": {
+    "BTC_USDT": {
         "id": 3,
-        "exchange": "binance",
-        "min_orders": 2,
-        "max_orders": 4,
-        "price_deviation_percent": 0.01,
-        "market_gap": 0.05,
-        "frequency_from": 30,
-        "frequency_to": 60,
-        "bot_balance": 10,
+        "market": "BTC_USDT",
+        "exchange": "kraken",
         "isActive": true,
-        "created_at": "2025-03-06 11:15:23",
-        "updated_at": "2025-03-06 11:15:23",
-        "trade_amount_min": 0.1,
-        "trade_amount_max": 1
+        "created_at": "2025-03-06 18:11:01",
+        "updated_at": "2025-03-06 18:11:01",
+        "settings": {
+            "min_orders": 4,
+            "max_orders": 6,
+            "trade_amount_min": 0.6,
+            "trade_amount_max": 6,
+            "frequency_from": 6,
+            "frequency_to": 66,
+            "price_factor": 0.06,
+            "market_gap": 0.06
+        }
     }
 }

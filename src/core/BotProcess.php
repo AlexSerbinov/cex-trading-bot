@@ -31,10 +31,16 @@ class BotProcess
      * Starting a process for a pair
      *
      * @param string $pair Trading pair
-     * @return bool Result of starting the process
+     * @return bool Whether the process was started successfully
      */
     public function startProcess(string $pair): bool
     {
+        // Перевірка на порожню пару
+        if (empty($pair)) {
+            $this->logger->error("Cannot start process for empty pair");
+            return false;
+        }
+        
         // Check if the process is already running for this pair
         if ($this->isProcessRunning($pair)) {
             $this->logger->log("Process for pair {$pair} is already running");
@@ -134,18 +140,20 @@ class BotProcess
         
         $pid = (int)file_get_contents($pidFile);
         
-        // Check if the process with this PID exists and if it is our process
-        $command = "ps -p $pid | grep BotRunner";
-        exec($command, $output);
-        
-        if (empty($output)) {
-            // The process does not exist, delete the PID file
-            $this->logger->log("PID file for {$pair} exists, but the process is not running. Deleting the PID file.");
-            unlink($pidFile);
-            return false;
+        // Check if the process is running
+        if (file_exists("/proc/{$pid}")) {
+            return true;
         }
         
-        return true;
+        if (function_exists('posix_kill')) {
+            return posix_kill($pid, 0);
+        }
+        
+        $command = "ps -p {$pid} -o pid=";
+        $output = [];
+        exec($command, $output);
+        
+        return !empty($output);
     }
     
     /**
