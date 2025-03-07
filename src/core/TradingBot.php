@@ -147,7 +147,7 @@ class TradingBot
             'params' => [$this->pair, $side, 0, 100],
             'id' => 1,
         ];
-        $response = $this->apiClient->post(Config::TRADE_SERVER_URL, json_encode($body));
+        $response = $this->apiClient->post(Config::getTradeServerUrl(), json_encode($body));
         $data = json_decode($response, true);
 
         if ($data['error'] !== null) {
@@ -188,7 +188,7 @@ class TradingBot
             'params' => [Config::BOT_USER_ID, $this->pair, 0, 100],
             'id' => 1,
         ];
-        $response = $this->apiClient->post(Config::TRADE_SERVER_URL, json_encode($body));
+        $response = $this->apiClient->post(Config::getTradeServerUrl(), json_encode($body));
         $data = json_decode($response, true);
 
         if ($data['error'] !== null) {
@@ -251,7 +251,7 @@ class TradingBot
             ],
             'id' => 1,
         ];
-        $response = $this->apiClient->post(Config::TRADE_SERVER_URL, json_encode($body));
+        $response = $this->apiClient->post(Config::getTradeServerUrl(), json_encode($body));
         $data = json_decode($response, true);
 
         if ($data['error'] !== null) {
@@ -269,34 +269,25 @@ class TradingBot
     }
 
     /**
-     * Cancels an order.
+     * Cancels a specific order by ID.
      *
      * @param int $orderId Order ID to cancel
-     * @return mixed
-     * @throws RuntimeException If the request fails
      */
-    private function cancelOrder(int $orderId)
+    private function cancelOrder(int $orderId): void
     {
         try {
             $this->logger->log("[{$this->pair}] Cancelling order {$orderId}");
             $result = $this->exchangeManager->cancelOrder($orderId, $this->pair);
-            // $this->logger->log("[{$this->pair}] Result of cancelling order {$orderId}: " . json_encode($result, JSON_PRETTY_PRINT));
             
-            // Перевірка на помилку "order not found"
-            if (isset($result['error']) && isset($result['error']['code']) && $result['error']['code'] == 10) {
-                $this->logger->log("[{$this->pair}] Order {$orderId} already executed or cancelled, ignoring error");
-                return true; // Вважаємо, що ордер успішно скасовано
+            if (isset($result['error']) && $result['error'] !== null) {
+                $this->logger->error("[{$this->pair}] Error cancelling order {$orderId}: " . json_encode($result['error']));
+            } else {
+                $this->logger->log("[{$this->pair}] Successfully cancelled order {$orderId}");
             }
             
-            if (!isset($result['result']) || $result['result'] === null) {
-                $this->logger->error("[{$this->pair}] Failed to cancel order {$orderId}: " . json_encode($result));
-                return false;
-            }
-            
-            return isset($result['result']) && $result['result'] !== null;
+            $this->randomDelay(Config::DELAY_CLEAR_MIN, Config::DELAY_CLEAR_MAX);
         } catch (Exception $e) {
-            $this->logger->error("[{$this->pair}] Error cancelling order {$orderId}: " . $e->getMessage());
-            return false;
+            $this->logger->error("[{$this->pair}] Exception when cancelling order {$orderId}: " . $e->getMessage());
         }
     }
 
@@ -321,7 +312,7 @@ class TradingBot
             ],
             'id' => 1,
         ];
-        $response = $this->apiClient->post(Config::TRADE_SERVER_URL, json_encode($body));
+        $response = $this->apiClient->post(Config::getTradeServerUrl(), json_encode($body));
         $data = json_decode($response, true);
 
         return true; // Simulation of successful execution

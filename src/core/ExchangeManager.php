@@ -71,7 +71,7 @@ class ExchangeManager
     {
         try {
             // Forming the URL for the request to the trade server
-            $url = Config::TRADE_SERVER_URL;
+            $url = Config::getTradeServerUrl();
             
             // Forming the request body
             $requestBody = json_encode([
@@ -371,7 +371,7 @@ class ExchangeManager
     {
         try {
             // Forming the URL for the request to the Kraken API
-            $url = Config::TRADE_SERVER_URL . '/api/orderbook?market=' . $pair . '&exchange=kraken&limit=' . $limit;
+            $url = Config::getTradeServerUrl() . '/api/orderbook?market=' . $pair . '&exchange=kraken&limit=' . $limit;
             
             // Executing the request
             $response = file_get_contents($url);
@@ -441,7 +441,7 @@ class ExchangeManager
     {
         try {
             // Forming the URL for the request to the Binance API
-            $url = Config::TRADE_SERVER_URL . '/api/orderbook?market=' . $pair . '&exchange=binance&limit=' . $limit;
+            $url = Config::getTradeServerUrl() . '/api/orderbook?market=' . $pair . '&exchange=binance&limit=' . $limit;
             
             // Executing the request
             $response = file_get_contents($url);
@@ -509,7 +509,7 @@ class ExchangeManager
     {
         try {
             // Forming the URL for the request to the trade server
-            $url = Config::TRADE_SERVER_URL;
+            $url = Config::getTradeServerUrl();
             
             // Forming the request body
             $requestBody = json_encode([
@@ -555,7 +555,21 @@ class ExchangeManager
         ];
         
         try {
-            $response = $this->apiClient->post(Config::TRADE_SERVER_URL, json_encode($body));
+            // Використовуємо метод getTradeServerUrl замість константи
+            $url = Config::getTradeServerUrl();
+            $this->logger->log("[{$pair}] Sending request to: {$url}");
+            
+            $json = json_encode($body);
+            $this->logger->log("[{$pair}] Request payload: {$json}");
+            
+            // Додаємо більш короткий таймаут для швидшого виявлення проблем
+            $startTime = microtime(true);
+            $response = $this->apiClient->post($url, $json);
+            $endTime = microtime(true);
+            $execTime = round(($endTime - $startTime) * 1000);
+            
+            $this->logger->log("[{$pair}] Request execution time: {$execTime}ms");
+            
             $data = json_decode($response, true);
             
             // $this->logger->log("[{$pair}] Open orders response: " . json_encode($data));
@@ -583,13 +597,27 @@ class ExchangeManager
         ];
         
         try {
-            $response = $this->apiClient->post(Config::TRADE_SERVER_URL, json_encode($body));
-            $data = json_decode($response, true);
+            // Використовуємо метод getTradeServerUrl замість константи
+            $url = Config::getTradeServerUrl();
+            $this->logger->log("[{$pair}] Sending cancel request to: {$url}");
             
+            $json = json_encode($body);
+            $this->logger->log("[{$pair}] Cancel request payload: {$json}");
+            
+            // Додаємо відстеження часу виконання
+            $startTime = microtime(true);
+            $response = $this->apiClient->post($url, $json);
+            $endTime = microtime(true);
+            $execTime = round(($endTime - $startTime) * 1000);
+            
+            $this->logger->log("[{$pair}] Cancel request execution time: {$execTime}ms");
+            
+            $data = json_decode($response, true);
+            $this->logger->log("[{$pair}] Cancel order response: " . json_encode($data));
             
             return $data;
         } catch (Exception $e) {
-            $this->logger->error("Exception when cancelling order: " . $e->getMessage());
+            $this->logger->error("[{$pair}] Exception when cancelling order: " . $e->getMessage());
             return ['error' => ['message' => $e->getMessage()]];
         }
     }

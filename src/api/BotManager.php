@@ -448,7 +448,7 @@ class BotManager
     public function getBotBalanceFromTradeServer(int $botId, string $currency = ''): float
     {
         try {
-            $url = Config::TRADE_SERVER_URL;
+            $url = Config::getTradeServerUrl();
             
             $requestBody = json_encode([
                 'method' => 'balance.query',

@@ -1,0 +1,578 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Trading Bot API",
+        "description": "API для керування торговими ботами",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/",
+            "description": "Локальний сервер"
+        }
+    ],
+    "paths": {
+        "/bots": {
+            "get": {
+                "summary": "Get the list of all bots",
+                "tags": ["Bots"],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Bot"
+                                    }
+                                },
+                                "example": [
+                                    {
+                                        "id": 1,
+                                        "market": "LTC_USDT",
+                                        "exchange": "binance",
+                                        "isActive": false,
+                                        "created_at": "2025-03-06 08:01:51",
+                                        "updated_at": "2025-03-06 10:21:02",
+                                        "settings": {
+                                            "min_orders": 2,
+                                            "max_orders": 4,
+                                            "trade_amount_min": 0.1,
+                                            "trade_amount_max": 1,
+                                            "frequency_from": 30,
+                                            "frequency_to": 60,
+                                            "price_factor": 5,
+                                            "market_gap": 0.05
+                                        }
+                                    },
+                                    {
+                                        "id": 2,
+                                        "market": "ETH_BTC",
+                                        "exchange": "kraken",
+                                        "isActive": true,
+                                        "created_at": "2025-03-06 10:10:30",
+                                        "updated_at": "2025-03-06 10:10:30",
+                                        "settings": {
+                                            "min_orders": 3,
+                                            "max_orders": 6,
+                                            "trade_amount_min": 0.1,
+                                            "trade_amount_max": 1,
+                                            "frequency_from": 30,
+                                            "frequency_to": 65,
+                                            "price_factor": 0.01,
+                                            "market_gap": 0.05
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a new bot",
+                "tags": ["Bots"],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "market": {
+                                        "type": "string",
+                                        "description": "Trading pair (e.g., LTC_USDT)"
+                                    },
+                                    "exchange": {
+                                        "type": "string",
+                                        "description": "Exchange name (e.g., binance, kraken)"
+                                    },
+                                    "min_orders": {
+                                        "type": "integer",
+                                        "description": "Minimum number of orders"
+                                    },
+                                    "max_orders": {
+                                        "type": "integer",
+                                        "description": "Maximum number of orders"
+                                    },
+                                    "trade_amount_min": {
+                                        "type": "number",
+                                        "description": "Minimum trade amount"
+                                    },
+                                    "trade_amount_max": {
+                                        "type": "number",
+                                        "description": "Maximum trade amount"
+                                    },
+                                    "frequency_from": {
+                                        "type": "integer",
+                                        "description": "Minimum frequency in seconds"
+                                    },
+                                    "frequency_to": {
+                                        "type": "integer",
+                                        "description": "Maximum frequency in seconds"
+                                    },
+                                    "price_factor": {
+                                        "type": "number",
+                                        "description": "Price deviation factor"
+                                    },
+                                    "market_gap": {
+                                        "type": "number",
+                                        "description": "Market gap percentage"
+                                    }
+                                },
+                                "required": ["market", "exchange"]
+                            },
+                            "example": {
+                                "market": "BTC_USDT",
+                                "exchange": "binance",
+                                "min_orders": 2,
+                                "max_orders": 4,
+                                "trade_amount_min": 0.1,
+                                "trade_amount_max": 1,
+                                "frequency_from": 30,
+                                "frequency_to": 60,
+                                "price_factor": 0.01,
+                                "market_gap": 0.05
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Bot created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Bot"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/bots/{id}": {
+            "get": {
+                "summary": "Get a bot by ID",
+                "tags": ["Bots"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Bot ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Bot"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Bot not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update a bot",
+                "tags": ["Bots"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Bot ID"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "min_orders": {
+                                        "type": "integer",
+                                        "description": "Minimum number of orders"
+                                    },
+                                    "max_orders": {
+                                        "type": "integer",
+                                        "description": "Maximum number of orders"
+                                    },
+                                    "trade_amount_min": {
+                                        "type": "number",
+                                        "description": "Minimum trade amount"
+                                    },
+                                    "trade_amount_max": {
+                                        "type": "number",
+                                        "description": "Maximum trade amount"
+                                    },
+                                    "frequency_from": {
+                                        "type": "integer",
+                                        "description": "Minimum frequency in seconds"
+                                    },
+                                    "frequency_to": {
+                                        "type": "integer",
+                                        "description": "Maximum frequency in seconds"
+                                    },
+                                    "price_factor": {
+                                        "type": "number",
+                                        "description": "Price deviation factor"
+                                    },
+                                    "market_gap": {
+                                        "type": "number",
+                                        "description": "Market gap percentage"
+                                    }
+                                }
+                            },
+                            "example": {
+                                "min_orders": 3,
+                                "max_orders": 5,
+                                "trade_amount_min": 0.2,
+                                "trade_amount_max": 2,
+                                "frequency_from": 45,
+                                "frequency_to": 90,
+                                "price_factor": 0.02,
+                                "market_gap": 0.1
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Bot updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Bot"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Bot not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a bot",
+                "tags": ["Bots"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Bot ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Bot deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Bot not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/bots/{id}/enable": {
+            "put": {
+                "summary": "Enable a bot",
+                "tags": ["Bots"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Bot ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Bot enabled successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Bot"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Bot not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/bots/{id}/disable": {
+            "put": {
+                "summary": "Disable a bot",
+                "tags": ["Bots"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Bot ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Bot disabled successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Bot"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Bot not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/exchanges": {
+            "get": {
+                "summary": "Get the list of supported exchanges",
+                "tags": ["Exchanges"],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "exchanges": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "exchanges": ["binance", "kraken", "kucoin"]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pairs": {
+            "get": {
+                "summary": "Get the list of available pairs",
+                "tags": ["Pairs"],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pairs": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "exchanges": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "pairs": [
+                                        {
+                                            "name": "BTC_USDT",
+                                            "exchanges": ["binance", "kraken"]
+                                        },
+                                        {
+                                            "name": "ETH_USDT",
+                                            "exchanges": ["binance", "kraken"]
+                                        },
+                                        {
+                                            "name": "LTC_USDT",
+                                            "exchanges": ["binance"]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Bot": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "Bot ID"
+                    },
+                    "market": {
+                        "type": "string",
+                        "description": "Trading pair"
+                    },
+                    "exchange": {
+                        "type": "string",
+                        "description": "Exchange name"
+                    },
+                    "isActive": {
+                        "type": "boolean",
+                        "description": "Bot activity status"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Bot creation date"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Bot last update date"
+                    },
+                    "settings": {
+                        "type": "object",
+                        "description": "Bot settings",
+                        "properties": {
+                            "min_orders": {
+                                "type": "integer",
+                                "description": "Minimum number of orders"
+                            },
+                            "max_orders": {
+                                "type": "integer",
+                                "description": "Maximum number of orders"
+                            },
+                            "trade_amount_min": {
+                                "type": "number"
+                            },
+                            "trade_amount_max": {
+                                "type": "number"
+                            },
+                            "frequency_from": {
+                                "type": "integer"
+                            },
+                            "frequency_to": {
+                                "type": "integer"
+                            },
+                            "price_factor": {
+                                "type": "number"
+                            },
+                            "market_gap": {
+                                "type": "number",
+                                "description": "Percentage step from the best price on the external exchange"
+                            }
+                        }
+                    }
+                }
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "description": "Error message"
+                    }
+                }
+            }
+        }
+    }
+}

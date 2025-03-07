@@ -225,7 +225,7 @@ try {
     // GET /api/config - отримання конфігурації
     if ($_SERVER['REQUEST_METHOD'] === 'GET' && count($pathParts) === 1 && $pathParts[0] === 'config') {
         $config = [
-            'tradeServerUrl' => Config::TRADE_SERVER_URL
+            'tradeServerUrl' => Config::getTradeServerUrl()
         ];
         
         echo json_encode($config);

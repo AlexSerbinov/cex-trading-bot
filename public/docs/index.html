@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Trading Bot API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui.css" />
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+        
+        *,
+        *:before,
+        *:after {
+            box-sizing: inherit;
+        }
+        
+        body {
+            margin: 0;
+            background: #fafafa;
+        }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+
+    <div class="parameter-description">
+        <h4>Bot Parameters</h4>
+        <ul>
+            <li><strong>market</strong>: Trading pair in format BASE_QUOTE (e.g., BTC_USDT)</li>
+            <li><strong>exchange</strong>: Exchange to copy order book from (e.g., binance, kraken)</li>
+            <li><strong>min_orders</strong>: Minimum number of orders to maintain</li>
+            <li><strong>max_orders</strong>: Maximum number of orders to maintain</li>
+            <li><strong>trade_amount_min</strong>: Minimum amount for each trade</li>
+            <li><strong>trade_amount_max</strong>: Maximum amount for each trade</li>
+            <li><strong>frequency_from</strong>: Minimum time between actions (seconds)</li>
+            <li><strong>frequency_to</strong>: Maximum time between actions (seconds)</li>
+            <li><strong>price_factor</strong>: Price deviation percentage</li>
+            <li><strong>market_gap</strong>: Market gap percentage between best price and placed orders</li>
+        </ul>
+    </div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                url: "./swagger.json",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "BaseLayout"
+            });
+            window.ui = ui;
+        };
+    </script>
+</body>
+</html> 
