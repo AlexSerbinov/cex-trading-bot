@@ -9,11 +9,17 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     && docker-php-ext-install zip pcntl
 
+# Додавання підтримки веб-сервера для Swagger (якщо потрібно)
+RUN apt-get install -y nginx
+
 # Копіювання коду
 COPY . .
 
 # Встановлення прав на запис у data
 RUN chmod -R 777 /app/data
 
-# Команда для запуску бекенду (виправлено з src/backend/server.php на src/core/TradingBotManager.php)
+# Експозиція порту
+EXPOSE 8080
+
+# Запуск бекенду та веб-сервера для Swagger (якщо потрібно)
 CMD ["php", "src/core/TradingBotManager.php"] 

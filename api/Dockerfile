@@ -29,6 +29,10 @@ RUN echo '<Directory /var/www/html>\n\
 </Directory>' > /etc/apache2/conf-available/rewrite.conf \
     && a2enconf rewrite
 
+# Забезпечення доступу до Swagger UI
+RUN mkdir -p /var/www/html/swagger-ui
+COPY ./docs/swagger/swagger-ui /var/www/html/swagger-ui
+
 EXPOSE 80
 
 CMD ["apache2-foreground"] 
