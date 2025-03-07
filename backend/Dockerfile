@@ -2,12 +2,12 @@ FROM php:8.1-cli
 
 WORKDIR /app
 
-# Встановлення залежностей
+# Встановлення залежностей та розширення PCNTL
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
     libzip-dev \
-    && docker-php-ext-install zip
+    && docker-php-ext-install zip pcntl
 
 # Копіювання коду
 COPY . .
