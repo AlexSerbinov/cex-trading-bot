@@ -7,8 +7,19 @@ declare(strict_types=1);
  */
 class Config
 {
-    // public const TRADE_SERVER_URL = 'http://195.7.7.93:18080';
-    public const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // - 90 demo
+    // Замінено динамічний вираз на статичний метод
+    public const TRADE_SERVER_URL_DEFAULT = 'http://195.7.7.93:18080';
+    
+    /**
+     * Отримання URL торгового сервера
+     *
+     * @return string URL торгового сервера
+     */
+    public static function getTradeServerUrl(): string 
+    {
+        return getenv('TRADE_SERVER_URL') ?: self::TRADE_SERVER_URL_DEFAULT;
+    }
+    
     public const BOT_USER_ID = 5;
     public const TAKER_FEE = '0.07';
     public const MAKER_FEE = '0.02';

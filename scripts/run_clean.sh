@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# run_clean.sh
 # Stop all existing processes
 echo "Stopping all existing processes..."
 # Determine the current script directory

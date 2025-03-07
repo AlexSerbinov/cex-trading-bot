@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# run_local.sh
+
 # Function for correct shutdown
 cleanup() {
     echo "Stopping all processes..."

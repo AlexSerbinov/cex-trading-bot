@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-    backend:
+    backend-dev:
         build:
             context: .
             dockerfile: backend/Dockerfile
@@ -10,12 +10,13 @@ services:
             - ./data:/app/data
             - ./src:/app/src
         environment:
-            - TRADE_SERVER_URL=${TRADE_SERVER_URL:-http://195.7.7.93:18080}
+            - TRADE_SERVER_URL=http://195.7.7.93:18080
         networks:
-            - app-net
+            - app-dev-net
         restart: unless-stopped
+        container_name: trading-bot-backend-dev
 
-    api:
+    api-dev:
         build:
             context: .
             dockerfile: api/Dockerfile
@@ -25,27 +26,30 @@ services:
             - ./src:/var/www/html/src
             - ./.htaccess:/var/www/html/.htaccess
         environment:
-            - TRADE_SERVER_URL=${TRADE_SERVER_URL:-http://195.7.7.93:18080}
+            - TRADE_SERVER_URL=http://195.7.7.93:18080
         ports:
-            - '8080:80'
+            - '8081:80'
         networks:
-            - app-net
+            - app-dev-net
         restart: unless-stopped
+        container_name: trading-bot-api-dev
 
-    frontend:
+    frontend-dev:
         build:
             context: .
             dockerfile: frontend/Dockerfile
         volumes:
             - ./frontend:/usr/share/nginx/html
+            - ./frontend/nginx-dev.conf:/etc/nginx/conf.d/default.conf
         ports:
-            - '80:80'
+            - '8001:80'
         depends_on:
-            - api
+            - api-dev
         networks:
-            - app-net
+            - app-dev-net
         restart: unless-stopped
+        container_name: trading-bot-frontend-dev
 
 networks:
-    app-net:
+    app-dev-net:
         driver: bridge
