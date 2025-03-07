@@ -48,6 +48,8 @@ const BotForm = {
             // Fill the form with the bot data
             this.form.market.value = bot.market;
             this.form.exchange.value = bot.exchange;
+            this.form.min_orders.value = bot.settings.min_orders || 2;
+            this.form.max_orders.value = bot.settings.max_orders || 4;
             this.form.trade_amount_min.value = bot.settings.trade_amount_min;
             this.form.trade_amount_max.value = bot.settings.trade_amount_max;
             this.form.frequency_from.value = bot.settings.frequency_from;
@@ -58,9 +60,9 @@ const BotForm = {
             // Change the form title
             this.formTitle.textContent = `Editing bot ${bot.market}`;
             
-            // Disable the fields that cannot be changed
+            // Disable only the market field, allow exchange to be changed
             this.form.market.disabled = true;
-            this.form.exchange.disabled = true;
+            this.form.exchange.disabled = false;
         } catch (error) {
             // Show the error message
             App.showAlert('danger', `Error loading bot data: ${error.message}`);
@@ -77,6 +79,8 @@ const BotForm = {
                 market: this.form.market.value,
                 exchange: this.form.exchange.value,
                 settings: {
+                    min_orders: parseInt(this.form.min_orders.value) || 2,
+                    max_orders: parseInt(this.form.max_orders.value) || 4,
                     trade_amount_min: parseFloat(this.form.trade_amount_min.value),
                     trade_amount_max: parseFloat(this.form.trade_amount_max.value),
                     frequency_from: parseInt(this.form.frequency_from.value),

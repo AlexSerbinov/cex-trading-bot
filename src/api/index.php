@@ -137,11 +137,13 @@ try {
             
             if (!$result) {
                 http_response_code(404);
-                echo json_encode(['error' => 'Bot not found']);
-                exit;
+                echo json_encode(['error' => "Bot not found"]);
+            } else {
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Bot with ID {$id} deleted successfully"
+                ]);
             }
-            
-            echo json_encode(['success' => true, 'message' => "Bot with ID {$id} deleted successfully"]);
             exit;
         }
         
@@ -217,6 +219,16 @@ try {
         $pairs = $exchangeManager->getAvailablePairsOnTradeServer();
         
         echo json_encode(['pairs' => $pairs]);
+        exit;
+    }
+    
+    // GET /api/config - отримання конфігурації
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && count($pathParts) === 1 && $pathParts[0] === 'config') {
+        $config = [
+            'tradeServerUrl' => Config::TRADE_SERVER_URL
+        ];
+        
+        echo json_encode($config);
         exit;
     }
     

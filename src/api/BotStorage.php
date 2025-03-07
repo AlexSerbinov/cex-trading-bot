@@ -120,30 +120,26 @@ class BotStorage
      */
     public function getBotById(int $id): ?array
     {
-        // Reload data from file to get the latest
-        $this->loadBots();
-        
         // Get bot from configuration
-        foreach ($this->bots as $pair => $bot) {
-            if (isset($bot['id']) && (int)$bot['id'] === $id) {
-                $bot['market'] = $pair;
-                
-                // Add bot settings
-                $bot['settings'] = [
-                    'trade_amount_min' => $bot['trade_amount_min'] ?? ($bot['settings']['trade_amount_min'] ?? 0.1),
-                    'trade_amount_max' => $bot['trade_amount_max'] ?? ($bot['settings']['trade_amount_max'] ?? 1.0),
-                    'frequency_from' => $bot['frequency_from'] ?? ($bot['settings']['frequency_from'] ?? 30),
-                    'frequency_to' => $bot['frequency_to'] ?? ($bot['settings']['frequency_to'] ?? 60),
-                    'price_factor' => $bot['price_deviation_percent'] ?? ($bot['settings']['price_factor'] ?? 0.01),
-                    'market_gap' => $bot['market_gap'] ?? ($bot['settings']['market_gap'] ?? 0.05)
-                ];
-                
-                return $bot;
-            }
+        $bot = Config::getBotById($id);
+        
+        if (!$bot) {
+            return null;
         }
         
-        $this->logger->error("Bot with ID {$id} not found");
-        return null;
+        $pair = $bot['market'];
+        
+        // Add bot settings
+        $bot['settings'] = [
+            'trade_amount_min' => $bot['trade_amount_min'] ?? ($bot['settings']['trade_amount_min'] ?? 0.1),
+            'trade_amount_max' => $bot['trade_amount_max'] ?? ($bot['settings']['trade_amount_max'] ?? 1.0),
+            'frequency_from' => $bot['frequency_from'] ?? ($bot['settings']['frequency_from'] ?? 30),
+            'frequency_to' => $bot['frequency_to'] ?? ($bot['settings']['frequency_to'] ?? 60),
+            'price_factor' => $bot['price_deviation_percent'] ?? ($bot['settings']['price_factor'] ?? 0.01),
+            'market_gap' => $bot['market_gap'] ?? ($bot['settings']['market_gap'] ?? 0.05)
+        ];
+        
+        return $bot;
     }
 
     /**
@@ -316,7 +312,7 @@ class BotStorage
     }
 
     /**
-     * Delete a bot
+     * Delete bot
      */
     public function deleteBot(int $id): bool
     {
@@ -328,7 +324,7 @@ class BotStorage
         // Find the bot by ID
         $foundPair = null;
         foreach ($this->bots as $pair => $bot) {
-            if (isset($bot['id']) && (int)$bot['id'] === $id) {
+            if (isset($bot['id']) && $bot['id'] === $id) {
                 $foundPair = $pair;
                 break;
             }
@@ -342,11 +338,10 @@ class BotStorage
         // Delete the bot
         unset($this->bots[$foundPair]);
         
-        // Save the updated configuration
+        // Save the changes
         $this->saveBots();
         
-        $this->logger->log("Bot with ID {$id} and pair {$foundPair} deleted successfully");
-        
+        $this->logger->log("Bot with ID {$id} deleted successfully");
         return true;
     }
 

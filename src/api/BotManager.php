@@ -184,46 +184,41 @@ class BotManager
             return null;
         }
         
-        // Перевіряємо наявність налаштувань
+        // Перевіряємо наявність налаштувань в даних запиту
+        if (!isset($data['settings'])) {
+            // Якщо settings не передано, але є інші параметри налаштувань, 
+            // створюємо об'єкт settings з цих параметрів
+            $settingsFields = [
+                'min_orders', 'max_orders', 'trade_amount_min', 'trade_amount_max',
+                'frequency_from', 'frequency_to', 'price_factor', 'market_gap'
+            ];
+            
+            $settings = [];
+            foreach ($settingsFields as $field) {
+                if (isset($data[$field])) {
+                    $settings[$field] = $data[$field];
+                    // Видаляємо поле з кореневого об'єкта, щоб уникнути дублювання
+                    unset($data[$field]);
+                }
+            }
+            
+            if (!empty($settings)) {
+                $data['settings'] = $settings;
+            }
+        }
+        
+        // Оновлюємо налаштування
         if (isset($data['settings']) && is_array($data['settings'])) {
-            // Оновлюємо налаштування
             foreach ($data['settings'] as $key => $value) {
-                // Перевіряємо, що значення не null
                 if ($value !== null) {
                     $bot['settings'][$key] = $value;
-                    
-                    // Також оновлюємо відповідні поля в кореневому об'єкті для сумісності
-                    if ($key === 'trade_amount_min' || $key === 'trade_amount_max' || 
-                        $key === 'frequency_from' || $key === 'frequency_to') {
-                        $bot[$key] = $value;
-                    } else if ($key === 'price_factor') {
-                        $bot['price_deviation_percent'] = $value;
-                    } else if ($key === 'market_gap') {
-                        $bot['market_gap'] = $value;
-                    }
                 }
             }
         }
         
-        // Оновлюємо інші поля
+        // Оновлюємо інші поля (крім settings, які вже оброблені)
         foreach ($data as $key => $value) {
-            // Пропускаємо налаштування, оскільки вони вже оброблені
-            if ($key === 'settings') {
-                continue;
-            }
-            
-            // Пропускаємо ID, оскільки його не можна змінювати
-            if ($key === 'id') {
-                continue;
-            }
-            
-            // Пропускаємо market, оскільки його не можна змінювати
-            if ($key === 'market') {
-                continue;
-            }
-            
-            // Оновлюємо поле
-            if ($value !== null) {
+            if ($key !== 'settings' && $key !== 'id' && $key !== 'market' && $value !== null) {
                 $bot[$key] = $value;
             }
         }
@@ -258,7 +253,7 @@ class BotManager
      */
     public function deleteBot(int $id): bool
     {
-        $this->logger->log("Attempting to delete bot with ID {$id}");
+        $this->logger->log("Deleting bot with ID {$id}");
         
         // Get the bot from storage
         $storage = BotStorage::getInstance();
@@ -269,20 +264,17 @@ class BotManager
             return false;
         }
         
-        $market = $bot['market'];
-        $this->logger->log("Found bot with ID {$id} and market {$market} for deletion");
-        
         // Stop the process for the pair
-        $this->botProcess->stopProcess($market);
+        $this->botProcess->stopProcess($bot['market']);
+        
+        // Delete the bot from configuration
+        Config::deleteBot($id);
         
         // Delete the bot from storage
         $result = $storage->deleteBot($id);
         
         if ($result) {
-            $this->logger->log("Deleted bot: ID={$id}, Pair={$market}");
-            
-            // Delete the bot from configuration
-            Config::deleteBot($id);
+            $this->logger->log("Deleted bot: ID={$id}, Pair={$bot['market']}");
         } else {
             $this->logger->error("Failed to delete bot with ID {$id}");
         }

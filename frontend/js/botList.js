@@ -7,7 +7,24 @@ const BotList = {
      */
     init() {
         this.botListElement = document.getElementById('bot-list');
+        this.tradeServerInfoElement = document.getElementById('trade-server-info');
+        this.loadConfig();
         this.loadBots();
+    },
+    
+    /**
+     * Loading configuration
+     */
+    async loadConfig() {
+        try {
+            const config = await API.getConfig();
+            if (config && config.tradeServerUrl) {
+                this.tradeServerInfoElement.innerHTML = `Trade Server URL: <span class="text-primary">${config.tradeServerUrl}</span>`;
+            }
+        } catch (error) {
+            console.error('Error loading config:', error);
+            // Не показуємо помилку користувачу, просто логуємо
+        }
     },
     
     /**
@@ -83,6 +100,10 @@ const BotList = {
                         ${bot.isActive ? 'active' : 'inactive'}
                     </span>
                 </td>
+                <td>${bot.settings.min_orders || 2} / ${bot.settings.max_orders || 4}
+                    <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
+                       title="Minimum and maximum number of orders that the bot will maintain in the order book"></i>
+                </td>
                 <td>${bot.settings.trade_amount_min} / ${bot.settings.trade_amount_max}</td>
                 <td>${bot.settings.frequency_from} / ${bot.settings.frequency_to}</td>
                 <td>${bot.settings.price_factor}% / ${bot.settings.market_gap}%</td>
@@ -131,6 +152,11 @@ const BotList = {
             // Add the row to the table
             this.botListElement.appendChild(row);
         });
+        
+        // Initialize tooltips
+        setTimeout(() => {
+            App.initTooltips();
+        }, 100);
     },
     
     /**

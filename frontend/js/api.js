@@ -3,7 +3,7 @@
  */
 const API = {
     // Base API URL
-    baseUrl: window.location.hostname === 'localhost' ? 'http://localhost:5561' : '/api',
+    baseUrl: 'http://localhost:8080/api',
 
     /**
      * Getting a list of all bots
@@ -149,6 +149,22 @@ const API = {
             return await response.json();
         } catch (error) {
             console.error(`Error disabling bot ${id}:`, error);
+            throw error;
+        }
+    },
+
+    /**
+     * Getting configuration
+     */
+    async getConfig() {
+        try {
+            const response = await fetch(`${this.baseUrl}/config`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching config:', error);
             throw error;
         }
     },

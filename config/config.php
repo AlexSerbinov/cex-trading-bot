@@ -373,7 +373,7 @@ class Config
         // Search for a bot by ID
         $foundPair = null;
         foreach (self::$config as $pair => $config) {
-            if (isset($config['id']) && (int)$config['id'] === $id) {
+            if (isset($config['id']) && $config['id'] === $id) {
                 $foundPair = $pair;
                 break;
             }
