@@ -2,8 +2,13 @@
  * Module for working with the API
  */
 const API = {
-    // Base API URL
-    baseUrl: 'http://localhost:8080/api',
+    // Base API URL, отримується з конфігурації або використовує значення за замовчуванням
+    get baseUrl() {
+        if (window.CONFIG && window.CONFIG.apiUrl) {
+            return window.CONFIG.apiUrl;
+        }
+        return 'http://localhost:8080/api'; // Значення за замовчуванням для локальної розробки
+    },
 
     /**
      * Getting a list of all bots

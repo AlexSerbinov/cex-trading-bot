@@ -7,17 +7,19 @@ services:
             dockerfile: backend/Dockerfile
         volumes:
             - ./config:/app/config
-            - ./data:/app/data
             - ./src:/app/src
+            - ./router.php:/app/router.php
+            - ./index.php:/app/index.php
+            - ./public:/app/public
         environment:
             - TRADE_SERVER_URL=http://195.7.7.93:18080
+            - ENVIRONMENT=dev
         ports:
-            - '8080:8080' # Основний порт для бекенду та API
+            - '5501:8080' # Порт 5501 для Dev-середовища
         networks:
             - app-dev-net
         restart: unless-stopped
         container_name: trading-bot-backend-dev
-        command: php -S 0.0.0.0:8080 -t src/ # Запуск PHP-сервера на порту 8080
 
     frontend-dev:
         build:
@@ -26,8 +28,12 @@ services:
         volumes:
             - ./frontend:/usr/share/nginx/html
             - ./frontend/nginx-dev.conf:/etc/nginx/conf.d/default.conf
+        environment:
+            - API_BASE_URL=/api
+            - SWAGGER_URL=/swagger-ui
+            - ENVIRONMENT=dev
         ports:
-            - '80:80' # Стандартний порт для фронтенду
+            - '5502:80' # Порт 5502 для Dev-середовища
         depends_on:
             - backend-dev
         networks:
