@@ -68,6 +68,7 @@
                                     <th>Min/Max amount <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Minimum and maximum trade amounts for each operation."></i></th>
                                     <th>Frequency (sec) <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Time interval range between bot actions in seconds."></i></th>
                                     <th>Deviation (%) <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Price deviation percentage and market gap settings."></i></th>
+                                    <th>Market maker (%) <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Probability of creating market maker orders."></i></th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -88,16 +89,16 @@
                         <div class="card-body">
                             <form id="bot-form">
                                 <div class="mb-3">
-                                    <label for="market" class="form-label"
-                                        >Trading pair
-                                        <i
-                                            class="bi bi-info-circle text-primary info-icon"
-                                            data-bs-toggle="tooltip"
-                                            title="Trading pair in format BASE_QUOTE (e.g., BTC_USDT). This defines which cryptocurrencies the bot will trade. The first currency (BASE) is what you're buying/selling, and the second (QUOTE) is what you're paying/receiving."
-                                        ></i
-                                    ></label>
-                                    <input type="text" class="form-control" id="market" name="market" required />
-                                    <div class="form-text">For example: BTC_USDT</div>
+                                    <label for="market" class="form-label">
+                                        Trading pair
+                                        <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
+                                           title="Trading pair in format BASE_QUOTE (e.g., BTC_USDT). This defines which cryptocurrencies the bot will trade. The first currency (BASE) is what you're buying/selling, and the second (QUOTE) is what you're paying/receiving."></i>
+                                    </label>
+                                    <select class="form-select" id="market" name="market" required>
+                                        <option value="">Select a trading pair</option>
+                                        <!-- Options will be loaded dynamically -->
+                                    </select>
+                                    <div class="form-text">Select a trading pair from the list</div>
                                 </div>
                                 <div class="mb-3">
                                     <label for="exchange" class="form-label"
@@ -194,6 +195,14 @@
                                         <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Maximum number of orders that the bot will maintain in the order book"></i>
                                     </label>
                                     <input type="number" class="form-control" id="max_orders" name="max_orders" min="1" value="4" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="market_maker_order_probability" class="form-label">
+                                        Market maker order probability (%)
+                                        <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Probability of creating market maker orders. Higher values increase the likelihood of creating market maker orders, which help maintain liquidity in the market."></i>
+                                    </label>
+                                    <input type="number" class="form-control" id="market_maker_order_probability" name="market_maker_order_probability" min="1" max="100" value="25" required />
+                                    <div class="form-text">Probability of creating market maker orders (1-100%)</div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Save</button>
                             </form>

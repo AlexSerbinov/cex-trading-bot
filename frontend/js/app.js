@@ -92,6 +92,9 @@ const App = {
         // Clear the form
         BotForm.clearForm();
         
+        // Load available pairs
+        BotForm.loadAvailablePairs();
+        
         // If an ID is passed, load the bot data for editing
         if (id) {
             BotForm.loadBotForEdit(id);

@@ -111,6 +111,10 @@ const BotDetails = {
                 <div class="bot-detail-value">${bot.settings.market_gap}%</div>
             </div>
             <div class="bot-detail-row">
+                <div class="bot-detail-label">Market maker order probability:</div>
+                <div class="bot-detail-value">${bot.settings.market_maker_order_probability}%</div>
+            </div>
+            <div class="bot-detail-row">
                 <div class="bot-detail-label">Created at:</div>
                 <div class="bot-detail-value">${createdAt}</div>
             </div>

@@ -221,8 +221,8 @@ class Config
         self::$config[$pair] = [
             'id' => $newId,
             'exchange' => $botData['exchange'] ?? 'kraken',
-            'min_orders' => $botData['min_orders'] ?? 15,
-            'max_orders' => $botData['max_orders'] ?? 17,
+            // 'min_orders' => $botData['min_orders'] ?? 15,
+            // 'max_orders' => $botData['max_orders'] ?? 17,
             'price_deviation_percent' => $botData['price_deviation_percent'] ?? 5,
             'frequency_from' => $botData['settings']['frequency_from'] ?? 30,
             'frequency_to' => $botData['settings']['frequency_to'] ?? 60,
@@ -231,9 +231,16 @@ class Config
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
             'trade_amount_min' => $botData['settings']['trade_amount_min'] ?? 0.1,
-            'trade_amount_max' => $botData['settings']['trade_amount_max'] ?? 1.0
+            'trade_amount_max' => $botData['settings']['trade_amount_max'] ?? 1.0,
+            'min_orders' => $botData['settings']['min_orders'] ?? 2,
+            'max_orders' => $botData['settings']['max_orders'] ?? 4,
+            'market_gap' => $botData['settings']['market_gap'] ?? 0.05,
+            'price_factor' => $botData['settings']['price_factor'] ?? 0.01,
+            'market_maker_order_probability' => $botData['settings']['market_maker_order_probability'] ?? 30,
         ];
         
+
+
         // Save the configuration
         self::saveConfig();
         
@@ -351,6 +358,10 @@ class Config
                         self::$config[$foundPair]['price_deviation_percent'] = $value;
                     } else if ($key === 'market_gap') {
                         self::$config[$foundPair]['market_gap'] = $value;
+                    } else if ($key === 'min_orders' || $key === 'max_orders') {
+                        self::$config[$foundPair][$key] = $value;
+                    } else if ($key === 'market_maker_order_probability') {
+                        self::$config[$foundPair]['market_maker_order_probability'] = $value;
                     }
                 }
                 

@@ -168,4 +168,20 @@ const API = {
             throw error;
         }
     },
+
+    /**
+     * Отримання списку доступних пар
+     */
+    async getAvailablePairs() {
+        try {
+            const response = await fetch(`${this.baseUrl}/pairs`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching available pairs:', error);
+            throw error;
+        }
+    },
 };

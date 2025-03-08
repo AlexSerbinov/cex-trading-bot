@@ -43,7 +43,8 @@
                                             "frequency_from": 30,
                                             "frequency_to": 60,
                                             "price_factor": 5,
-                                            "market_gap": 0.05
+                                            "market_gap": 0.05,
+                                            "market_maker_order_probability": 30
                                         }
                                     },
                                     {
@@ -61,7 +62,8 @@
                                             "frequency_from": 30,
                                             "frequency_to": 65,
                                             "price_factor": 0.01,
-                                            "market_gap": 0.05
+                                            "market_gap": 0.05,
+                                            "market_maker_order_probability": 30
                                         }
                                     }
                                 ]
@@ -119,6 +121,10 @@
                                     "market_gap": {
                                         "type": "number",
                                         "description": "Market gap percentage"
+                                    },
+                                    "market_maker_order_probability": {
+                                        "type": "integer",
+                                        "description": "Market maker order probability"
                                     }
                                 },
                                 "required": ["market", "exchange"]
@@ -133,7 +139,8 @@
                                 "frequency_from": 30,
                                 "frequency_to": 60,
                                 "price_factor": 0.01,
-                                "market_gap": 0.05
+                                "market_gap": 0.05,
+                                "market_maker_order_probability": 30
                             }
                         }
                     }
@@ -252,6 +259,10 @@
                                     "market_gap": {
                                         "type": "number",
                                         "description": "Market gap percentage"
+                                    },
+                                    "market_maker_order_probability": {
+                                        "type": "integer",
+                                        "description": "Market maker order probability"
                                     }
                                 }
                             },
@@ -263,7 +274,8 @@
                                 "frequency_from": 45,
                                 "frequency_to": 90,
                                 "price_factor": 0.02,
-                                "market_gap": 0.1
+                                "market_gap": 0.1,
+                                "market_maker_order_probability": 30
                             }
                         }
                     }
@@ -559,6 +571,10 @@
                             "market_gap": {
                                 "type": "number",
                                 "description": "Percentage step from the best price on the external exchange"
+                            },
+                            "market_maker_order_probability": {
+                                "type": "integer",
+                                "description": "Market maker order probability"
                             }
                         }
                     }

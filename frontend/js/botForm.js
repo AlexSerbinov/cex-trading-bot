@@ -10,6 +10,7 @@ const BotForm = {
         this.form = document.getElementById('bot-form');
         this.formTitle = document.getElementById('form-title');
         this.backBtn = document.getElementById('back-to-list-btn');
+        this.marketSelect = document.getElementById('market');
         
         // Add event listeners
         this.backBtn.addEventListener('click', () => {
@@ -20,6 +21,9 @@ const BotForm = {
             e.preventDefault();
             await this.saveBot();
         });
+        
+        // Load available pairs when the form is shown
+        this.loadAvailablePairs();
     },
     
     /**
@@ -45,6 +49,9 @@ const BotForm = {
             const bot = await API.getBotById(id);
             this.currentBotId = id;
             
+            // Make sure pairs are loaded before setting the value
+            await this.loadAvailablePairs();
+            
             // Fill the form with the bot data
             this.form.market.value = bot.market;
             this.form.exchange.value = bot.exchange;
@@ -56,6 +63,7 @@ const BotForm = {
             this.form.frequency_to.value = bot.settings.frequency_to;
             this.form.price_factor.value = bot.settings.price_factor;
             this.form.market_gap.value = bot.settings.market_gap || 0.05;
+            this.form.market_maker_order_probability.value = bot.settings.market_maker_order_probability || 99;
             
             // Change the form title
             this.formTitle.textContent = `Editing bot ${bot.market}`;
@@ -70,6 +78,32 @@ const BotForm = {
     },
     
     /**
+     * Loading available trading pairs
+     */
+    async loadAvailablePairs() {
+        try {
+            const response = await API.getAvailablePairs();
+            if (response && response.pairs && response.pairs.length > 0) {
+                // Clear existing options except the first one
+                while (this.marketSelect.options.length > 1) {
+                    this.marketSelect.remove(1);
+                }
+                
+                // Add new options
+                response.pairs.forEach(pair => {
+                    const option = document.createElement('option');
+                    option.value = pair.name;
+                    option.textContent = pair.name;
+                    this.marketSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading available pairs:', error);
+            App.showAlert('warning', `Could not load available pairs: ${error.message}`);
+        }
+    },
+    
+    /**
      * Saving the bot
      */
     async saveBot() {
@@ -79,14 +113,15 @@ const BotForm = {
                 market: this.form.market.value,
                 exchange: this.form.exchange.value,
                 settings: {
-                    min_orders: parseInt(this.form.min_orders.value) || 2,
-                    max_orders: parseInt(this.form.max_orders.value) || 4,
+                    min_orders: parseInt(this.form.min_orders.value),
+                    max_orders: parseInt(this.form.max_orders.value),
                     trade_amount_min: parseFloat(this.form.trade_amount_min.value),
                     trade_amount_max: parseFloat(this.form.trade_amount_max.value),
                     frequency_from: parseInt(this.form.frequency_from.value),
                     frequency_to: parseInt(this.form.frequency_to.value),
                     price_factor: parseFloat(this.form.price_factor.value),
-                    market_gap: parseFloat(this.form.market_gap.value)
+                    market_gap: parseFloat(this.form.market_gap.value),
+                    market_maker_order_probability: parseInt(this.form.market_maker_order_probability.value)
                 }
             };
             

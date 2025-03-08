@@ -119,14 +119,15 @@ class BotManager
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
             'settings' => [
-                'min_orders' => $data['min_orders'] ?? 2,
-                'max_orders' => $data['max_orders'] ?? 4,
-                'trade_amount_min' => $data['trade_amount_min'] ?? 0.1,
-                'trade_amount_max' => $data['trade_amount_max'] ?? 1.0,
-                'frequency_from' => $data['frequency_from'] ?? 30,
-                'frequency_to' => $data['frequency_to'] ?? 60,
-                'price_factor' => $data['price_factor'] ?? 0.01,
-                'market_gap' => $data['market_gap'] ?? 0.05
+                'min_orders' => $data['settings']['min_orders'] ?? $data['min_orders'],
+                'max_orders' => $data['settings']['max_orders'] ?? $data['max_orders'],
+                'trade_amount_min' => $data['settings']['trade_amount_min'] ?? $data['trade_amount_min'],
+                'trade_amount_max' => $data['settings']['trade_amount_max'] ?? $data['trade_amount_max'],
+                'frequency_from' => $data['settings']['frequency_from'] ?? $data['frequency_from'],
+                'frequency_to' => $data['settings']['frequency_to'] ?? $data['frequency_to'],
+                'price_factor' => $data['settings']['price_factor'] ?? $data['price_factor'],
+                'market_gap' => $data['settings']['market_gap'] ?? $data['market_gap'],
+                'market_maker_order_probability' => $data['settings']['market_maker_order_probability'] ?? $data['market_maker_order_probability']
             ]
         ];
         
@@ -190,7 +191,8 @@ class BotManager
             // створюємо об'єкт settings з цих параметрів
             $settingsFields = [
                 'min_orders', 'max_orders', 'trade_amount_min', 'trade_amount_max',
-                'frequency_from', 'frequency_to', 'price_factor', 'market_gap'
+                'frequency_from', 'frequency_to', 'price_factor', 'market_gap',
+                'market_maker_order_probability'
             ];
             
             $settings = [];
@@ -360,7 +362,8 @@ class BotManager
     {
         $requiredFields = [
             'market', 'trade_amount_min', 'trade_amount_max', 
-            'frequency_from', 'frequency_to', 'price_factor', 'exchange'
+            'frequency_from', 'frequency_to', 'price_factor', 'exchange',
+            'min_orders', 'max_orders'
         ];
         
         if ($requireAllFields) {
@@ -401,6 +404,34 @@ class BotManager
                 throw new InvalidArgumentException("Market gap should not exceed 25% for realistic trading");
             }
         }
+
+        if (isset($botData['settings']['min_orders']) && isset($botData['settings']['max_orders'])) {
+            if ($botData['settings']['min_orders'] <= 0 || $botData['settings']['max_orders'] <= 0) {
+                throw new InvalidArgumentException("Minimum orders must be greater than zero");
+            }
+
+            if ($botData['settings']['min_orders'] > $botData['settings']['max_orders']) {
+                throw new InvalidArgumentException("Minimum orders cannot be greater than maximum orders");
+            }
+        }   
+
+        if (isset($botData['settings']['price_factor'])) {
+            if ($botData['settings']['price_factor'] <= 0) {
+                throw new InvalidArgumentException("Price factor must be greater than zero");
+            }
+        }   
+        
+        if (isset($botData['settings']['market_gap'])) {
+            if ($botData['settings']['market_gap'] <= 0) {
+                throw new InvalidArgumentException("Market gap must be greater than zero");
+            }
+        }       
+        
+        if (isset($botData['settings']['market_maker_order_probability'])) {
+            if ($botData['settings']['market_maker_order_probability'] < 0 || $botData['settings']['market_maker_order_probability'] > 100) {
+                throw new InvalidArgumentException("Market maker order probability must be between 0 and 100");
+            }
+        }
     }
 
     /**
@@ -430,14 +461,15 @@ class BotManager
             'created_at' => $createdAt,
             'updated_at' => $updatedAt,
             'settings' => [
-                'min_orders' => $settings['min_orders'] ?? ($bot['min_orders'] ?? 2),
-                'max_orders' => $settings['max_orders'] ?? ($bot['max_orders'] ?? 4),
-                'trade_amount_min' => $settings['trade_amount_min'] ?? ($bot['trade_amount_min'] ?? 0.1),
-                'trade_amount_max' => $settings['trade_amount_max'] ?? ($bot['trade_amount_max'] ?? 1.0),
-                'frequency_from' => $settings['frequency_from'] ?? ($bot['frequency_from'] ?? 30),
-                'frequency_to' => $settings['frequency_to'] ?? ($bot['frequency_to'] ?? 60),
-                'price_factor' => $settings['price_factor'] ?? ($bot['price_deviation_percent'] ?? 0.01),
-                'market_gap' => $settings['market_gap'] ?? ($bot['market_gap'] ?? 0.05)
+                'min_orders' => $settings['min_orders'] ?? ($bot['min_orders']),
+                'max_orders' => $settings['max_orders'] ?? ($bot['max_orders']),
+                'trade_amount_min' => $settings['trade_amount_min'] ?? ($bot['trade_amount_min']),
+                'trade_amount_max' => $settings['trade_amount_max'] ?? ($bot['trade_amount_max']),
+                'frequency_from' => $settings['frequency_from'] ?? ($bot['frequency_from']),
+                'frequency_to' => $settings['frequency_to'] ?? ($bot['frequency_to']),
+                'price_factor' => $settings['price_factor'] ?? ($bot['price_deviation_percent']),
+                'market_gap' => $settings['market_gap'] ?? ($bot['market_gap']),
+                'market_maker_order_probability' => $settings['market_maker_order_probability'] ?? ($bot['market_maker_order_probability'])
             ]
         ];
     }
@@ -522,64 +554,6 @@ class BotManager
         return $this->formatBotForResponse($updatedBot);
     }
 
-    /**
-     * Creating a new bot
-     */
-    public function createBot(array $data): ?array
-    {
-        // Validation
-        if (!isset($data['market']) || !isset($data['exchange'])) {
-            throw new InvalidArgumentException('Market and exchange are required');
-        }
-        
-        // Перевірка на порожню пару
-        if (empty($data['market'])) {
-            throw new InvalidArgumentException('Market cannot be empty');
-        }
-        
-        // Log incoming data
-        $this->logger->log("Creating bot with data: " . json_encode($data));
-        
-        // Check if the bot already exists
-        $storage = BotStorage::getInstance();
-        $existingBot = $storage->getBotByMarket($data['market']);
-        
-        if ($existingBot) {
-            throw new InvalidArgumentException("Bot for market {$data['market']} already exists");
-        }
-        
-        // Create a new bot
-        $bot = [
-            'id' => $storage->getNextId(),
-            'market' => $data['market'],
-            'exchange' => $data['exchange'],
-            'isActive' => false,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-            'settings' => [
-                'trade_amount_min' => $data['settings']['trade_amount_min'],
-                'trade_amount_max' => $data['settings']['trade_amount_max'],
-                'frequency_from' => $data['settings']['frequency_from'],
-                'frequency_to' => $data['settings']['frequency_to'],
-                'price_factor' => $data['settings']['price_deviation_percent'],
-                'market_gap' => $data['settings']['market_gap'],
-            ]
-        ];
-        
-        // Log prepared bot
-        $this->logger->log("Bot prepared for storage: " . json_encode($bot));
-        
-        // Save the bot
-        $createdBot = $storage->addBot($bot);
-        
-        if ($createdBot) {
-            $this->logger->log("Created bot: ID={$bot['id']}, Pair={$bot['market']}, Exchange={$bot['exchange']}");
-            $this->logger->log("Created bot settings: " . json_encode($createdBot['settings'] ?? []));
-        }
-        
-        return $this->formatBotForResponse($createdBot);
-    }
-
     public function cancelAllOrders(int $botId): bool
     {
         // Get the bot
@@ -607,5 +581,14 @@ class BotManager
         }
         
         return true;
+    }
+    
+    /**
+     * Проксі-метод для сумісності з фронтендом
+     * Просто викликає addBot
+     */
+    public function createBot(array $data): ?array
+    {
+        return $this->addBot($data);
     }
 } 
