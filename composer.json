@@ -2,5 +2,47 @@
     "require": {
         "guzzlehttp/guzzle": "^7.9",
         "symfony/console": "^7.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "./"
+        },
+        "classmap": [
+            "./"
+        ],
+        "exclude-from-classmap": [
+            "vendor/",
+            "URLs.txt",
+            "tsconfig.json",
+            "package-lock.json",
+            "package.json",
+            ".prettierrc",
+            "utils/OrderBookConsoleTool.ts",
+            "node_modules/",
+            ".idea/",
+            ".vscode/",
+            "*.sublime-project",
+            "*.sublime-workspace",
+            "data/logs/",
+            "data/pids/",
+            "*.log",
+            "*.pid",
+            ".env",
+            ".env.local",
+            ".env.*.local",
+            ".docker/",
+            "composer.phar",
+            ".DS_Store",
+            "Thumbs.db",
+            "*.tmp",
+            "*.swp",
+            "*.swo",
+            "dist/",
+            "build/",
+            "ETHBTC.pid",
+            "LTCETH.pid",
+            "LTCUSDT.pid",
+            "bot.log"
+        ]
     }
 }
