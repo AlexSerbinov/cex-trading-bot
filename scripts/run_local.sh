@@ -32,18 +32,8 @@ start_http_server() {
     # Determine the project root directory
     PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
     
-    # Check which directory exists and use it
-    if [ -d "$PROJECT_ROOT/src/api" ]; then
-        cd "$PROJECT_ROOT" && php -S localhost:8080 -t src/api &
-    elif [ -d "$PROJECT_ROOT/public" ]; then
-        cd "$PROJECT_ROOT" && php -S localhost:8080 -t public &
-    else
-        echo "ERROR: Directory not found for starting HTTP server!"
-        echo "Creating a temporary directory..."
-        mkdir -p "$PROJECT_ROOT/src/api"
-        echo "<?php echo json_encode(['status' => 'ok']); ?>" > "$PROJECT_ROOT/src/api/index.php"
-        cd "$PROJECT_ROOT" && php -S localhost:8080 -t src/api &
-    fi
+    # Start HTTP server from the project root directory with router.php
+    cd "$PROJECT_ROOT" && php -S localhost:8080 router.php &
     HTTP_PID=$!
     echo "HTTP server started with PID: $HTTP_PID"
 }

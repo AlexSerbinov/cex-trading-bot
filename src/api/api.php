@@ -3,11 +3,12 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/BotManager.php';
+require_once __DIR__ . '/../core/Logger.php';
 
 // Set the headers for CORS and JSON
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
 
 // Process the OPTIONS request (for CORS)
@@ -20,17 +21,24 @@ $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
 $pathParts = explode('/', trim($path, '/'));
 
+// Додаємо логування для діагностики
+$logger = Logger::getInstance();
+$logger->log("API Request: " . $path . ", Parts: " . json_encode($pathParts));
+
 // Remove the base path (if it exists)
-if ($pathParts[0] === 'api') {
+if (count($pathParts) > 0 && $pathParts[0] === 'api') {
     array_shift($pathParts);
 }
+
+// Додаткове логування після обробки шляху
+$logger->log("API Path after processing: " . json_encode($pathParts));
 
 // Create the bot manager
 $botManager = new BotManager();
 
 try {
     // Process requests
-    if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pathParts[0] === 'bots') {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && count($pathParts) > 0 && $pathParts[0] === 'bots') {
         // GET /bots - get all bots
         if (count($pathParts) === 1) {
             $bots = $botManager->getAllBots();

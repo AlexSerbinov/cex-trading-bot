@@ -36,6 +36,46 @@ class ExchangeManager
     }
 
     /**
+     * Get list of supported exchanges
+     * @return array List of exchange names
+     */
+    public function getExchangesList(): array
+    {
+        // Повертаємо фіксований список підтримуваних бірж
+        return ['binance', 'kraken', 'kucoin'];
+    }
+
+    /**
+     * Get list of available trading pairs
+     * @return array List of trading pairs with their available exchanges
+     */
+    public function getPairsList(): array
+    {
+        // Отримуємо доступні пари з торгового сервера
+        $serverPairs = $this->getAvailablePairsOnTradeServer();
+        
+        // Формуємо результат у потрібному форматі для API
+        $result = [];
+        foreach ($serverPairs as $pair) {
+            // Для кожної пари вказуємо, на яких біржах вона доступна
+            // Тут для прикладу припускаємо, що основні пари доступні на обох біржах
+            if (in_array($pair, ['BTC_USDT', 'ETH_USDT', 'ETH_BTC'])) {
+                $result[] = [
+                    'name' => $pair,
+                    'exchanges' => ['binance', 'kraken']
+                ];
+            } else {
+                $result[] = [
+                    'name' => $pair,
+                    'exchanges' => ['binance']
+                ];
+            }
+        }
+        
+        return $result;
+    }
+
+    /**
      * Getting the API URL for the exchange and pair
      *
      * @param string $exchange The name of the exchange (kraken, binance, bitfinex)

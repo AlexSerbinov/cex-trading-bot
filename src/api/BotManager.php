@@ -443,7 +443,6 @@ class BotManager
             return null;
         }
         
-        $this->logger->log("Formatting bot for response: " . json_encode($bot));
         
         // Додаємо значення за замовчуванням для відсутніх полів
         $isActive = isset($bot['isActive']) ? $bot['isActive'] : true;
