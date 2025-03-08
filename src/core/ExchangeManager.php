@@ -560,7 +560,6 @@ class ExchangeManager
             $this->logger->log("[{$pair}] Sending request to: {$url}");
             
             $json = json_encode($body);
-            $this->logger->log("[{$pair}] Request payload: {$json}");
             
             // Додаємо більш короткий таймаут для швидшого виявлення проблем
             $startTime = microtime(true);
@@ -602,7 +601,6 @@ class ExchangeManager
             $this->logger->log("[{$pair}] Sending cancel request to: {$url}");
             
             $json = json_encode($body);
-            $this->logger->log("[{$pair}] Cancel request payload: {$json}");
             
             // Додаємо відстеження часу виконання
             $startTime = microtime(true);
@@ -613,8 +611,6 @@ class ExchangeManager
             $this->logger->log("[{$pair}] Cancel request execution time: {$execTime}ms");
             
             $data = json_decode($response, true);
-            $this->logger->log("[{$pair}] Cancel order response: " . json_encode($data));
-            
             return $data;
         } catch (Exception $e) {
             $this->logger->error("[{$pair}] Exception when cancelling order: " . $e->getMessage());
