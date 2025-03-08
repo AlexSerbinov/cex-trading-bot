@@ -28,10 +28,10 @@ class Config
     public const MARKET_MAKER_ORDER_PROBABILITY = 0.99; // Adjustable probability for market maker orders (0.0 to 1.0)
 
     // Delay constants (in milliseconds)
-    public const DELAY_RUN_MIN = 100000; // 1 second
-    public const DELAY_RUN_MAX = 500000; // 5 seconds
-    public const DELAY_ORDER_MIN = 50000; // 0.5 seconds
-    public const DELAY_ORDER_MAX = 200000; // 2 seconds
+    public const DELAY_RUN_MIN = 10000; // 0.1 second
+    public const DELAY_RUN_MAX = 50000; // 0.5 seconds
+    public const DELAY_ORDER_MIN = 20000; // 2.5 seconds
+    public const DELAY_ORDER_MAX = 50000; // 0.5 seconds
     public const DELAY_CLEAR_MIN = 10; // 10 ms
     public const DELAY_CLEAR_MAX = 25; // 25 ms
     public const DELAY_INIT_MIN = 15; // 15 ms
