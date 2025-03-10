@@ -24,7 +24,7 @@ class TradingBotManager
     {
         $this->logger = Logger::getInstance();
         $this->botProcess = new BotProcess();
-        $this->configFile = __DIR__ . '/../../data/bots_config.json';
+        $this->configFile = __DIR__ . '/../../config/bots_config.json';
         
         // Registering a signal handler for proper termination
         pcntl_signal(SIGTERM, [$this, 'handleSignal']);

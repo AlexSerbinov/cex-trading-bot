@@ -6,6 +6,6 @@ return [
     'frontend_url' => 'http://frontend:80',
     'log_dir' => '/app/data/logs',
     'pid_dir' => '/app/data/pids',
-    'config_file' => '/app/data/bots_config.json',
+    'config_file' => '/app/config/bots_config.json',
     'debug' => true
 ]; 

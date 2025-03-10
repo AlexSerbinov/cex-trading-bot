@@ -202,7 +202,7 @@ The bot can be configured in two ways:
 
 ### Configuration File
 
-The main configuration file is located at `data/bots_config.json`. This file stores settings for all bots in the following format:
+The main configuration file is located at `config/bots_config.json`. This file stores settings for all bots in the following format:
 
 ```json
 {

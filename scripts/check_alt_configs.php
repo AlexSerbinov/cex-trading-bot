@@ -9,7 +9,7 @@ $logger = Logger::getInstance();
 $logger->log("Checking alternative storage locations for configuration...");
 
 // Check the main config
-$mainConfig = __DIR__ . '/../data/bots_config.json';
+$mainConfig = __DIR__ . '/../config/bots_config.json';
 if (file_exists($mainConfig)) {
     $content = file_get_contents($mainConfig);
     $config = json_decode($content, true);

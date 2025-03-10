@@ -25,7 +25,7 @@ $command = "ps aux | grep BotRunner | grep -v grep | awk '{print $2}' | xargs -r
 exec($command);
 
 // 3. Check the configuration file
-$configFile = __DIR__ . '/../data/bots_config.json';
+$configFile = __DIR__ . '/../config/bots_config.json';
 if (file_exists($configFile)) {
     $logger->log("Checking the configuration file...");
     $content = file_get_contents($configFile);

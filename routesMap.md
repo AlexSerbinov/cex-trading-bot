@@ -70,7 +70,7 @@ Read file: src/api/BotStorage.php
 
 | Шлях | Опис |
 |------|------|
-| ./data/bots_config.json | Конфігурація ботів |
+| ./config/bots_config.json | Конфігурація ботів |
 | ./data/logs/bot.log | Логи ботів |
 | ./data/logs/router.log | Логи маршрутизатора |
 | ./data/pids/*.pid | PID-файли для процесів ботів |
@@ -116,7 +116,7 @@ Read file: src/api/BotStorage.php
 
 | Шлях | Опис |
 |------|------|
-| ./data/bots_config.json | Конфігурація ботів |
+| ./config/bots_config.json | Конфігурація ботів |
 | ./data/logs/bot.log | Логи ботів |
 | ./data/logs/router.log | Логи маршрутизатора |
 | ./data/pids/*.pid | PID-файли для процесів ботів |
@@ -144,7 +144,7 @@ Read file: src/api/BotStorage.php
 2. **Бекенд** (PHP-сервер) обробляє запити:
    - API-запити обробляються через `index.php`
    - Статичні файли для Swagger UI обслуговуються з `/app/public/docs`
-   - Конфігурація ботів зберігається в `/app/data/bots_config.json`
+   - Конфігурація ботів зберігається в `/app/config/bots_config.json`
 
 3. **Процеси ботів**:
    - Запускаються через `TradingBotManager.php`
@@ -154,7 +154,7 @@ Read file: src/api/BotStorage.php
 
 4. **Конфігурація**:
    - Основні налаштування в `config/config.php`
-   - Конфігурація ботів в `data/bots_config.json`
+   - Конфігурація ботів в `config/bots_config.json`
    - Конфігурація Nginx в `frontend/nginx-dev.conf` або `frontend/nginx-demo.conf`
 
 5. **Мережі Docker**:
@@ -168,6 +168,6 @@ Read file: src/api/BotStorage.php
 2. Зміни в файлах в контейнері відображаються на хості
 3. Видалення файлів на хості призводить до їх зникнення в контейнері
 
-Це пояснює проблему, яку ви описали, коли видалення файлу `data/bots_config.json` на локальній машині призводить до його зникнення в контейнері.
+Це пояснює проблему, яку ви описали, коли видалення файлу `config/bots_config.json` на локальній машині призводить до його зникнення в контейнері.
 
 Ця детальна карта маршрутизації повинна допомогти вам краще зрозуміти, як налаштована ваша система і як взаємодіють різні компоненти.

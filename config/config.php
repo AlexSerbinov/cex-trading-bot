@@ -44,7 +44,7 @@ class Config
     public const SUPPORTED_EXCHANGES = ['binance', 'kraken'];
     
     // Path to the configuration file
-    private static string $configFile = __DIR__ . '/../data/bots_config.json';
+    private static string $configFile = __DIR__ . '/../config/bots_config.json';
     
     // Cache configuration
     private static ?array $config = null;

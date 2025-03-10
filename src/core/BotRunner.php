@@ -59,7 +59,7 @@ if (!in_array($pair, $enabledPairs)) {
 }
 
 // Path to the configuration file
-$configFile = __DIR__ . '/../../data/bots_config.json';
+$configFile = __DIR__ . '/../../config/bots_config.json';
 $lastConfigModTime = file_exists($configFile) ? filemtime($configFile) : 0;
 
 try {

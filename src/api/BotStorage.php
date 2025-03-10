@@ -20,7 +20,7 @@ class BotStorage
      */
     private function __construct()
     {
-        $this->storageFile = __DIR__ . '/../../data/bots_config.json';
+        $this->storageFile = __DIR__ . '/../../config/bots_config.json';
         $this->logger = Logger::getInstance();
         $this->loadBots();
     }
