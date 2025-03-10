@@ -7,6 +7,7 @@ services:
             dockerfile: backend/Dockerfile
         volumes:
             - ./config:/app/config
+            - ./data:/app/data
             - ./src:/app/src
             - ./router.php:/app/router.php
             - ./index.php:/app/index.php

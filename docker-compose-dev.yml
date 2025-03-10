@@ -1,4 +1,3 @@
-version: '3'
 
 services:
     backend-dev:
@@ -7,6 +6,7 @@ services:
             dockerfile: backend/Dockerfile
         volumes:
             - ./config:/app/config
+            - ./data:/app/data
             - ./src:/app/src
             - ./router.php:/app/router.php
             - ./index.php:/app/index.php
@@ -20,6 +20,7 @@ services:
             - app-dev-net
         restart: unless-stopped
         container_name: trading-bot-backend-dev
+        command: php -S 0.0.0.0:8080 router.php # Запуск PHP-сервера з використанням router.php
 
     frontend-dev:
         build:
