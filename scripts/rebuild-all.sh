@@ -12,6 +12,10 @@ mkdir -p "$PROJECT_ROOT/data/storage"
 # Надання прав на запис для директорій даних
 chmod -R 777 "$PROJECT_ROOT/data"
 
+# Підготовка конфігураційних файлів
+echo "Підготовка конфігураційних файлів..."
+"$SCRIPT_DIR/prepare-configs.sh"
+
 echo "Зупинка всіх контейнерів..."
 cd "$PROJECT_ROOT" && docker-compose -f docker-compose-dev.yml down
 cd "$PROJECT_ROOT" && docker-compose -f docker-compose-demo.yml down

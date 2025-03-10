@@ -5,9 +5,13 @@ services:
         build:
             context: .
             dockerfile: backend/Dockerfile
+            args:
+                - ENVIRONMENT=demo
         volumes:
-            - ./config:/app/config
-            - ./data:/app/data
+            # Не монтуємо конфігураційні файли
+            # - ./config:/app/config
+            - ./data/logs:/app/data/logs
+            - ./data/pids:/app/data/pids
             - ./src:/app/src
             - ./router.php:/app/router.php
             - ./index.php:/app/index.php
