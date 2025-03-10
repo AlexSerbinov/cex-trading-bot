@@ -2,8 +2,8 @@ import axios from 'axios';
 import chalk from 'chalk';
 
 // Конфігурація
-// const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 dev
-const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // 90 demo
+const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 dev
+// const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // 90 demo
 const REFRESH_INTERVAL = 500; // Оновлення кожні 500 мс
 
 // Отримуємо торгову пару з аргументів командного рядка

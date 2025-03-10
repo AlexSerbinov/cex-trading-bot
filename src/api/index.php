@@ -101,6 +101,7 @@ try {
                     'market_gap' => $data['market_gap'],
                     'min_orders' => $data['min_orders'],
                     'max_orders' => $data['max_orders'],
+                    'market_maker_order_probability' => $data['market_maker_order_probability'],
                 ];
             }
             

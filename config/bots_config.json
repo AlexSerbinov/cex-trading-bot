@@ -3,7 +3,7 @@
         "id": 1,
         "market": "DOGE_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-08 07:30:07",
         "updated_at": "2025-03-08 17:32:35",
         "settings": {
@@ -28,8 +28,8 @@
         "settings": {
             "trade_amount_min": 0.9,
             "trade_amount_max": 9,
-            "frequency_from": 39,
-            "frequency_to": 69,
+            "frequency_from": 3,
+            "frequency_to": 6,
             "price_factor": 0.09,
             "market_gap": 0.09,
             "min_orders": 2,
@@ -41,7 +41,7 @@
         "id": 5,
         "market": "ETH_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-08 08:03:43",
         "updated_at": "2025-03-08 17:17:22",
         "settings": {
@@ -60,7 +60,7 @@
         "id": 6,
         "market": "LTC_USDT",
         "exchange": "binance",
-        "isActive": false,
+        "isActive": true,
         "created_at": "2025-03-08 08:28:37",
         "updated_at": "2025-03-08 08:29:10",
         "settings": {
@@ -70,7 +70,7 @@
             "frequency_to": 63,
             "price_factor": 1.03,
             "market_gap": 0.03,
-            "min_orders": 3,
+            "min_orders": 9,
             "max_orders": 13,
             "market_maker_order_probability": 9
         }
