@@ -40,6 +40,20 @@ class TradingBot
         $this->exchangeManager = ExchangeManager::getInstance();
         
         $this->logger->log("Created a bot for the pair {$pair}");
+        
+        // Логування завантаженої конфігурації для діагностики
+        $settings = $this->pairConfig['settings'];
+        $this->logger->log(sprintf(
+            'Settings for %s: min_orders=%s, max_orders=%s, trade_amount_min=%s, trade_amount_max=%s, frequency_from=%s, frequency_to=%s, probability=%s',
+            $pair,
+            $settings['min_orders'],
+            $settings['max_orders'],
+            $settings['trade_amount_min'],
+            $settings['trade_amount_max'],
+            $settings['frequency_from'],
+            $settings['frequency_to'],
+            $settings['market_maker_order_probability']
+        ));
     }
 
     /**
@@ -121,15 +135,14 @@ class TradingBot
     private function getExternalOrderBook(): array
     {
         // Getting the exchange from the configuration
-        $exchange = $this->pairConfig['exchange'] ?? 'kraken';
+        $exchange = $this->pairConfig['exchange'];
         
         try {
             // Using the ExchangeManager to get the order book
             return $this->exchangeManager->getOrderBook($exchange, $this->pair);
         } catch (Exception $e) {
             $this->logger->error("[{$this->pair}] Unable to get the order book: " . $e->getMessage());
-            
-            // If we cannot get data from the API, use the mock
+            throw new RuntimeException("Error getting order book: " . $e->getMessage());
         }
     }
 
@@ -330,7 +343,7 @@ class TradingBot
     {
         $totalVolume = array_reduce($orders, fn($sum, $order) => $sum + (float) $order[1], 0.0);
         $scaleFactor = $totalAvailable / $totalVolume;
-        $minOrders = $this->pairConfig['min_orders'];
+        $minOrders = $this->pairConfig['settings']['min_orders'];
 
         return array_map(function ($order) use ($scaleFactor, $isLTC) {
             return [
@@ -360,20 +373,8 @@ class TradingBot
      */
     private function initializeOrderBook(array $orderBook): void
     {
-        // Отримуємо налаштування для мінімального та максимального обсягу торгівлі
-        $tradeAmountMin = $this->pairConfig['trade_amount_min'] ?? 0.1;
-        $tradeAmountMax = $this->pairConfig['trade_amount_max'] ?? 1.0;
-        
-        // Перевіряємо, що значення не нульові
-        if ($tradeAmountMin <= 0) {
-            $this->logger->error("[{$this->pair}] Invalid trade_amount_min: {$tradeAmountMin}, using default 0.1");
-            $tradeAmountMin = 0.1;
-        }
-        
-        if ($tradeAmountMax <= 0) {
-            $this->logger->error("[{$this->pair}] Invalid trade_amount_max: {$tradeAmountMax}, using default 1.0");
-            $tradeAmountMax = 1.0;
-        }
+        $tradeAmountMin = $this->pairConfig['settings']['trade_amount_min'];
+        $tradeAmountMax = $this->pairConfig['settings']['trade_amount_max'];
         
         // Переконуємося, що min не більше max
         if ($tradeAmountMin > $tradeAmountMax) {
@@ -386,14 +387,14 @@ class TradingBot
         // Розрахунок ринкової ціни
         $marketPrice = $this->calculateMarketPrice($orderBook);
         
-        // Створення початкових ордерів
-        $minOrders = $this->pairConfig['min_orders'] ?? 2;
-        $maxOrders = $this->pairConfig['max_orders'] ?? 4;
+        // Отримання значень з settings
+        $minOrders = $this->pairConfig['settings']['min_orders'];
+        $maxOrders = $this->pairConfig['settings']['max_orders'];
         
         // Випадкова кількість ордерів в діапазоні
         $numOrders = mt_rand($minOrders, $maxOrders);
         
-        $this->logger->log("[{$this->pair}] Initializing order book with {$numOrders} orders, market price: {$marketPrice}");
+        $this->logger->log("[{$this->pair}] Initializing order book with {$numOrders} orders (min: {$minOrders}, max: {$maxOrders}), market price: {$marketPrice}");
         
         for ($i = 0; $i < $numOrders; $i++) {
             // Випадковий вибір сторони (bid або ask)
@@ -434,9 +435,19 @@ class TradingBot
         float $marketPrice,
         array $pendingOrders,
     ): void {
-        $minOrders = $this->pairConfig['min_orders'];
-        $maxOrders = $this->pairConfig['max_orders'];
-        $deviationPercent = $this->pairConfig['price_deviation_percent'] / 100;
+        $minOrders = $this->pairConfig['settings']['min_orders'];
+        $maxOrders = $this->pairConfig['settings']['max_orders'];
+        $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
+        
+        $this->logger->log(
+            sprintf(
+                '[%s] Maintaining orders with min=%d, max=%d, deviation=%.2f%%',
+                $this->pair,
+                $minOrders,
+                $maxOrders,
+                $deviationPercent * 100
+            )
+        );
 
         // Add bids if there are too few
         while (count($currentBids) < $minOrders) {
@@ -541,8 +552,22 @@ class TradingBot
         array $pendingOrders,
         float $marketPrice,
     ): void {
-        $maxOrders = $this->pairConfig['max_orders'];
-        $deviationPercent = $this->pairConfig['price_deviation_percent'] / 100;
+        $maxOrders = $this->pairConfig['settings']['max_orders'];
+        $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
+        
+        // Ймовірність створення ордерів маркет-мейкера
+        $marketMakerProbability = $this->pairConfig['settings']['market_maker_order_probability'] / 100;
+        
+        $this->logger->log(sprintf(
+            '[%s] Performing random actions with max_orders=%d, deviation=%.4f%%, probability=%.2f', 
+            $this->pair, $maxOrders, $deviationPercent * 100, $marketMakerProbability * 100
+        ));
+
+        // Якщо випадкове число більше за ймовірність створення ордерів, пропускаємо дію
+        if (mt_rand() / mt_getrandmax() > $marketMakerProbability) {
+            $this->logger->log("[{$this->pair}] Skipping market maker action due to probability threshold");
+            return;
+        }
 
         $action = mt_rand() / mt_getrandmax();
         if ($action < 0.3 && count($currentBids) < $maxOrders) {
@@ -663,9 +688,13 @@ class TradingBot
      */
     private function calculateOrderPrice(float $marketPrice, int $side): float
     {
-        // Getting the percentage deviation from the configuration
-        $deviationPercent = $this->pairConfig['price_deviation_percent'] ?? 0.01;
-        $marketGap = $this->pairConfig['market_gap'] ?? 0.05;
+        // Отримання налаштувань з settings або з кореневого об'єкту для зворотної сумісності
+        $deviationPercent = $this->pairConfig['settings']['price_factor'];
+        $marketGap = $this->pairConfig['settings']['market_gap'];
+        
+        // Логування для діагностики
+        $this->logger->log(sprintf('[%s] Price calculation using deviation=%.4f%%, market_gap=%.4f%%', 
+            $this->pair, $deviationPercent, $marketGap));
         
         // Calculating the maximum deviation
         $maxDeviation = $marketPrice * ($deviationPercent / 100);
@@ -692,8 +721,7 @@ class TradingBot
         // Calculating the market price
         $marketPrice = $this->calculateMarketPrice($orderBook);
         
-        // Getting the market_gap value
-        $marketGap = $this->pairConfig['market_gap'] ?? 0.05;
+        $marketGap = $this->pairConfig['settings']['market_gap'];
         $gapAdjustment = $marketPrice * ($marketGap / 100);
         
         // Applying the market_gap to the best prices

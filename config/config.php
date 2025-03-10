@@ -141,7 +141,11 @@ class Config
     {
         self::loadConfig();
         
-        return self::$config[$pair] ?? null;
+        if (!isset(self::$config[$pair])) {
+            return null;
+        }
+        
+        return self::$config[$pair];
     }
     
     /**
@@ -224,20 +228,20 @@ class Config
             'exchange' => $botData['exchange'] ?? 'kraken',
             // 'min_orders' => $botData['min_orders'] ?? 15,
             // 'max_orders' => $botData['max_orders'] ?? 17,
-            'price_deviation_percent' => $botData['price_deviation_percent'] ?? 5,
-            'frequency_from' => $botData['settings']['frequency_from'] ?? 30,
-            'frequency_to' => $botData['settings']['frequency_to'] ?? 60,
-            'bot_balance' => $botData['settings']['bot_balance'] ?? 10,
+            'price_deviation_percent' => $botData['price_deviation_percent'],
+            'frequency_from' => $botData['settings']['frequency_from'],
+            'frequency_to' => $botData['settings']['frequency_to'],
+            'bot_balance' => $botData['settings']['bot_balance'],
             'isActive' => $botData['isActive'] ?? true,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
-            'trade_amount_min' => $botData['settings']['trade_amount_min'] ?? 0.1,
-            'trade_amount_max' => $botData['settings']['trade_amount_max'] ?? 1.0,
-            'min_orders' => $botData['settings']['min_orders'] ?? 2,
-            'max_orders' => $botData['settings']['max_orders'] ?? 4,
-            'market_gap' => $botData['settings']['market_gap'] ?? 0.05,
-            'price_factor' => $botData['settings']['price_factor'] ?? 0.01,
-            'market_maker_order_probability' => $botData['settings']['market_maker_order_probability'] ?? 30,
+            'trade_amount_min' => $botData['settings']['trade_amount_min'],
+            'trade_amount_max' => $botData['settings']['trade_amount_max'],
+            'min_orders' => $botData['settings']['min_orders'],
+            'max_orders' => $botData['settings']['max_orders'],
+            'market_gap' => $botData['settings']['market_gap'],
+            'price_factor' => $botData['settings']['price_factor'],
+            'market_maker_order_probability' => $botData['settings']['market_maker_order_probability'],
         ];
         
 

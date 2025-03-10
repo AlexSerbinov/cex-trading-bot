@@ -72,7 +72,10 @@ try {
     }
     
     // Logging the values for verification
-    $logger->log("Loaded configuration for {$pair}: frequency_from={$pairConfig['frequency_from']}, frequency_to={$pairConfig['frequency_to']}");
+    $frequency_from = $pairConfig['settings']['frequency_from'];
+    $frequency_to = $pairConfig['settings']['frequency_to'];
+    
+    $logger->log("Loaded configuration for {$pair}: frequency_from={$frequency_from}, frequency_to={$frequency_to}");
     
     // Creating a bot
     $bot = new TradingBot($pair, $pairConfig);
@@ -109,7 +112,10 @@ try {
                         break;
                     }
                     
-                    $logger->log("Updated configuration for {$pair}: frequency_from={$pairConfig['frequency_from']}, frequency_to={$pairConfig['frequency_to']}");
+                    $frequency_from = $pairConfig['settings']['frequency_from'];
+                    $frequency_to = $pairConfig['settings']['frequency_to'];
+                    
+                    $logger->log("Updated configuration for {$pair}: frequency_from={$frequency_from}, frequency_to={$frequency_to}");
                     
                     $lastConfigModTime = $currentModTime;
                 }
@@ -128,9 +134,11 @@ try {
             }
             
             // Delay between cycles (in seconds)
-            // Forcibly converting to an integer and ensuring the value is positive
-            $minDelay = max(1, (int)($pairConfig['frequency_from'] ?? 60));
-            $maxDelay = max($minDelay, (int)($pairConfig['frequency_to'] ?? $minDelay * 2));
+            $frequency_from = $pairConfig['settings']['frequency_from'];
+            $frequency_to = $pairConfig['settings']['frequency_to'];
+            
+            $minDelay = max(1, (int)$frequency_from);
+            $maxDelay = max($minDelay, (int)$frequency_to);
             
             $logger->log("Using a delay range: {$minDelay}-{$maxDelay} seconds for pair {$pair}");
             

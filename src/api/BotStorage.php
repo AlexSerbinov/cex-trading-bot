@@ -105,15 +105,15 @@ class BotStorage
             
             // Add bot settings
             $bot['settings'] = [
-                'trade_amount_min' => $bot['trade_amount_min'] ?? ($bot['settings']['trade_amount_min']),
-                'trade_amount_max' => $bot['trade_amount_max'] ?? ($bot['settings']['trade_amount_max']),
-                'frequency_from' => $bot['frequency_from'] ?? ($bot['settings']['frequency_from']),
-                'frequency_to' => $bot['frequency_to'] ?? ($bot['settings']['frequency_to']),
-                'price_factor' => $bot['price_deviation_percent'] ?? ($bot['settings']['price_factor']),
-                'market_gap' => $bot['market_gap'] ?? ($bot['settings']['market_gap']),
-                'min_orders' => $bot['min_orders'] ?? ($bot['settings']['min_orders']),
-                'max_orders' => $bot['max_orders'] ?? ($bot['settings']['max_orders']),
-                'market_maker_order_probability' => $bot['market_maker_order_probability'] ?? ($bot['settings']['market_maker_order_probability'])
+                'trade_amount_min' =>  ($bot['settings']['trade_amount_min']),
+                'trade_amount_max' =>  ($bot['settings']['trade_amount_max']),
+                'frequency_from' =>  ($bot['settings']['frequency_from']),
+                'frequency_to' =>  ($bot['settings']['frequency_to']),
+                'price_factor' =>  ($bot['settings']['price_factor']),
+                'market_gap' =>  ($bot['settings']['market_gap']),
+                'min_orders' =>  ($bot['settings']['min_orders']),
+                'max_orders' =>  ($bot['settings']['max_orders']),
+                'market_maker_order_probability' =>  ($bot['settings']['market_maker_order_probability'])
             ];
         }
         
@@ -136,15 +136,15 @@ class BotStorage
         
         // Add bot settings
         $bot['settings'] = [
-            'trade_amount_min' => $bot['trade_amount_min'] ?? ($bot['settings']['trade_amount_min']),
-            'trade_amount_max' => $bot['trade_amount_max'] ?? ($bot['settings']['trade_amount_max']),
-            'frequency_from' => $bot['frequency_from'] ?? ($bot['settings']['frequency_from']),
-            'frequency_to' => $bot['frequency_to'] ?? ($bot['settings']['frequency_to']),
-            'price_factor' => $bot['price_deviation_percent'] ?? ($bot['settings']['price_factor']),
-            'market_gap' => $bot['market_gap'] ?? ($bot['settings']['market_gap']),
-            'min_orders' => $bot['min_orders'] ?? ($bot['settings']['min_orders']),
-            'max_orders' => $bot['max_orders'] ?? ($bot['settings']['max_orders']),
-            'market_maker_order_probability' => $bot['market_maker_order_probability'] ?? ($bot['settings']['market_maker_order_probability'])
+            'trade_amount_min' => ($bot['settings']['trade_amount_min']),
+            'trade_amount_max' => ($bot['settings']['trade_amount_max']),
+            'frequency_from' => ($bot['settings']['frequency_from']),
+            'frequency_to' => ($bot['settings']['frequency_to']),
+            'price_factor' => ($bot['settings']['price_factor']),
+            'market_gap' => ($bot['settings']['market_gap']),
+            'min_orders' => ($bot['settings']['min_orders']),
+            'max_orders' => ($bot['settings']['max_orders']),
+            'market_maker_order_probability' => ($bot['settings']['market_maker_order_probability'])
         ];
         
         return $bot;
@@ -204,7 +204,7 @@ class BotStorage
                 'frequency_to' => $bot['frequency_to'],
                 'price_factor' => $bot['price_factor'],
                 'market_gap' => $bot['market_gap'],
-                'market_maker_order_probability' => $bot['market_maker_order_probability'] ?? ($bot['settings']['market_maker_order_probability'] ?? 25)
+                'market_maker_order_probability' => $bot['settings']['market_maker_order_probability']
             ];
         }
         
@@ -437,15 +437,15 @@ class BotStorage
             'created_at' => $config['created_at'] ?? date('Y-m-d H:i:s'),
             'updated_at' => $config['updated_at'] ?? date('Y-m-d H:i:s'),
             'settings' => $settings,
-            'trade_amount_min' => $settings['trade_amount_min'] ?? $config['trade_amount_min'],
-            'trade_amount_max' => $settings['trade_amount_max'] ?? $config['trade_amount_max'],
-            'frequency_from' => $settings['frequency_from'] ?? $config['frequency_from'],
-            'frequency_to' => $settings['frequency_to'] ?? $config['frequency_to'],
-            'price_deviation_percent' => $settings['price_factor'] ?? $config['price_deviation_percent'],
-            'market_gap' => $settings['market_gap'] ?? $config['market_gap'],
-            'min_orders' => $settings['min_orders'] ?? $config['min_orders'],
-            'max_orders' => $settings['max_orders'] ?? $config['max_orders'],
-            'market_maker_order_probability' => $settings['market_maker_order_probability'] ?? $config['market_maker_order_probability']
+            'trade_amount_min' => $settings['trade_amount_min'],
+            'trade_amount_max' => $settings['trade_amount_max'],
+            'frequency_from' => $settings['frequency_from'],
+            'frequency_to' => $settings['frequency_to'],
+            'price_deviation_percent' => $settings['price_factor'],
+            'market_gap' => $settings['market_gap'],
+            'min_orders' => $settings['min_orders'],
+            'max_orders' => $settings['max_orders'],
+            'market_maker_order_probability' => $settings['market_maker_order_probability']
         ];
         
         $this->logger->log("transformBotConfig result: " . json_encode($result));
@@ -477,15 +477,15 @@ class BotStorage
             'created_at' => $bot['created_at'] ?? date('Y-m-d H:i:s'),
             'updated_at' => $bot['updated_at'] ?? date('Y-m-d H:i:s'),
             'settings' => [
-                'min_orders' => $settings['min_orders'] ?? $bot['min_orders'],
-                'max_orders' => $settings['max_orders'] ?? $bot['max_orders'],
-                'trade_amount_min' => $settings['trade_amount_min'] ?? $bot['trade_amount_min'],
-                'trade_amount_max' => $settings['trade_amount_max'] ?? $bot['trade_amount_max'],
-                'frequency_from' => $settings['frequency_from'] ?? $bot['frequency_from'],
-                'frequency_to' => $settings['frequency_to'] ?? $bot['frequency_to'],
-                'price_factor' => $settings['price_factor'] ?? $bot['price_factor'],
-                'market_gap' => $settings['market_gap'] ?? $bot['market_gap'],
-                'market_maker_order_probability' => $settings['market_maker_order_probability'] ?? $bot['market_maker_order_probability']
+                'min_orders' => $settings['min_orders'],
+                'max_orders' => $settings['max_orders'],
+                'trade_amount_min' => $settings['trade_amount_min'],
+                'trade_amount_max' => $settings['trade_amount_max'],
+                'frequency_from' => $settings['frequency_from'],
+                'frequency_to' => $settings['frequency_to'],
+                'price_factor' => $settings['price_factor'],
+                'market_gap' => $settings['market_gap'],
+                'market_maker_order_probability' => $settings['market_maker_order_probability']
             ]
         ];
     }

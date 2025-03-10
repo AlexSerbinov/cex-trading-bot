@@ -438,6 +438,7 @@ class BotProcess
                 $this->logger->error("Failed to find configuration for pair {$pair}");
                 return;
             }
+            $this->logger->log("111Bot configuration: " . json_encode($botConfig));
             
             // Checking the bot balance on the trade server before executing trades
             $botManager = new BotManager();
@@ -449,7 +450,7 @@ class BotProcess
             
             // Checking the balance of the base currency
             $botBalance = $botManager->getBotBalanceFromTradeServer(Config::BOT_ID, $baseCurrency);
-            $tradeAmountMax = $botConfig['trade_amount_max'] ?? 1.0;
+            $tradeAmountMax = $botConfig['trade_amount_max'];
             
             if ($botBalance < $tradeAmountMax) {
                 $this->logger->error("[{$pair}] Insufficient balance for trading: need {$tradeAmountMax} {$baseCurrency}, available {$botBalance} {$baseCurrency}");
