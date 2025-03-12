@@ -127,13 +127,10 @@ class BotStorage
     {
         // Get bot from configuration
         $bot = Config::getBotById($id);
-        
         if (!$bot) {
             return null;
         }
-        
         $pair = $bot['market'];
-        
         // Add bot settings
         $bot['settings'] = [
             'trade_amount_min' => ($bot['settings']['trade_amount_min']),
@@ -146,7 +143,6 @@ class BotStorage
             'max_orders' => ($bot['settings']['max_orders']),
             'market_maker_order_probability' => ($bot['settings']['market_maker_order_probability'])
         ];
-        
         return $bot;
     }
 
@@ -342,12 +338,15 @@ class BotStorage
         }
         
         if ($foundPair === null) {
-            $this->logger->error("Bot with ID {$id} not found for deletion");
+            $this->logger->warning("Bot with ID {$id} not found in storage (may have been deleted already)");
             return false;
         }
         
         // Delete the bot
         unset($this->bots[$foundPair]);
+        
+        // Автоматично перенумеровуємо боти після видалення
+        $this->reindexBots();
         
         // Save the changes
         $this->saveBots();

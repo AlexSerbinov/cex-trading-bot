@@ -136,14 +136,19 @@ class Logger
         // Adding a message to the file
         file_put_contents($this->logFile, $logMessage . PHP_EOL, FILE_APPEND);
         
-        // Виводимо в консоль лише в CLI-режимі,
-        // щоб уникнути попадання логів у відповідь API
-        if ($this->consoleOutput && php_sapi_name() === 'cli') {
-            echo $logMessage . PHP_EOL;
-            // Додамо примусове скидання буфера, щоб логи одразу з'являлися
-            if (function_exists('ob_flush') && function_exists('flush')) {
-                @ob_flush();
-                @flush();
+        if ($this->consoleOutput) {
+            // Завжди використовуємо error_log для запису в журнал, який Docker може перехопити
+            error_log($logMessage);
+            
+            // Виводимо через echo тільки в CLI-режимі, щоб уникнути потрапляння в API-відповідь
+            if (php_sapi_name() === 'cli') {
+                echo $logMessage . PHP_EOL;
+                
+                // Примусове скидання буфера в CLI
+                if (function_exists('ob_flush') && function_exists('flush')) {
+                    @ob_flush();
+                    @flush();
+                }
             }
         }
     }

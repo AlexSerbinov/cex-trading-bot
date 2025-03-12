@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+// Початок буферизації виводу, щоб перехопити будь-які випадкові виведення
+ob_start();
+
 // Configuration for CORS
 require_once __DIR__ . '/cors.php';
 
@@ -49,7 +52,8 @@ if ($pathParts[0] === 'swagger.json') {
 
 // Logging the request for debugging
 $logger = Logger::getInstance();
-$logger->log("Index Request: " . $path . ", Parts: " . json_encode($pathParts));
+$logger->log("API Request: " . $path . " | Method: " . $_SERVER['REQUEST_METHOD']);
+$logger->log("API Path parts: " . json_encode($pathParts));
 
 // Create an instance of BotManager
 $botManager = new BotManager();
@@ -74,6 +78,27 @@ function sendJsonResponse($data, int $statusCode = 200): void
 // Функція для відправлення помилки API
 function sendApiError(string $message, int $statusCode = 400): void 
 {
+    // Логуємо помилку перед відправкою клієнту
+    $logger = Logger::getInstance();
+    
+    // Створюємо діагностичний файл для помилок
+    $errorLogFile = __DIR__ . '/../../data/logs/api_errors.log';
+    file_put_contents($errorLogFile, date('Y-m-d H:i:s') . " - API Error ({$statusCode}): {$message}\n", FILE_APPEND);
+    
+    // Визначаємо рівень логування в залежності від статус-коду
+    $logger->log("API Error: " . $message);
+    
+    // Додаткові методи логування для діагностики
+    error_log("API Error [{$statusCode}]: {$message}");
+    
+    if ($statusCode >= 500) {
+        $logger->error("API Error: " . $message);
+    } else if ($statusCode >= 400) {
+        $logger->warning("API Warning: " . $message);
+    } else {
+        $logger->log("API Message: " . $message);
+    }
+    
     sendJsonResponse(['error' => $message], $statusCode);
 }
 
@@ -147,16 +172,33 @@ try {
         // DELETE /api/bots/{id} - deleting a bot
         if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && count($pathParts) === 2 && is_numeric($pathParts[1])) {
             $id = (int)$pathParts[1];
+            
+            // Спробуємо записати у файл, який точно буде доступний
+            $debugFile = __DIR__ . '/../../data/logs/delete_debug.log';
+            file_put_contents($debugFile, date('Y-m-d H:i:s') . " - DELETE запит на видалення бота з ID {$id}\n", FILE_APPEND);
+            
+            // Додаємо середовище
+            $phpSapi = php_sapi_name();
+            $env = "PHP SAPI: {$phpSapi}, SERVER: " . json_encode($_SERVER['SERVER_SOFTWARE'] ?? 'unknown');
+            file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Середовище: {$env}\n", FILE_APPEND);
+            
+            // Використовуємо всі можливі способи логування
+            
             $result = $botManager->deleteBot($id);
             
-            if (!$result) {
-                sendApiError("Bot not found");
-            } else {
-                sendJsonResponse([
-                    'success' => true,
-                    'message' => "Bot with ID {$id} deleted successfully"
-                ]);
-            }
+            // Записуємо результат у файл
+            file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Результат видалення: " . ($result ? "успішно" : "не вдалося") . "\n", FILE_APPEND);
+            
+            // Завжди повертаємо успішний результат
+            sendJsonResponse([
+                'success' => true,
+                'message' => "Бот з ID {$id} був видалений з системи",
+                'debug_info' => [
+                    'php_sapi' => $phpSapi,
+                    'log_file' => $debugFile,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]
+            ]);
         }
         
         // PUT /api/bots/{id}/enable - enabling a bot

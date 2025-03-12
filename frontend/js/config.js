@@ -1,7 +1,7 @@
 window.CONFIG = { 
     apiUrl: '/api',
     swaggerUrl: '/swagger-ui',
-    environment: 'demo'
+    environment: 'dev'
 };
 
 // Функція для динамічного оновлення URL API з заголовків

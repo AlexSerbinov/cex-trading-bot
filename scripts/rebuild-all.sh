@@ -18,19 +18,19 @@ echo "Підготовка конфігураційних файлів..."
 
 echo "Зупинка всіх контейнерів..."
 cd "$PROJECT_ROOT" && docker-compose -f docker-compose-dev.yml down
-cd "$PROJECT_ROOT" && docker-compose -f docker-compose-demo.yml down
+# cd "$PROJECT_ROOT" && docker-compose -f docker-compose-demo.yml down
 
 echo "Перебілдування Dev-середовища Trading Bot..."
-cd "$PROJECT_ROOT" && docker-compose -f docker-compose-dev.yml build --no-cache
+cd "$PROJECT_ROOT" && docker-compose -f docker-compose-dev.yml build
 
-echo "Перебілдування Demo-середовища Trading Bot..."
-cd "$PROJECT_ROOT" && docker-compose -f docker-compose-demo.yml build --no-cache
+# echo "Перебілдування Demo-середовища Trading Bot..."
+# cd "$PROJECT_ROOT" && docker-compose -f docker-compose-demo.yml build 
 
 echo "Запуск Dev-середовища Trading Bot..."
 cd "$PROJECT_ROOT" && docker-compose -f docker-compose-dev.yml up -d
 
 echo "Запуск Demo-середовища Trading Bot..."
-cd "$PROJECT_ROOT" && docker-compose -f docker-compose-demo.yml up -d
+# cd "$PROJECT_ROOT" && docker-compose -f docker-compose-demo.yml up -d
 
 echo "Обидва середовища перебілдовано та запущено!"
 echo ""

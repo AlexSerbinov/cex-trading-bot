@@ -65,7 +65,6 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
     // Логування запиту
     $logger = Logger::getInstance();
     $logger->log("API Request: " . $path . " | Method: " . $_SERVER['REQUEST_METHOD']);
-    $logger->log("Headers: " . json_encode(getallheaders()));
     $rawInput = file_get_contents('php://input');
     if (!empty($rawInput)) {
         $logger->log("Request body: " . $rawInput);

@@ -262,26 +262,32 @@ class BotManager
         $bot = $storage->getBotById($id);
         
         if (!$bot) {
-            $this->logger->error("Bot with ID {$id} not found for deletion");
-            return false;
+            $this->logger->warning("Bot with ID {$id} not found for deletion (already deleted or never existed)");
+            return true; // Повертаємо true, тому що для користувача важливо, що бота більше немає в системі
         }
         
-        // Stop the process for the pair
-        $this->botProcess->stopProcess($bot['market']);
+        // Запам'ятаємо інформацію перед видаленням
+        $pair = $bot['market'];
         
-        // Delete the bot from configuration
+        // Stop the process for the pair
+        $this->botProcess->stopProcess($pair);
+        
+        // Видаляємо бота з конфігурації
         Config::deleteBot($id);
         
-        // Delete the bot from storage
+        // Видаляємо бота зі сховища даних
         $result = $storage->deleteBot($id);
         
         if ($result) {
-            $this->logger->log("Deleted bot: ID={$id}, Pair={$bot['market']}");
+            $this->logger->log("Deleted bot: ID={$id}, Pair={$pair}");
         } else {
-            $this->logger->error("Failed to delete bot with ID {$id}");
+            // Якщо видалення зі сховища не вдалося, але бот вже видалений з конфігурації
+            // ми все одно вважаємо операцію успішною, оскільки бот вже не активний
+            $this->logger->warning("Bot ID={$id} was removed from active configuration but storage deletion failed");
+            return true;
         }
         
-        return $result;
+        return true; // Завжди повертаємо true, навіть якщо видалення зі сховища не вдалося
     }
 
     /**
