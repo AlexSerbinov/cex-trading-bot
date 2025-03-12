@@ -159,6 +159,21 @@ To run both environments simultaneously:
     ```
     (Replace `-dev` with `-demo` for the demonstration environment.)
 
+    Або використовуйте спеціальний скрипт для моніторингу логів:
+    ```bash
+    # Надайте права на виконання
+    chmod +x ./scripts/docker_logs.sh
+    
+    # Моніторинг логів усіх сервісів у Dev середовищі
+    ./scripts/docker_logs.sh
+    
+    # Моніторинг логів Backend у Demo середовищі
+    ./scripts/docker_logs.sh demo backend
+    
+    # Моніторинг логів Frontend у Dev середовищі
+    ./scripts/docker_logs.sh dev frontend
+    ```
+
 ## Installation
 
 ### Prerequisites
@@ -357,6 +372,29 @@ The bot provides several ways to monitor its activity:
 1. **Web Interface**: View bot status and configuration
 2. **Logs**: Access detailed logs via API or file system
 3. **Process Status**: Check running processes with system tools
+
+### Перегляд логів
+
+Система логування налаштована таким чином, що логи одночасно записуються у файл і виводяться в консоль:
+
+#### Локальний запуск
+При локальному запуску через скрипти `run_clean.sh` або `run_local.sh` логи автоматично виводяться в консоль.
+
+#### Docker-контейнери
+Для перегляду логів у Docker-контейнерах використовуйте:
+
+```bash
+# Стандартна команда Docker
+docker logs -f trading-bot-backend-dev
+
+# Або спеціальний скрипт
+./scripts/docker_logs.sh dev backend
+```
+
+#### Файли логів
+Логи також зберігаються у файлах:
+- Основний лог: `data/logs/bot.log`
+- Лог маршрутизатора: `data/logs/router.log`
 
 ## Troubleshooting
 

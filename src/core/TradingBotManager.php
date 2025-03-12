@@ -101,6 +101,24 @@ class TradingBotManager
 
 // Running the bot manager if the file is called directly
 if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
+    // Перевіряємо, чи вже запущений TradingBotManager
+    $lockFile = __DIR__ . '/../../data/pids/trading_bot_manager.lock';
+    
+    // Створюємо лок-файл або отримуємо його вміст
+    if (file_exists($lockFile)) {
+        $pid = (int)file_get_contents($lockFile);
+        
+        // Перевіряємо, чи процес із цим PID ще живий
+        exec("ps -p {$pid} -o pid=", $output);
+        if (!empty($output)) {
+            echo "TradingBotManager вже запущений з PID {$pid}. Виходимо.\n";
+            exit(0);
+        }
+    }
+    
+    // Зберігаємо поточний PID
+    file_put_contents($lockFile, getmypid());
+    
     $manager = new TradingBotManager();
     $manager->runAllBots();
 }

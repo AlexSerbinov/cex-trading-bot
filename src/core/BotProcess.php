@@ -47,6 +47,15 @@ class BotProcess
             return true;
         }
         
+        // // Додаткова перевірка запущених процесів для цієї пари
+        $runningCount = $this->countRunningProcessesForPair($pair);
+        if ($runningCount > 0) {
+            $this->logger->log("Виявлено {$runningCount} запущених процесів для пари {$pair}. Зупиняємо їх перед запуском нового.");
+            $this->killAllProcessesForPair($pair);
+            // Зачекаємо трохи, щоб процеси завершились
+            sleep(1);
+        }
+        
         // Path to the script that will be executed in a separate process
         $scriptPath = __DIR__ . '/BotRunner.php';
         
@@ -469,5 +478,26 @@ class BotProcess
         catch (Exception $e) {
             $this->logger->error("Error executing trading operations for pair {$pair}: " . $e->getMessage());
         }
+    }
+    
+    /**
+     * Підрахунок кількості запущених процесів для пари
+     */
+    private function countRunningProcessesForPair(string $pair): int
+    {
+        $escapedPair = escapeshellarg($pair);
+        $command = "ps aux | grep BotRunner.php | grep {$escapedPair} | grep -v grep | wc -l";
+        $count = (int)exec($command);
+        return $count;
+    }
+    
+    /**
+     * Зупинка всіх процесів для пари
+     */
+    private function killAllProcessesForPair(string $pair): void
+    {
+        $escapedPair = escapeshellarg($pair);
+        $command = "pkill -f \"BotRunner.php.*{$escapedPair}\"";
+        exec($command);
     }
 } 

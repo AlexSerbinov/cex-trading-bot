@@ -19,7 +19,7 @@ services:
             - app-demo-net
         restart: unless-stopped
         container_name: trading-bot-backend-demo
-        command: php -S 0.0.0.0:8080 router.php # Запуск PHP-сервера з використанням router.php
+        command: both # Запуск і сервера, і менеджера ботів
 
     frontend-demo:
         build:

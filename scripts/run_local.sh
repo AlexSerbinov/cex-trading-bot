@@ -61,19 +61,19 @@ case "$1" in
     http)
         start_http_server
         echo "HTTP server started. Press Ctrl+C to stop."
-        tail -f data/logs/bot.log
+        wait $HTTP_PID
         ;;
     bots)
         start_bot_manager
         echo "Bot manager started. Press Ctrl+C to stop."
-        tail -f data/logs/bot.log
+        wait $MANAGER_PID
         ;;
     all)
         echo "Starting all processes..."
         start_http_server
         start_bot_manager
         echo "All processes started. Press Ctrl+C to stop."
-        tail -f data/logs/bot.log
+        wait $HTTP_PID $MANAGER_PID
         ;;
     stop)
         cleanup
