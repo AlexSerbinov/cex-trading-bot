@@ -186,6 +186,8 @@ try {
             }
         } catch (Exception $e) {
             $logger->error("Error in the bot cycle for pair {$pair}: " . $e->getMessage());
+            // Додаємо логування стек трейсу для відстеження джерела помилки
+            $logger->logStackTrace("Stack trace for bot cycle error for pair {$pair}:");
             // Delay before retrying
             sleep(10);
         }
@@ -197,5 +199,7 @@ try {
     $logger->log("Bot for pair {$pair} stopped");
 } catch (Exception $e) {
     $logger->error("Critical error in the bot for pair {$pair}: " . $e->getMessage());
+    // Додаємо логування стек трейсу для відстеження джерела критичної помилки
+    $logger->logStackTrace("Stack trace for critical error in bot for pair {$pair}:");
     exit(1);
 } 

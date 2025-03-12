@@ -7,8 +7,16 @@ declare(strict_types=1);
  */
 class Logger
 {
+    // Константи для рівнів логування
+    public const DEBUG = 0;
+    public const INFO = 1;
+    public const WARNING = 2;
+    public const ERROR = 3;
+    public const CRITICAL = 4;
+    
     private string $logFile;
     private bool $consoleOutput;
+    private int $logLevel;
     private static ?Logger $instance = null;
 
     /**
@@ -16,11 +24,13 @@ class Logger
      * 
      * @param bool $consoleOutput Output logs to the console
      * @param string|null $logFile Path to the log file (if null, the default path is used)
+     * @param int $logLevel Minimum log level to record (default: INFO)
      */
-    private function __construct(bool $consoleOutput = true, ?string $logFile = null)
+    private function __construct(bool $consoleOutput = true, ?string $logFile = null, int $logLevel = self::WARNING)
     {
         $this->consoleOutput = $consoleOutput;
         $this->logFile = $logFile ?? __DIR__ . '/../../data/logs/bot.log';
+        $this->logLevel = $logLevel;
         
         // Creating the log directory if it does not exist
         $logDir = dirname($this->logFile);
@@ -32,12 +42,85 @@ class Logger
     /**
      * Getting an instance of the class (Singleton)
      */
-    public static function getInstance(bool $consoleOutput = true, ?string $logFile = null): Logger
+    public static function getInstance(bool $consoleOutput = true, ?string $logFile = null, int $logLevel = self::WARNING): Logger
     {
         if (self::$instance === null) {
-            self::$instance = new self($consoleOutput, $logFile);
+            self::$instance = new self($consoleOutput, $logFile, $logLevel);
         }
         return self::$instance;
+    }
+
+    /**
+     * Logging a debug message
+     */
+    public function debug(string $message): void
+    {
+        if ($this->logLevel <= self::DEBUG) {
+            $this->log('[DEBUG] ' . $message);
+        }
+    }
+    
+    /**
+     * Logging an info message
+     */
+    public function info(string $message): void
+    {
+        if ($this->logLevel <= self::INFO) {
+            $this->log('[INFO] ' . $message);
+        }
+    }
+    
+    /**
+     * Logging a warning message
+     */
+    public function warning(string $message): void
+    {
+        if ($this->logLevel <= self::WARNING) {
+            $this->log('[WARNING] ' . $message);
+        }
+    }
+    
+    /**
+     * Logging an error message
+     */
+    public function error(string $message): void
+    {
+        if ($this->logLevel <= self::ERROR) {
+            $this->log('[ERROR] ' . $message);
+        }
+    }
+    
+    /**
+     * Logging a critical error message
+     */
+    public function critical(string $message): void
+    {
+        if ($this->logLevel <= self::CRITICAL) {
+            $this->log('[CRITICAL] ' . $message);
+        }
+    }
+    
+    /**
+     * Logs a stack trace
+     */
+    public function logStackTrace(string $message = 'Stack trace:'): void
+    {
+        $stackTrace = debug_backtrace();
+        $traceStr = $message . "\n";
+        
+        // Пропускаємо перший елемент, бо це сам виклик logStackTrace
+        for ($i = 1; $i < count($stackTrace); $i++) {
+            $frame = $stackTrace[$i];
+            $class = $frame['class'] ?? '';
+            $type = $frame['type'] ?? '';
+            $function = $frame['function'] ?? '';
+            $file = $frame['file'] ?? '(unknown file)';
+            $line = $frame['line'] ?? '(unknown line)';
+            
+            $traceStr .= "#{$i}: {$class}{$type}{$function} called at [{$file}:{$line}]\n";
+        }
+        
+        $this->log($traceStr, false); // Вже включає час, тому не додаємо часову мітку
     }
 
     /**
@@ -53,32 +136,18 @@ class Logger
         // Adding a message to the file
         file_put_contents($this->logFile, $logMessage . PHP_EOL, FILE_APPEND);
         
-        // Output to the console only if the option is enabled and NOT in the context of an API request
+        // Виводимо в консоль лише в CLI-режимі,
+        // щоб уникнути попадання логів у відповідь API
         if ($this->consoleOutput && php_sapi_name() === 'cli') {
             echo $logMessage . PHP_EOL;
+            // Додамо примусове скидання буфера, щоб логи одразу з'являлися
+            if (function_exists('ob_flush') && function_exists('flush')) {
+                @ob_flush();
+                @flush();
+            }
         }
     }
 
-    /**
-     * Logs an error.
-     *
-     * @param string $message Error message
-     */
-    public function error(string $message): void
-    {
-        $this->log('ERROR: ' . $message);
-    }
-    
-    /**
-     * Logs a debug message.
-     *
-     * @param string $message Debug message to log
-     */
-    public function debug(string $message): void
-    {
-        $this->log('DEBUG: ' . $message);
-    }
-    
     /**
      * Getting the path to the log file
      * 

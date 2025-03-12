@@ -88,6 +88,13 @@ class TradingBot
             return;
         }
         
+        // ДОДАНО: Штучний лог для тестування системи логування
+        $this->logger->info("********** ТЕСТОВИЙ ЛОГ: Запуск циклу торгівлі для пари {$this->pair} **********");
+        $this->logger->debug("DEBUG: Тестування рівня DEBUG в TradingBot");
+        $this->logger->warning("WARNING: Тестування рівня WARNING в TradingBot");
+        $this->logger->error("ERROR: Тестування рівня ERROR в TradingBot (це не справжня помилка!)");
+        $this->logger->critical("CRITICAL: Тестування рівня CRITICAL в TradingBot (це не справжня критична помилка!)");
+        
         $this->logger->log("[{$this->pair}] Starting the trading cycle");
         
         try {
@@ -105,6 +112,8 @@ class TradingBot
             $this->logger->log("[{$this->pair}] The trading cycle has been completed successfully");
         } catch (Exception $e) {
             $this->logger->error("[{$this->pair}] Error in the trading cycle: " . $e->getMessage());
+            // Додаємо логування стек трейсу для відстеження джерела помилки
+            $this->logger->logStackTrace("[{$this->pair}] Stack trace for trading cycle error:");
         }
     }
 
@@ -121,6 +130,8 @@ class TradingBot
                 $this->randomDelay(Config::DELAY_RUN_MIN, Config::DELAY_RUN_MAX);
             } catch (Exception $e) {
                 $this->logger->error("[{$this->pair}] Error: " . $e->getMessage());
+                // Додаємо логування стек трейсу для відстеження джерела помилки
+                $this->logger->logStackTrace("[{$this->pair}] Stack trace for main loop error:");
                 $this->randomDelay(Config::DELAY_RUN_MIN, Config::DELAY_RUN_MAX);
             }
         }
@@ -142,6 +153,8 @@ class TradingBot
             return $this->exchangeManager->getOrderBook($exchange, $this->pair);
         } catch (Exception $e) {
             $this->logger->error("[{$this->pair}] Unable to get the order book: " . $e->getMessage());
+            // Додаємо логування стек трейсу для відстеження джерела помилки
+            $this->logger->logStackTrace("[{$this->pair}] Stack trace for order book error:");
             throw new RuntimeException("Error getting order book: " . $e->getMessage());
         }
     }
@@ -294,6 +307,8 @@ class TradingBot
             
             if (isset($result['error']) && $result['error'] !== null) {
                 $this->logger->error("[{$this->pair}] Error cancelling order {$orderId}: " . json_encode($result['error']));
+                // Додаємо логування стек трейсу при помилці в результаті запиту
+                $this->logger->logStackTrace("[{$this->pair}] Stack trace for cancelling order error (API result):");
             } else {
                 $this->logger->log("[{$this->pair}] Successfully cancelled order {$orderId}");
             }
@@ -301,6 +316,8 @@ class TradingBot
             $this->randomDelay(Config::DELAY_CLEAR_MIN, Config::DELAY_CLEAR_MAX);
         } catch (Exception $e) {
             $this->logger->error("[{$this->pair}] Exception when cancelling order {$orderId}: " . $e->getMessage());
+            // Додаємо логування стек трейсу для відстеження джерела помилки
+            $this->logger->logStackTrace("[{$this->pair}] Stack trace for cancelling order exception:");
         }
     }
 
@@ -766,6 +783,8 @@ class TradingBot
             $this->logger->log("[{$this->pair}] Updated open orders list, found " . count($this->openOrders) . " orders");
         } catch (Exception $e) {
             $this->logger->error("[{$this->pair}] Error updating open orders: " . $e->getMessage());
+            // Додаємо логування стек трейсу для відстеження джерела помилки
+            $this->logger->logStackTrace("[{$this->pair}] Stack trace for updating open orders error:");
         }
     }
 }

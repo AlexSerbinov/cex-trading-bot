@@ -439,6 +439,11 @@ class BotProcess
      */
     private function executeTrades(string $pair): void
     {
+        // ДОДАНО: Штучний лог для тестування системи логування
+        $this->logger->info("======= ТЕСТОВИЙ ЛОГ: Запущено executeTrades для пари {$pair} =======");
+        $this->logger->debug("DEBUG: Тестування рівня DEBUG в executeTrades");
+        $this->logger->warning("WARNING: Тестування рівня WARNING в executeTrades");
+        
         try {
             // Getting the bot configuration
             $botConfig = Config::getPairConfig($pair);
@@ -477,6 +482,8 @@ class BotProcess
         }
         catch (Exception $e) {
             $this->logger->error("Error executing trading operations for pair {$pair}: " . $e->getMessage());
+            // Додаємо логування стек трейсу для відстеження джерела помилки
+            $this->logger->logStackTrace("Stack trace for executing trading operations error:");
         }
     }
     

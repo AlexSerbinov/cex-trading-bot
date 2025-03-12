@@ -54,6 +54,29 @@ $logger->log("Index Request: " . $path . ", Parts: " . json_encode($pathParts));
 // Create an instance of BotManager
 $botManager = new BotManager();
 
+// Функція для відправлення JSON-відповіді
+function sendJsonResponse($data, int $statusCode = 200): void 
+{
+    // Очищаємо будь-який вихідний буфер, щоб уникнути додаткових даних у відповіді
+    if (ob_get_level()) {
+        ob_clean();
+    }
+    
+    // Встановлюємо заголовки
+    http_response_code($statusCode);
+    header('Content-Type: application/json');
+    
+    // Кодуємо дані в JSON і відправляємо
+    echo json_encode($data, JSON_PRETTY_PRINT);
+    exit;
+}
+
+// Функція для відправлення помилки API
+function sendApiError(string $message, int $statusCode = 400): void 
+{
+    sendJsonResponse(['error' => $message], $statusCode);
+}
+
 // Processing requests
 try {
     // Requests to /api/bots
@@ -61,8 +84,7 @@ try {
         // GET /api/bots - getting all bots
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && count($pathParts) === 1) {
             $bots = $botManager->getAllBots();
-            echo json_encode($bots);
-            exit;
+            sendJsonResponse($bots);
         }
         
         // GET /api/bots/{id} - getting a bot by ID
@@ -71,13 +93,10 @@ try {
             $bot = $botManager->getBotById($id);
             
             if (!$bot) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Бот не знайдений']);
-                exit;
+                sendApiError('Бот не знайдений', 404);
+            } else {
+                sendJsonResponse($bot);
             }
-            
-            echo json_encode($bot);
-            exit;
         }
         
         // POST /api/bots - creating a new bot
@@ -85,9 +104,7 @@ try {
             $data = json_decode(file_get_contents('php://input'), true);
             
             if ($data === null) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Invalid JSON format']);
-                exit;
+                sendApiError('Invalid JSON format');
             }
             
             // Перетворення плоскої структури в структуру з вкладеним масивом settings
@@ -106,8 +123,7 @@ try {
             }
             
             $bot = $botManager->addBot($data);
-            echo json_encode($bot);
-            exit;
+            sendJsonResponse($bot);
         }
         
         // PUT /api/bots/{id} - updating a bot
@@ -116,21 +132,16 @@ try {
             $data = json_decode(file_get_contents('php://input'), true);
             
             if ($data === null) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Invalid JSON format']);
-                exit;
+                sendApiError('Invalid JSON format');
             }
             
             $bot = $botManager->updateBot($id, $data);
             
             if (!$bot) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Bot not found']);
-                exit;
+                sendApiError('Bot not found', 404);
+            } else {
+                sendJsonResponse($bot);
             }
-            
-            echo json_encode($bot);
-            exit;
         }
         
         // DELETE /api/bots/{id} - deleting a bot
@@ -139,15 +150,13 @@ try {
             $result = $botManager->deleteBot($id);
             
             if (!$result) {
-                http_response_code(404);
-                echo json_encode(['error' => "Bot not found"]);
+                sendApiError("Bot not found");
             } else {
-                echo json_encode([
+                sendJsonResponse([
                     'success' => true,
                     'message' => "Bot with ID {$id} deleted successfully"
                 ]);
             }
-            exit;
         }
         
         // PUT /api/bots/{id}/enable - enabling a bot
@@ -156,13 +165,10 @@ try {
             $bot = $botManager->enableBot($id);
             
             if (!$bot) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Bot not found']);
-                exit;
+                sendApiError('Bot not found');
+            } else {
+                sendJsonResponse($bot);
             }
-            
-            echo json_encode($bot);
-            exit;
         }
         
         // PUT /api/bots/{id}/disable - disabling a bot
@@ -171,13 +177,10 @@ try {
             $bot = $botManager->disableBot($id);
             
             if (!$bot) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Bot not found']);
-                exit;
+                sendApiError('Bot not found');
+            } else {
+                sendJsonResponse($bot);
             }
-            
-            echo json_encode($bot);
-            exit;
         }
         
         // PUT /api/bots/{id}/update-balance - updating a bot's balance
@@ -186,13 +189,10 @@ try {
             $bot = $botManager->updateBotTradeAmountMax($id);
             
             if (!$bot) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Bot not found']);
-                exit;
+                sendApiError('Bot not found');
+            } else {
+                sendJsonResponse($bot);
             }
-            
-            echo json_encode($bot);
-            exit;
         }
     }
     
@@ -206,14 +206,12 @@ try {
         $logContent = $logger->getLogContent($lines);
         
         // Return logs in JSON format
-        echo json_encode(['logs' => $logContent]);
-        exit;
+        sendJsonResponse(['logs' => $logContent]);
     }
     
     // GET /api/exchanges - getting the list of supported exchanges
     if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pathParts[0] === 'exchanges') {
-        echo json_encode(['exchanges' => Config::SUPPORTED_EXCHANGES]);
-        exit;
+        sendJsonResponse(['exchanges' => Config::SUPPORTED_EXCHANGES]);
     }
     
     // GET /api/pairs - getting the list of available pairs
@@ -221,8 +219,7 @@ try {
         $exchangeManager = ExchangeManager::getInstance();
         $pairs = $exchangeManager->getAvailablePairsOnTradeServer();
         
-        echo json_encode(['pairs' => $pairs]);
-        exit;
+        sendJsonResponse(['pairs' => $pairs]);
     }
     
     // GET /api/config - отримання конфігурації
@@ -231,15 +228,16 @@ try {
             'tradeServerUrl' => Config::getTradeServerUrl()
         ];
         
-        echo json_encode($config);
-        exit;
+        sendJsonResponse($config);
     }
     
-    // If we get here, the request does not match any endpoint
-    http_response_code(404);
-    echo json_encode(['error' => 'Endpoint not found']);
+    // Якщо жоден обробник не спрацював, повертаємо 404
+    sendApiError("Endpoint not found", 404);
     
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    // Логуємо помилку
+    $logger->error("API Error: " . $e->getMessage());
+    
+    // Відправляємо клієнту повідомлення про помилку
+    sendApiError($e->getMessage(), 500);
 } 
