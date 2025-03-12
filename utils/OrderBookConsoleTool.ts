@@ -7,7 +7,7 @@ const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 dev
 const REFRESH_INTERVAL = 500; // Оновлення кожні 500 мс
 
 // Отримуємо торгову пару з аргументів командного рядка
-const PAIR = process.argv[2]?.startsWith('-') ? process.argv[2].substring(1) : 'LTC_USDT';
+const PAIR = process.argv[2]?.startsWith('-') ? process.argv[2].substring(1) : 'DOGE_USDT';
 
 // Функція для отримання ордер буку (bids або asks)
 async function getOrderBook(side: number) {

@@ -53,7 +53,7 @@
             "market_gap": 0.03,
             "min_orders": 9,
             "max_orders": 13,
-            "market_maker_order_probability": 9
+            "market_maker_order_probability": 90
         }
     }
 }
