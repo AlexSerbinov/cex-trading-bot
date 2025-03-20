@@ -33,9 +33,29 @@ echo "Фронтенд запущено з PID: $FRONTEND_PID"
 
 # Запускаємо ботів
 echo "Запуск ботів..."
-cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php > /dev/null 2>&1 &
-BOTS_PID=$!
-echo "Боти запущені з PID: $BOTS_PID"
+# Перевіряємо, чи не запущений уже TradingBotManager
+BOT_MANAGER_LOCK="$PROJECT_ROOT/data/pids/trading_bot_manager.lock"
+
+if [ -f "$BOT_MANAGER_LOCK" ]; then
+    LOCK_PID=$(cat "$BOT_MANAGER_LOCK")
+    echo "Знайдено лок-файл TradingBotManager з PID: $LOCK_PID"
+    
+    # Перевіряємо, чи процес із цим PID існує і чи це TradingBotManager
+    if ps -p $LOCK_PID > /dev/null && grep -q TradingBotManager /proc/$LOCK_PID/cmdline 2>/dev/null; then
+        echo "TradingBotManager уже запущений з PID: $LOCK_PID. Використовуємо існуючий процес."
+        BOTS_PID=$LOCK_PID
+    else
+        echo "Лок-файл існує, але процес не запущений або це не TradingBotManager. Видаляємо старий лок-файл."
+        rm -f "$BOT_MANAGER_LOCK"
+        cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php > /dev/null 2>&1 &
+        BOTS_PID=$!
+        echo "Боти запущені з новим PID: $BOTS_PID"
+    fi
+else
+    cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php > /dev/null 2>&1 &
+    BOTS_PID=$!
+    echo "Боти запущені з PID: $BOTS_PID"
+fi
 
 # Зберігаємо PID-и в файли
 echo $BACKEND_PID > "$PROJECT_ROOT/data/pids/backend.pid"

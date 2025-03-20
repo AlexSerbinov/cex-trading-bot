@@ -339,7 +339,6 @@ class ExchangeManager
         $asks = array_map(function($ask) use ($timestamp) {
             return [$ask[0], $ask[1], $timestamp];
         }, $data['asks']);
-        
         return [
             'bids' => $bids,
             'asks' => $asks,

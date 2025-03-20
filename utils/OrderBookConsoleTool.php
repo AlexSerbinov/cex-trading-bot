@@ -10,7 +10,7 @@ const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 dev
 
 const REFRESH_INTERVAL = 500; // Refresh interval in milliseconds
 
-$pair = isset($argv[1]) && str_starts_with($argv[1], '-') ? substr($argv[1], 1) : 'BTC_USDC';
+$pair = isset($argv[1]) && str_starts_with($argv[1], '-') ? substr($argv[1], 1) : 'DOGE_BTC';
 
 // ANSI color codes for console output
 const COLOR_RED = "\033[31m";
@@ -71,7 +71,7 @@ function formatOrderBook(array $bids, array $asks): string {
 
     // Build output string
     $output = COLOR_BOLD . "Order Book ({$GLOBALS['pair']})" . COLOR_RESET . PHP_EOL;
-    $output .= COLOR_BOLD . "№\tPrice (USDC)\tAmount (BTC)\tTotal" . COLOR_RESET . PHP_EOL;
+    $output .= COLOR_BOLD . "№\tPrice (BTC)\tAmount (DOGE)\tTotal" . COLOR_RESET . PHP_EOL;
 
     // Display asks (red) with numbering
     foreach ($displayAsks as $index => $ask) {

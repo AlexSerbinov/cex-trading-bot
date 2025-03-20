@@ -17,6 +17,7 @@ node_modules/
 
 # Logs and runtime data
 data/logs/
+data/locks/
 data/pids/
 *.log
 *.pid

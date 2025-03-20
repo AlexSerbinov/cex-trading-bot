@@ -276,6 +276,7 @@ class TradingBot
             'id' => 1,
         ];
         $response = $this->apiClient->post(Config::getTradeServerUrl(), json_encode($body));
+        // $this->logger->log("[{$this->pair}] Placed order: " . json_encode($body, JSON_PRETTY_PRINT));
         $data = json_decode($response, true);
 
         if ($data['error'] !== null) {
@@ -436,10 +437,10 @@ class TradingBot
             // Розрахунок ціни для ордера
             $price = $this->calculateOrderPrice($marketPrice, $side);
             
-            $this->logger->log("[{$this->pair}] Initialized " . ($side == 1 ? "ask" : "bid") . ": {$formattedAmount} @ " . number_format($price, 8, '.', ''));
+            $this->logger->log("[{$this->pair}] Initialized " . ($side == 1 ? "ask" : "bid") . ": {$formattedAmount} @ " . number_format($price, 12, '.', ''));
             
             // Розміщення ордера
-            $this->placeLimitOrder($side, $formattedAmount, number_format($price, 8, '.', ''));
+            $this->placeLimitOrder($side, $formattedAmount, number_format($price, 12, '.', ''));
         }
     }
 
@@ -475,7 +476,7 @@ class TradingBot
         while (count($currentBids) < $minOrders) {
             $bidPrice = number_format(
                 $marketPrice * (1 - $deviationPercent + (mt_rand() / mt_getrandmax()) * $deviationPercent),
-                6,
+                12,
                 '.',
                 '',
             );
@@ -505,7 +506,7 @@ class TradingBot
         while (count($currentAsks) < $minOrders) {
             $askPrice = number_format(
                 $marketPrice * (1 + $deviationPercent + (mt_rand() / mt_getrandmax()) * $deviationPercent),
-                6,
+                12,
                 '.',
                 '',
             );
@@ -603,9 +604,93 @@ class TradingBot
             $this->pair, $maxOrders, $deviationPercent * 100, $marketMakerProbability * 100
         ));
 
-        // Якщо випадкове число більше за ймовірність створення ордерів, пропускаємо дію
+        // Якщо випадкове число більше за ймовірність створення ордерів, скасовуємо і відновлюємо один ордер
         if (mt_rand() / mt_getrandmax() > $marketMakerProbability) {
-            $this->logger->log("[{$this->pair}] Skipping market maker action due to probability threshold");
+            $this->logger->log("[{$this->pair}] Low probability for market maker action, will update one order instead");
+            
+            // Оновлюємо список відкритих ордерів
+            $this->updateOpenOrders();
+            
+            // Отримуємо списки бідів та асків
+            $bids = array_filter($this->openOrders, fn($o) => $o['side'] === 2);
+            $asks = array_filter($this->openOrders, fn($o) => $o['side'] === 1);
+            
+            if (empty($bids) && empty($asks)) {
+                $this->logger->log("[{$this->pair}] No orders to update");
+                return;
+            }
+            
+            // Вибираємо випадково біди або аски
+            $useAsks = (mt_rand(0, 1) === 1 && !empty($asks)) || empty($bids);
+            
+            if ($useAsks) {
+                // Сортуємо аски за ціною (від низької до високої)
+                usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
+                
+                // Вибираємо випадковий аск для оновлення
+                $orderIndex = mt_rand(0, count($asks) - 1);
+                $orderToUpdate = $asks[$orderIndex];
+                
+                // Скасовуємо ордер
+                $this->cancelOrder($orderToUpdate['id']);
+                $this->logger->log(sprintf(
+                    '[%s] Cancelled ask for update: %d @ %s',
+                    $this->pair,
+                    $orderToUpdate['id'],
+                    $orderToUpdate['price']
+                ));
+                
+                // Створюємо новий аск з оновленою ціною
+                $askPrice = number_format(
+                    $marketPrice * (1 + $deviationPercent / 2 + ((mt_rand() / mt_getrandmax()) * $deviationPercent) / 2),
+                    12,
+                    '.',
+                    ''
+                );
+                $askAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
+                $this->placeLimitOrder(1, $askAmount, $askPrice);
+                $this->logger->log(sprintf(
+                    '[%s] Placed updated ask: %s @ %s (was @ %s)',
+                    $this->pair,
+                    $askAmount,
+                    $askPrice,
+                    $orderToUpdate['price']
+                ));
+            } else {
+                // Сортуємо біди за ціною (від високої до низької)
+                usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']);
+                
+                // Вибираємо випадковий бід для оновлення
+                $orderIndex = mt_rand(0, count($bids) - 1);
+                $orderToUpdate = $bids[$orderIndex];
+                
+                // Скасовуємо ордер
+                $this->cancelOrder($orderToUpdate['id']);
+                $this->logger->log(sprintf(
+                    '[%s] Cancelled bid for update: %d @ %s',
+                    $this->pair,
+                    $orderToUpdate['id'],
+                    $orderToUpdate['price']
+                ));
+                
+                // Створюємо новий бід з оновленою ціною
+                $bidPrice = number_format(
+                    $marketPrice * (1 - $deviationPercent / 2 + ((mt_rand() / mt_getrandmax()) * $deviationPercent) / 2),
+                    12,
+                    '.',
+                    ''
+                );
+                $bidAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
+                $this->placeLimitOrder(2, $bidAmount, $bidPrice);
+                $this->logger->log(sprintf(
+                    '[%s] Placed updated bid: %s @ %s (was @ %s)',
+                    $this->pair,
+                    $bidAmount,
+                    $bidPrice,
+                    $orderToUpdate['price']
+                ));
+            }
+            
             return;
         }
 
@@ -613,7 +698,7 @@ class TradingBot
         if ($action < 0.3 && count($currentBids) < $maxOrders) {
             $bidPrice = number_format(
                 $marketPrice * (1 - $deviationPercent / 2 + ((mt_rand() / mt_getrandmax()) * $deviationPercent) / 2),
-                6,
+                12,
                 '.',
                 '',
             );
@@ -623,7 +708,7 @@ class TradingBot
         } elseif ($action < 0.6 && count($currentAsks) < $maxOrders) {
             $askPrice = number_format(
                 $marketPrice * (1 + $deviationPercent / 2 + ((mt_rand() / mt_getrandmax()) * $deviationPercent) / 2),
-                6,
+                12,
                 '.',
                 '',
             );
@@ -797,7 +882,7 @@ class TradingBot
         
         $this->logger->log(
             sprintf(
-                '[%s] Market price: %.6f, best bid = %.6f, best ask = %.6f',
+                '[%s] Market price: %.12f, best bid = %.12f, best ask = %.12f',
                 $this->pair,
                 $marketPrice,
                 $bestBidPrice,
