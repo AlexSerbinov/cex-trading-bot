@@ -474,8 +474,12 @@ class TradingBot
 
         // Add bids if there are too few
         while (count($currentBids) < $minOrders) {
+            // Використовуємо той самий алгоритм, що і в calculateOrderPrice
+            $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+            $randomFactor = pow($randBase, 1/3);
+            
             $bidPrice = number_format(
-                $marketPrice * (1 - $deviationPercent + (mt_rand() / mt_getrandmax()) * $deviationPercent),
+                $marketPrice * (1 - $deviationPercent + $randomFactor * $deviationPercent),
                 12,
                 '.',
                 '',
@@ -484,12 +488,13 @@ class TradingBot
             $this->placeLimitOrder(2, $bidAmount, $bidPrice);
             $this->logger->log(
                 sprintf(
-                    '[%s] Added bid to achieve %d-%d: %s @ %s',
+                    '[%s] Added bid to achieve %d-%d: %s @ %s (factor: %.4f)',
                     $this->pair,
                     $minOrders,
                     $maxOrders,
                     $bidAmount,
                     $bidPrice,
+                    $randomFactor
                 ),
             );
             $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
@@ -504,8 +509,12 @@ class TradingBot
 
         // Add asks if there are too few
         while (count($currentAsks) < $minOrders) {
+            // Використовуємо той самий алгоритм, що і в calculateOrderPrice
+            $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+            $randomFactor = pow($randBase, 1/3);
+            
             $askPrice = number_format(
-                $marketPrice * (1 + $deviationPercent + (mt_rand() / mt_getrandmax()) * $deviationPercent),
+                $marketPrice * (1 + $deviationPercent + $randomFactor * $deviationPercent),
                 12,
                 '.',
                 '',
@@ -514,12 +523,13 @@ class TradingBot
             $this->placeLimitOrder(1, $askAmount, $askPrice);
             $this->logger->log(
                 sprintf(
-                    '[%s] Added ask to achieve %d-%d: %s @ %s',
+                    '[%s] Added ask to achieve %d-%d: %s @ %s (factor: %.4f)',
                     $this->pair,
                     $minOrders,
                     $maxOrders,
                     $askAmount,
                     $askPrice,
+                    $randomFactor
                 ),
             );
             $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
@@ -641,8 +651,11 @@ class TradingBot
                 ));
                 
                 // Створюємо новий аск з оновленою ціною
+                $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+                $randomFactor = pow($randBase, 1/3);
+                
                 $askPrice = number_format(
-                    $marketPrice * (1 + $deviationPercent / 2 + ((mt_rand() / mt_getrandmax()) * $deviationPercent) / 2),
+                    $marketPrice * (1 + $deviationPercent / 2 + ($randomFactor * $deviationPercent) / 2),
                     12,
                     '.',
                     ''
@@ -650,11 +663,12 @@ class TradingBot
                 $askAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
                 $this->placeLimitOrder(1, $askAmount, $askPrice);
                 $this->logger->log(sprintf(
-                    '[%s] Placed updated ask: %s @ %s (was @ %s)',
+                    '[%s] Placed updated ask: %s @ %s (was @ %s, factor: %.4f)',
                     $this->pair,
                     $askAmount,
                     $askPrice,
-                    $orderToUpdate['price']
+                    $orderToUpdate['price'],
+                    $randomFactor
                 ));
             } else {
                 // Сортуємо біди за ціною (від високої до низької)
@@ -674,8 +688,11 @@ class TradingBot
                 ));
                 
                 // Створюємо новий бід з оновленою ціною
+                $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+                $randomFactor = pow($randBase, 1/3);
+                
                 $bidPrice = number_format(
-                    $marketPrice * (1 - $deviationPercent / 2 + ((mt_rand() / mt_getrandmax()) * $deviationPercent) / 2),
+                    $marketPrice * (1 - $deviationPercent / 2 + ($randomFactor * $deviationPercent) / 2),
                     12,
                     '.',
                     ''
@@ -683,11 +700,12 @@ class TradingBot
                 $bidAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
                 $this->placeLimitOrder(2, $bidAmount, $bidPrice);
                 $this->logger->log(sprintf(
-                    '[%s] Placed updated bid: %s @ %s (was @ %s)',
+                    '[%s] Placed updated bid: %s @ %s (was @ %s, factor: %.4f)',
                     $this->pair,
                     $bidAmount,
                     $bidPrice,
-                    $orderToUpdate['price']
+                    $orderToUpdate['price'],
+                    $randomFactor
                 ));
             }
             
@@ -696,25 +714,43 @@ class TradingBot
 
         $action = mt_rand() / mt_getrandmax();
         if ($action < 0.3 && count($currentBids) < $maxOrders) {
+            $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+            $randomFactor = pow($randBase, 1/3);
+            
             $bidPrice = number_format(
-                $marketPrice * (1 - $deviationPercent / 2 + ((mt_rand() / mt_getrandmax()) * $deviationPercent) / 2),
+                $marketPrice * (1 - $deviationPercent / 2 + ($randomFactor * $deviationPercent) / 2),
                 12,
                 '.',
                 '',
             );
             $bidAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', '');
             $this->placeLimitOrder(2, $bidAmount, $bidPrice);
-            $this->logger->log(sprintf('[%s] Placed bid: %s @ %s', $this->pair, $bidAmount, $bidPrice));
+            $this->logger->log(sprintf(
+                '[%s] Placed bid: %s @ %s (factor: %.4f)',
+                $this->pair, 
+                $bidAmount, 
+                $bidPrice,
+                $randomFactor
+            ));
         } elseif ($action < 0.6 && count($currentAsks) < $maxOrders) {
+            $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+            $randomFactor = pow($randBase, 1/3);
+            
             $askPrice = number_format(
-                $marketPrice * (1 + $deviationPercent / 2 + ((mt_rand() / mt_getrandmax()) * $deviationPercent) / 2),
+                $marketPrice * (1 + $deviationPercent / 2 + ($randomFactor * $deviationPercent) / 2),
                 12,
                 '.',
                 '',
             );
             $askAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', '');
             $this->placeLimitOrder(1, $askAmount, $askPrice);
-            $this->logger->log(sprintf('[%s] Placed ask: %s @ %s', $this->pair, $askAmount, $askPrice));
+            $this->logger->log(sprintf(
+                '[%s] Placed ask: %s @ %s (factor: %.4f)',
+                $this->pair, 
+                $askAmount, 
+                $askPrice,
+                $randomFactor
+            ));
         } elseif ($action < 0.8 && count($pendingOrders) > 0) {
             $this->updateOpenOrders(); // Оновлюємо список відкритих ордерів один раз перед операціями скасування
             $bids = array_filter($this->openOrders, fn($o) => $o['side'] === 2);
@@ -847,18 +883,47 @@ class TradingBot
         // Calculating the maximum deviation
         $maxDeviation = $marketPrice * ($deviationPercent / 100);
         
-        // Generating a random deviation within the maximum
-        $randomDeviation = mt_rand(0, 1000) / 1000 * $maxDeviation;
+        // Використовуємо принципово інший алгоритм для рівномірного розподілу
+        // 1. Генеруємо випадкове число в діапазоні [0.05, 0.95] для уникнення крайніх значень
+        $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+        
+        // 2. Використовуємо кубічний корінь для ще більш рівномірного розподілу в центрі
+        $randomFactor = pow($randBase, 1/3);
+        
+        // 3. Розраховуємо відхилення з обмеженням
+        $randomDeviation = $randomFactor * $maxDeviation;
+        
+        // Детальне логування розрахунків
+        $this->logger->log(sprintf(
+            '[%s] Price deviation details: randBase=%.4f, randomFactor=%.4f, maxDeviation=%.4f, randomDeviation=%.4f',
+            $this->pair,
+            $randBase,
+            $randomFactor,
+            $maxDeviation,
+            $randomDeviation
+        ));
         
         // Applying the MarketGap
         $gapAdjustment = $marketPrice * ($marketGap / 100);
         
         // Calculating the price depending on the side (buy/sell)
+        $finalPrice = 0.0;
         if ($side === 1) { // Ask (sell)
-            return $marketPrice + $randomDeviation + $gapAdjustment;
+            $finalPrice = $marketPrice + $randomDeviation + $gapAdjustment;
         } else { // Bid (buy)
-            return $marketPrice - $randomDeviation - $gapAdjustment;
+            $finalPrice = $marketPrice - $randomDeviation - $gapAdjustment;
         }
+        
+        $this->logger->log(sprintf(
+            '[%s] Final price calculation: marketPrice=%.6f, side=%d, finalPrice=%.6f, deviation=%.6f%%',
+            $this->pair,
+            $marketPrice,
+            $side,
+            $finalPrice,
+            (($finalPrice - $marketPrice) / $marketPrice) * 100
+        ));
+        
+        return $finalPrice;
     }
 
     /**
