@@ -171,29 +171,5 @@ class Logger
         file_put_contents($this->logFile, '');
     }
     
-    /**
-     * Getting the content of the log file
-     * 
-     * @param int $lines The number of the last lines to get (0 - all)
-     * @return string The content of the log file
-     */
-    public function getLogContent(int $lines = 0): string
-    {
-        if (!file_exists($this->logFile)) {
-            return '';
-        }
-        
-        $content = file_get_contents($this->logFile);
-        
-        if ($lines <= 0) {
-            return $content;
-        }
-        
-        // Getting the last N lines
-        $logLines = explode(PHP_EOL, $content);
-        $logLines = array_filter($logLines); // Removing empty lines
-        $logLines = array_slice($logLines, -$lines);
-        
-        return implode(PHP_EOL, $logLines);
-    }
+
 } 

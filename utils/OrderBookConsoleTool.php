@@ -5,13 +5,12 @@ use GuzzleHttp\Client;
 use Symfony\Component\Console\Output\ConsoleOutput;
 
 // Configuration
-// const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 dev
-const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // 90 demo
+const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 dev
+// const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // 90 demo
 
 const REFRESH_INTERVAL = 500; // Refresh interval in milliseconds
 
-// Get trading pair from command line argument (e.g., php orderbook.php -LTC_USDT)
-$pair = isset($argv[1]) && str_starts_with($argv[1], '-') ? substr($argv[1], 1) : 'LTC_USDT';
+$pair = isset($argv[1]) && str_starts_with($argv[1], '-') ? substr($argv[1], 1) : 'BTC_USDC';
 
 // ANSI color codes for console output
 const COLOR_RED = "\033[31m";
@@ -72,7 +71,7 @@ function formatOrderBook(array $bids, array $asks): string {
 
     // Build output string
     $output = COLOR_BOLD . "Order Book ({$GLOBALS['pair']})" . COLOR_RESET . PHP_EOL;
-    $output .= COLOR_BOLD . "№\tPrice (USDT)\tAmount (LTC)\tTotal" . COLOR_RESET . PHP_EOL;
+    $output .= COLOR_BOLD . "№\tPrice (USDC)\tAmount (BTC)\tTotal" . COLOR_RESET . PHP_EOL;
 
     // Display asks (red) with numbering
     foreach ($displayAsks as $index => $ask) {

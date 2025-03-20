@@ -88,13 +88,6 @@ class TradingBot
             return;
         }
         
-        // ДОДАНО: Штучний лог для тестування системи логування
-        $this->logger->info("********** ТЕСТОВИЙ ЛОГ: Запуск циклу торгівлі для пари {$this->pair} **********");
-        $this->logger->debug("DEBUG: Тестування рівня DEBUG в TradingBot");
-        $this->logger->warning("WARNING: Тестування рівня WARNING в TradingBot");
-        $this->logger->error("ERROR: Тестування рівня ERROR в TradingBot (це не справжня помилка!)");
-        $this->logger->critical("CRITICAL: Тестування рівня CRITICAL в TradingBot (це не справжня критична помилка!)");
-        
         $this->logger->log("[{$this->pair}] Starting the trading cycle");
         
         try {
@@ -241,9 +234,14 @@ class TradingBot
         $openOrders = $this->exchangeManager->getOpenOrders($this->pair);
         $this->logger->log("[{$this->pair}] Found " . count($openOrders) . " open orders to clear");
         
-        foreach ($openOrders as $order) {
-            $this->logger->log("[{$this->pair}] Attempting to cancel order: {$order['id']}");
-            $this->cancelOrder($order['id']);
+        // Збираємо всі ID для скасування
+        $orderIds = array_map(function($order) {
+            return $order['id'];
+        }, $openOrders);
+        
+        // Скасовуємо ордери пакетно
+        foreach ($orderIds as $orderId) {
+            $this->cancelOrder($orderId);
             // Додаємо невелику затримку між скасуваннями ордерів
             usleep(100000); // 100 мс
         }
@@ -306,9 +304,14 @@ class TradingBot
             $result = $this->exchangeManager->cancelOrder($orderId, $this->pair);
             
             if (isset($result['error']) && $result['error'] !== null) {
-                $this->logger->error("[{$this->pair}] Error cancelling order {$orderId}: " . json_encode($result['error']));
-                // Додаємо логування стек трейсу при помилці в результаті запиту
-                $this->logger->logStackTrace("[{$this->pair}] Stack trace for cancelling order error (API result):");
+                // Перевіряємо на помилку "order not found"
+                if (isset($result['error']['code']) && $result['error']['code'] == 10) {
+                    $this->logger->log("[{$this->pair}] Order {$orderId} already executed or cancelled, skipping");
+                } else {
+                    $this->logger->error("[{$this->pair}] Error cancelling order {$orderId}: " . json_encode($result['error']));
+                    // Додаємо логування стек трейсу при помилці в результаті запиту
+                    $this->logger->logStackTrace("[{$this->pair}] Stack trace for cancelling order error (API result):");
+                }
             } else {
                 $this->logger->log("[{$this->pair}] Successfully cancelled order {$orderId}");
             }
@@ -330,6 +333,8 @@ class TradingBot
      */
     private function placeMarketOrder(int $side, string $amount): bool
     {
+        $this->logger->log("[{$this->pair}] Placing a market order for side={$side}, amount={$amount}");
+        
         $body = [
             'method' => 'order.put_market',
             'params' => [
@@ -529,12 +534,21 @@ class TradingBot
         // Cancel excess bids (more than max)
         if (count($currentBids) > $maxOrders) {
             $bidsToCancel = count($currentBids) - $maxOrders;
-            $bids = array_filter($pendingOrders, fn($o) => $o['side'] === 2);
+            $this->updateOpenOrders(); // Оновлюємо список тільки один раз перед пачкою скасувань
+            $bids = array_filter($this->openOrders, fn($o) => $o['side'] === 2);
             usort($bids, fn($a, $b) => (float) $a['price'] - (float) $b['price']); // Sort by lowest prices
-            for ($i = 0; $i < $bidsToCancel && count($bids) > 0; $i++) {
-                $this->cancelOrder($bids[$i]['id']);
+            
+            // Зберігаємо ідентифікатори для скасування
+            $bidIdsToCancel = [];
+            for ($i = 0; $i < $bidsToCancel && $i < count($bids); $i++) {
+                $bidIdsToCancel[] = $bids[$i]['id'];
+            }
+            
+            // Скасовуємо ордери за списком
+            foreach ($bidIdsToCancel as $orderId) {
+                $this->cancelOrder($orderId);
                 $this->logger->log(
-                    sprintf('[%s] Cancelled excess bid: %d @ %s', $this->pair, $bids[$i]['id'], $bids[$i]['price']),
+                    sprintf('[%s] Cancelled excess bid: %d', $this->pair, $orderId)
                 );
                 $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
             }
@@ -543,12 +557,21 @@ class TradingBot
         // Cancel excess asks (more than max)
         if (count($currentAsks) > $maxOrders) {
             $asksToCancel = count($currentAsks) - $maxOrders;
-            $asks = array_filter($pendingOrders, fn($o) => $o['side'] === 1);
+            $this->updateOpenOrders(); // Оновлюємо список тільки один раз перед пачкою скасувань
+            $asks = array_filter($this->openOrders, fn($o) => $o['side'] === 1);
             usort($asks, fn($a, $b) => (float) $b['price'] - (float) $a['price']); // Sort by highest prices
-            for ($i = 0; $i < $asksToCancel && count($asks) > 0; $i++) {
-                $this->cancelOrder($asks[$i]['id']);
+            
+            // Зберігаємо ідентифікатори для скасування
+            $askIdsToCancel = [];
+            for ($i = 0; $i < $asksToCancel && $i < count($asks); $i++) {
+                $askIdsToCancel[] = $asks[$i]['id'];
+            }
+            
+            // Скасовуємо ордери за списком
+            foreach ($askIdsToCancel as $orderId) {
+                $this->cancelOrder($orderId);
                 $this->logger->log(
-                    sprintf('[%s] Cancelled excess ask: %d @ %s', $this->pair, $asks[$i]['id'], $asks[$i]['price']),
+                    sprintf('[%s] Cancelled excess ask: %d', $this->pair, $orderId)
                 );
                 $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
             }
@@ -608,47 +631,70 @@ class TradingBot
             $this->placeLimitOrder(1, $askAmount, $askPrice);
             $this->logger->log(sprintf('[%s] Placed ask: %s @ %s', $this->pair, $askAmount, $askPrice));
         } elseif ($action < 0.8 && count($pendingOrders) > 0) {
-            $bids = array_filter($pendingOrders, fn($o) => $o['side'] === 2);
-            $asks = array_filter($pendingOrders, fn($o) => $o['side'] === 1);
+            $this->updateOpenOrders(); // Оновлюємо список відкритих ордерів один раз перед операціями скасування
+            $bids = array_filter($this->openOrders, fn($o) => $o['side'] === 2);
+            $asks = array_filter($this->openOrders, fn($o) => $o['side'] === 1);
+            
+            if (empty($bids) && empty($asks)) {
+                $this->logger->log("[{$this->pair}] No orders to cancel");
+                return;
+            }
+            
             usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']);
             usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
+            
             if (count($bids) > 0 && count($asks) > 0) {
                 $rand = mt_rand() / mt_getrandmax();
                 if ($rand < 0.5) {
-                    $this->cancelOrder(end($bids)['id']); // Cancel the lowest bid (not the top one)
+                    $orderToCancel = end($bids);
+                    $this->cancelOrder($orderToCancel['id']); // Cancel the lowest bid
                     $this->logger->log(
                         sprintf(
                             '[%s] Cancelled the lowest bid: %d @ %s',
                             $this->pair,
-                            end($bids)['id'],
-                            end($bids)['price'],
+                            $orderToCancel['id'],
+                            $orderToCancel['price'],
                         ),
                     );
                 } else {
-                    $this->cancelOrder(end($asks)['id']); // Cancel the highest ask (not the top one)
+                    $orderToCancel = end($asks);
+                    $this->cancelOrder($orderToCancel['id']); // Cancel the highest ask
                     $this->logger->log(
                         sprintf(
                             '[%s] Cancelled the highest ask: %d @ %s',
                             $this->pair,
-                            end($asks)['id'],
-                            end($asks)['price'],
+                            $orderToCancel['id'],
+                            $orderToCancel['price'],
                         ),
                     );
                 }
             } elseif (count($bids) > 0) {
-                $this->cancelOrder(end($bids)['id']); // Cancel the lowest bid
+                $orderToCancel = end($bids);
+                $this->cancelOrder($orderToCancel['id']); // Cancel the lowest bid
                 $this->logger->log(
-                    sprintf('[%s] Cancelled the lowest bid: %d @ %s', $this->pair, end($bids)['id'], end($bids)['price']),
+                    sprintf(
+                        '[%s] Cancelled the lowest bid: %d @ %s', 
+                        $this->pair, 
+                        $orderToCancel['id'], 
+                        $orderToCancel['price']
+                    ),
                 );
             } elseif (count($asks) > 0) {
-                $this->cancelOrder(end($asks)['id']); // Cancel the highest ask
+                $orderToCancel = end($asks);
+                $this->cancelOrder($orderToCancel['id']); // Cancel the highest ask
                 $this->logger->log(
-                    sprintf('[%s] Cancelled the highest ask: %d @ %s', $this->pair, end($asks)['id'], end($asks)['price']),
+                    sprintf(
+                        '[%s] Cancelled the highest ask: %d @ %s', 
+                        $this->pair, 
+                        $orderToCancel['id'], 
+                        $orderToCancel['price']
+                    ),
                 );
             }
         } elseif (count($pendingOrders) > 0) {
-            $bids = array_filter($pendingOrders, fn($o) => $o['side'] === 2);
-            $asks = array_filter($pendingOrders, fn($o) => $o['side'] === 1);
+            $this->updateOpenOrders(); // Оновлюємо список відкритих ордерів перед виконанням ринкових операцій
+            $bids = array_filter($this->openOrders, fn($o) => $o['side'] === 2);
+            $asks = array_filter($this->openOrders, fn($o) => $o['side'] === 1);
             usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']);
             usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
             if (count($bids) > 0 && count($asks) > 0) {
