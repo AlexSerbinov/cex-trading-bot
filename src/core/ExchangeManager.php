@@ -596,7 +596,7 @@ class ExchangeManager
         try {
             // Використовуємо метод getTradeServerUrl замість константи
             $url = Config::getTradeServerUrl();
-            $this->logger->log("[{$pair}] Sending request to: {$url}");
+            // $this->logger->log("[{$pair}] Sending request to: {$url}");
             
             $json = json_encode($body);
             
@@ -626,7 +626,7 @@ class ExchangeManager
 
     public function cancelOrder(int $orderId, string $pair): array
     {
-        $this->logger->log("Cancelling order {$orderId} for pair {$pair}");
+        $this->logger->log("[{$pair}] Cancelling order {$orderId}");
         
         $body = [
             'method' => 'order.cancel',
@@ -637,7 +637,6 @@ class ExchangeManager
         try {
             // Використовуємо метод getTradeServerUrl замість константи
             $url = Config::getTradeServerUrl();
-            $this->logger->log("[{$pair}] Sending cancel request to: {$url}");
             
             $json = json_encode($body);
             

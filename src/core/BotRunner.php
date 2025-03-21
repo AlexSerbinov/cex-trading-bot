@@ -81,7 +81,7 @@ try {
     $bot = new TradingBot($pair, $pairConfig);
     
     // Clearing all orders when starting
-    $bot->clearAllOrders();
+    // $bot->clearAllOrders();
     
     // Initializing the bot
     $bot->initialize();
@@ -137,7 +137,7 @@ try {
             $frequency_from = $pairConfig['settings']['frequency_from'];
             $frequency_to = $pairConfig['settings']['frequency_to'];
             
-            $minDelay = max(1, (int)$frequency_from);
+            $minDelay = max(0, (int)$frequency_from);
             $maxDelay = max($minDelay, (int)$frequency_to);
             
             $logger->log("Using a delay range: {$minDelay}-{$maxDelay} seconds for pair {$pair}");
@@ -147,7 +147,7 @@ try {
             $logger->log("Bot for pair {$pair} waiting {$delay} seconds for the next cycle");
             
             // Splitting the delay into short intervals to react faster to changes
-            $shortInterval = 5; // 5 seconds
+            $shortInterval = 1; // 5 seconds
             $remainingDelay = $delay;
             
             while ($remainingDelay > 0) {

@@ -55,15 +55,15 @@ const BotForm = {
             // Fill the form with the bot data
             this.form.market.value = bot.market;
             this.form.exchange.value = bot.exchange;
-            this.form.min_orders.value = bot.settings.min_orders || 2;
-            this.form.max_orders.value = bot.settings.max_orders || 4;
+            this.form.min_orders.value = bot.settings.min_orders;
+            this.form.max_orders.value = bot.settings.max_orders;
             this.form.trade_amount_min.value = bot.settings.trade_amount_min;
             this.form.trade_amount_max.value = bot.settings.trade_amount_max;
             this.form.frequency_from.value = bot.settings.frequency_from;
             this.form.frequency_to.value = bot.settings.frequency_to;
             this.form.price_factor.value = bot.settings.price_factor;
-            this.form.market_gap.value = bot.settings.market_gap || 0.05;
-            this.form.market_maker_order_probability.value = bot.settings.market_maker_order_probability || 99;
+            this.form.market_gap.value = bot.settings.market_gap;
+            this.form.market_maker_order_probability.value = bot.settings.market_maker_order_probability;
             
             // Change the form title
             this.formTitle.textContent = `Editing bot ${bot.market}`;

@@ -44,7 +44,7 @@ class TradingBot
         // Логування завантаженої конфігурації для діагностики
         $settings = $this->pairConfig['settings'];
         $this->logger->log(sprintf(
-            'Settings for %s: min_orders=%s, max_orders=%s, trade_amount_min=%s, trade_amount_max=%s, frequency_from=%s, frequency_to=%s, probability=%s',
+            'Settings for %s: min_orders=%s, max_orders=%s, trade_amount_min=%s, trade_amount_max=%s, frequency_from=%s, frequency_to=%s, probability=%s, market_gap=%s, price_factor=%s',
             $pair,
             $settings['min_orders'],
             $settings['max_orders'],
@@ -52,7 +52,9 @@ class TradingBot
             $settings['trade_amount_max'],
             $settings['frequency_from'],
             $settings['frequency_to'],
-            $settings['market_maker_order_probability']
+            $settings['market_maker_order_probability'],
+            $settings['market_gap'],
+            $settings['price_factor']
         ));
     }
 
@@ -61,21 +63,26 @@ class TradingBot
      */
     public function initialize(): void
     {
+        $this->logger->log("[{$this->pair}] -=-= Initializing the bot...");
         if ($this->initialized) {
+            $this->logger->log("[{$this->pair}] -=-= The bot is already initialized, skipping the initialization");
             return;
         }
-
-        $this->logger->log("Initialization of the bot for the pair {$this->pair}...");
-        $this->clearAllOrders();
+        $this->logger->log("[{$this->pair}] -=-= The bot is not initialized, initializing...");
         
+
+        // $this->logger->log("Initialization of the bot for the pair {$this->pair}...");
+        $this->logger->log("[{$this->pair}] -=-= Clearing all orders");
+        $this->clearAllOrders();
+        $this->logger->log("[{$this->pair}] -=-= Cleared all orders");
         // Getting the order book from the external API
         $orderBook = $this->getExternalOrderBook();
         
         // Initializing the initial orders
+        $this->logger->log("[{$this->pair}] -=-= Initializing the order book");
         $this->initializeOrderBook($orderBook);
-        
+        $this->logger->log("[{$this->pair}] -=-= Initialized order book ");
         $this->initialized = true;
-        $this->logger->log("The bot for the pair {$this->pair} has been initialized");
     }
 
     /**
@@ -228,11 +235,11 @@ class TradingBot
      */
     public function clearAllOrders(): void
     {
-        $this->logger->log("[{$this->pair}] Clearing all orders");
+        $this->logger->log("[{$this->pair}] -=-= +++ Clearing all orders");
         
         // Отримання списку відкритих ордерів
         $openOrders = $this->exchangeManager->getOpenOrders($this->pair);
-        $this->logger->log("[{$this->pair}] Found " . count($openOrders) . " open orders to clear");
+        $this->logger->log("[{$this->pair}] -=-= +++ Found " . count($openOrders) . " open orders to clear");
         
         // Збираємо всі ID для скасування
         $orderIds = array_map(function($order) {
@@ -246,7 +253,7 @@ class TradingBot
             usleep(100000); // 100 мс
         }
         
-        $this->logger->log("[{$this->pair}] All orders cleared");
+        $this->logger->log("[{$this->pair}] -=-= +++ All orders cleared");
     }
 
     /**
@@ -260,7 +267,7 @@ class TradingBot
      */
     private function placeLimitOrder(int $side, string $amount, string $price)
     {
-        $this->logger->log("[{$this->pair}] Placing a limit order for side={$side}, amount={$amount}, price={$price} with fees: " . Config::TAKER_FEE . " and " . Config::MAKER_FEE);
+        $this->logger->log("[{$this->pair}] Placing a limit order price={$price}, amount={$amount}, for side={$side}, amount={$amount},  with fees: " . Config::TAKER_FEE . " and " . Config::MAKER_FEE);
         $body = [
             'method' => 'order.put_limit',
             'params' => [
@@ -301,7 +308,6 @@ class TradingBot
     private function cancelOrder(int $orderId): void
     {
         try {
-            $this->logger->log("[{$this->pair}] Cancelling order {$orderId}");
             $result = $this->exchangeManager->cancelOrder($orderId, $this->pair);
             
             if (isset($result['error']) && $result['error'] !== null) {
@@ -396,6 +402,7 @@ class TradingBot
      */
     private function initializeOrderBook(array $orderBook): void
     {
+        $this->logger->log("[{$this->pair}] -=-= +_= Initializing the order book");
         $tradeAmountMin = $this->pairConfig['settings']['trade_amount_min'];
         $tradeAmountMax = $this->pairConfig['settings']['trade_amount_max'];
         
@@ -410,38 +417,82 @@ class TradingBot
         // Розрахунок ринкової ціни
         $marketPrice = $this->calculateMarketPrice($orderBook);
         
+        // Отримання налаштувань для розподілу цін
+        $priceFactor = $this->pairConfig['settings']['price_factor'];
+        $marketGap = $this->pairConfig['settings']['market_gap'];
+        $this->logger->log("[{$this->pair}] -=-= +_= marketPrice: {$marketPrice}, using price_factor: {$priceFactor}%, market_gap: {$marketGap}%");
+        
         // Отримання значень з settings
         $minOrders = $this->pairConfig['settings']['min_orders'];
         $maxOrders = $this->pairConfig['settings']['max_orders'];
         
+        // Перетворення відсотків у десяткові дроби для розрахунків
+        $priceFactorDecimal = $priceFactor / 100;
+        $marketGapDecimal = $marketGap / 100;
+        
+        // Додаткове логування для параметрів ціноутворення
+        $this->logger->log(
+            sprintf(
+                "[%s] -=-= +_= Initializing order book with price distribution: price_factor=%.4f%%, market_gap=%.4f%%",
+                $this->pair, 
+                $priceFactor,
+                $marketGap
+            )
+        );
+        
         // Випадкова кількість ордерів в діапазоні
         $numOrders = mt_rand($minOrders, $maxOrders);
         
-        $this->logger->log("[{$this->pair}] Initializing order book with {$numOrders} orders (min: {$minOrders}, max: {$maxOrders}), market price: {$marketPrice}");
+        $this->logger->log("[{$this->pair}] -=-= +_= Initializing order book with {$numOrders} orders (min: {$minOrders}, max: {$maxOrders}), market price: {$marketPrice}");
         
         for ($i = 0; $i < $numOrders; $i++) {
             // Випадковий вибір сторони (bid або ask)
             $side = mt_rand(1, 2);
             
-            // Генерація випадкового обсягу в діапазоні
+            // Розрахунок ціни для ордера - використовує price_factor та market_gap
+            $price = $this->calculateOrderPrice($marketPrice, $side);
+            
+            // Генерація базового випадкового обсягу
             $randomFactor = mt_rand() / mt_getrandmax();
-            $amount = $tradeAmountMin + $randomFactor * ($tradeAmountMax - $tradeAmountMin);
+            $baseAmount = $tradeAmountMin + $randomFactor * ($tradeAmountMax - $tradeAmountMin);
+            
+            // Обчислення відхилення ціни від ринкової
+            $priceDeviation = abs(($price - $marketPrice) / $marketPrice);
+            
+            // Корекція обсягу з урахуванням priceFactor і marketGap
+            $amountAdjustment = 1 - ($priceDeviation * $priceFactorDecimal + $marketGapDecimal);
+            if ($amountAdjustment < 0) {
+                $amountAdjustment = 0; // Уникаємо від’ємних значень
+            }
+            $amount = $baseAmount * $amountAdjustment;
             $formattedAmount = number_format($amount, 8, '.', '');
             
             // Переконуємося, що обсяг не нульовий після форматування
             if ((float)$formattedAmount <= 0) {
-                $this->logger->error("[{$this->pair}] Generated zero amount after formatting: original={$amount}, formatted={$formattedAmount}, using minimum");
+                $this->logger->error("[{$this->pair}] -=-= +_= Generated zero amount after formatting: original={$amount}, formatted={$formattedAmount}, using minimum");
                 $formattedAmount = number_format($tradeAmountMin, 8, '.', '');
             }
             
-            // Розрахунок ціни для ордера
-            $price = $this->calculateOrderPrice($marketPrice, $side);
-            
-            $this->logger->log("[{$this->pair}] Initialized " . ($side == 1 ? "ask" : "bid") . ": {$formattedAmount} @ " . number_format($price, 12, '.', ''));
+            // Виводимо деталі про створений ордер разом з параметрами
+            $priceDeviationPercent = $priceDeviation * 100;
+            $sideText = ($side == 1 ? "ask" : "bid");
+            $this->logger->log(
+                sprintf(
+                    "[%s] -=-= +_= Initialized %s: %s @ %.12f (deviation: %.4f%% from market price, amount adjusted by: %.4f)",
+                    $this->pair,
+                    $sideText,
+                    $formattedAmount,
+                    $price,
+                    $priceDeviationPercent,
+                    $amountAdjustment
+                )
+            );
             
             // Розміщення ордера
             $this->placeLimitOrder($side, $formattedAmount, number_format($price, 12, '.', ''));
         }
+        
+        $this->logger->log("[{$this->pair}] -=-= +_= Order book initialization complete with price_factor={$priceFactor}% and market_gap={$marketGap}%");
     }
 
     /**
@@ -461,14 +512,16 @@ class TradingBot
         $minOrders = $this->pairConfig['settings']['min_orders'];
         $maxOrders = $this->pairConfig['settings']['max_orders'];
         $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
+        $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
         
         $this->logger->log(
             sprintf(
-                '[%s] Maintaining orders with min=%d, max=%d, deviation=%.2f%%',
+                '[%s] Maintaining orders with min=%d, max=%d, deviation=%.2f%%, market_gap=%.2f%%',
                 $this->pair,
                 $minOrders,
                 $maxOrders,
-                $deviationPercent * 100
+                $deviationPercent * 100,
+                $marketGap * 100
             )
         );
 
@@ -478,8 +531,11 @@ class TradingBot
             $randBase = 0.05 + (mt_rand(0, 900) / 1000);
             $randomFactor = pow($randBase, 1/3);
             
+            // Застосовуємо market_gap до ціни
+            $gapAdjustment = $marketPrice * $marketGap;
+            
             $bidPrice = number_format(
-                $marketPrice * (1 - $deviationPercent + $randomFactor * $deviationPercent),
+                $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
                 12,
                 '.',
                 '',
@@ -488,13 +544,14 @@ class TradingBot
             $this->placeLimitOrder(2, $bidAmount, $bidPrice);
             $this->logger->log(
                 sprintf(
-                    '[%s] Added bid to achieve %d-%d: %s @ %s (factor: %.4f)',
+                    '[%s] Added bid to achieve %d-%d: %s @ %s (factor: %.4f, gap: %.6f)',
                     $this->pair,
                     $minOrders,
                     $maxOrders,
                     $bidAmount,
                     $bidPrice,
-                    $randomFactor
+                    $randomFactor,
+                    $gapAdjustment
                 ),
             );
             $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
@@ -513,8 +570,11 @@ class TradingBot
             $randBase = 0.05 + (mt_rand(0, 900) / 1000);
             $randomFactor = pow($randBase, 1/3);
             
+            // Застосовуємо market_gap до ціни
+            $gapAdjustment = $marketPrice * $marketGap;
+            
             $askPrice = number_format(
-                $marketPrice * (1 + $deviationPercent + $randomFactor * $deviationPercent),
+                $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
                 12,
                 '.',
                 '',
@@ -523,13 +583,14 @@ class TradingBot
             $this->placeLimitOrder(1, $askAmount, $askPrice);
             $this->logger->log(
                 sprintf(
-                    '[%s] Added ask to achieve %d-%d: %s @ %s (factor: %.4f)',
+                    '[%s] Added ask to achieve %d-%d: %s @ %s (factor: %.4f, gap: %.6f)',
                     $this->pair,
                     $minOrders,
                     $maxOrders,
                     $askAmount,
                     $askPrice,
-                    $randomFactor
+                    $randomFactor,
+                    $gapAdjustment
                 ),
             );
             $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
@@ -605,18 +666,35 @@ class TradingBot
     ): void {
         $maxOrders = $this->pairConfig['settings']['max_orders'];
         $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
+        $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
         
         // Ймовірність створення ордерів маркет-мейкера
         $marketMakerProbability = $this->pairConfig['settings']['market_maker_order_probability'] / 100;
         
+        $this->logger->log("[{$this->pair}] =0=0=0 marketMakerProbability: " . $marketMakerProbability);
+    
         $this->logger->log(sprintf(
-            '[%s] Performing random actions with max_orders=%d, deviation=%.4f%%, probability=%.2f', 
-            $this->pair, $maxOrders, $deviationPercent * 100, $marketMakerProbability * 100
+            '[%s] Performing random actions with max_orders=%d, deviation=%.4f%%, market_gap=%.4f%%, probability=%.2f', 
+            $this->pair, $maxOrders, $deviationPercent * 100, $marketGap * 100, $marketMakerProbability * 100
         ));
-
+    
+        // Винесення mt_rand() і mt_getrandmax() у змінні для probabilityRatio
+        $randomValue = mt_rand();
+        $maxRandomValue = mt_getrandmax();
+        $probabilityRatio = $randomValue / $maxRandomValue;
+    
+        $this->logger->log(sprintf(
+            '[%s] =0=0=0 Probability check: mt_rand()=%d, mt_getrandmax()=%d, probabilityRatio=%.6f, marketMakerProbability=%.6f',
+            $this->pair,
+            $randomValue,
+            $maxRandomValue,
+            $probabilityRatio,
+            $marketMakerProbability
+        ));
+    
         // Якщо випадкове число більше за ймовірність створення ордерів, скасовуємо і відновлюємо один ордер
-        if (mt_rand() / mt_getrandmax() > $marketMakerProbability) {
-            $this->logger->log("[{$this->pair}] Low probability for market maker action, will update one order instead");
+        if ($probabilityRatio > $marketMakerProbability) {
+            $this->logger->log("[{$this->pair}] =0=0=0 Low probability for market maker action, will update one order instead");
             
             // Оновлюємо список відкритих ордерів
             $this->updateOpenOrders();
@@ -626,14 +704,19 @@ class TradingBot
             $asks = array_filter($this->openOrders, fn($o) => $o['side'] === 1);
             
             if (empty($bids) && empty($asks)) {
-                $this->logger->log("[{$this->pair}] No orders to update");
+                $this->logger->log("[{$this->pair}] =0=0=0 No orders to update");
                 return;
             }
             
             // Вибираємо випадково біди або аски
             $useAsks = (mt_rand(0, 1) === 1 && !empty($asks)) || empty($bids);
             
+            // Застосовуємо market_gap до ціни
+            $gapAdjustment = $marketPrice * $marketGap;
+            
             if ($useAsks) {
+                $this->logger->log("[{$this->pair}] =0=0=0 Updating an ask order");
+    
                 // Сортуємо аски за ціною (від низької до високої)
                 usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
                 
@@ -655,7 +738,7 @@ class TradingBot
                 $randomFactor = pow($randBase, 1/3);
                 
                 $askPrice = number_format(
-                    $marketPrice * (1 + $deviationPercent / 2 + ($randomFactor * $deviationPercent) / 2),
+                    $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
                     12,
                     '.',
                     ''
@@ -663,14 +746,17 @@ class TradingBot
                 $askAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
                 $this->placeLimitOrder(1, $askAmount, $askPrice);
                 $this->logger->log(sprintf(
-                    '[%s] Placed updated ask: %s @ %s (was @ %s, factor: %.4f)',
+                    '[%s] Placed updated ask: %s @ %s (was @ %s, factor: %.4f, gap: %.6f)',
                     $this->pair,
                     $askAmount,
                     $askPrice,
                     $orderToUpdate['price'],
-                    $randomFactor
+                    $randomFactor,
+                    $gapAdjustment
                 ));
             } else {
+                $this->logger->log("[{$this->pair}] =0=0=0 Updating a bid order");
+    
                 // Сортуємо біди за ціною (від високої до низької)
                 usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']);
                 
@@ -692,7 +778,7 @@ class TradingBot
                 $randomFactor = pow($randBase, 1/3);
                 
                 $bidPrice = number_format(
-                    $marketPrice * (1 - $deviationPercent / 2 + ($randomFactor * $deviationPercent) / 2),
+                    $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
                     12,
                     '.',
                     ''
@@ -700,64 +786,82 @@ class TradingBot
                 $bidAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
                 $this->placeLimitOrder(2, $bidAmount, $bidPrice);
                 $this->logger->log(sprintf(
-                    '[%s] Placed updated bid: %s @ %s (was @ %s, factor: %.4f)',
+                    '[%s] Placed updated bid: %s @ %s (was @ %s, factor: %.4f, gap: %.6f)',
                     $this->pair,
                     $bidAmount,
                     $bidPrice,
                     $orderToUpdate['price'],
-                    $randomFactor
+                    $randomFactor,
+                    $gapAdjustment
                 ));
             }
             
             return;
         }
-
+    
+        // Застосовуємо market_gap до ціни
+        $gapAdjustment = $marketPrice * $marketGap;
+    
         $action = mt_rand() / mt_getrandmax();
+        $this->logger->log(sprintf(
+            '[%s] =0=0=0 Market maker action selected: action=%.6f',
+            $this->pair,
+            $action
+        ));
+    
         if ($action < 0.3 && count($currentBids) < $maxOrders) {
+            $this->logger->log("[{$this->pair}] =0=0=0 Placing a new bid");
+    
             $randBase = 0.05 + (mt_rand(0, 900) / 1000);
             $randomFactor = pow($randBase, 1/3);
             
             $bidPrice = number_format(
-                $marketPrice * (1 - $deviationPercent / 2 + ($randomFactor * $deviationPercent) / 2),
+                $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
                 12,
                 '.',
-                '',
+                ''
             );
             $bidAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', '');
             $this->placeLimitOrder(2, $bidAmount, $bidPrice);
             $this->logger->log(sprintf(
-                '[%s] Placed bid: %s @ %s (factor: %.4f)',
+                '[%s] Placed bid: %s @ %s (factor: %.4f, gap: %.6f)',
                 $this->pair, 
                 $bidAmount, 
                 $bidPrice,
-                $randomFactor
+                $randomFactor,
+                $gapAdjustment
             ));
         } elseif ($action < 0.6 && count($currentAsks) < $maxOrders) {
+            $this->logger->log("[{$this->pair}] =0=0=0 Placing a new ask");
+    
             $randBase = 0.05 + (mt_rand(0, 900) / 1000);
             $randomFactor = pow($randBase, 1/3);
             
             $askPrice = number_format(
-                $marketPrice * (1 + $deviationPercent / 2 + ($randomFactor * $deviationPercent) / 2),
+                $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
                 12,
                 '.',
-                '',
+                ''
             );
             $askAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', '');
             $this->placeLimitOrder(1, $askAmount, $askPrice);
             $this->logger->log(sprintf(
-                '[%s] Placed ask: %s @ %s (factor: %.4f)',
+                '[%s] Placed ask: %s @ %s (factor: %.4f, gap: %.6f)',
                 $this->pair, 
                 $askAmount, 
                 $askPrice,
-                $randomFactor
+                $randomFactor,
+                $gapAdjustment
             ));
         } elseif ($action < 0.8 && count($pendingOrders) > 0) {
+            $this->logger->log("[{$this->pair}] =0=0=0 Cancelling an order");
+    
             $this->updateOpenOrders(); // Оновлюємо список відкритих ордерів один раз перед операціями скасування
             $bids = array_filter($this->openOrders, fn($o) => $o['side'] === 2);
             $asks = array_filter($this->openOrders, fn($o) => $o['side'] === 1);
             
             if (empty($bids) && empty($asks)) {
-                $this->logger->log("[{$this->pair}] No orders to cancel");
+                $this->logger->log("[{$this->pair}] =0=0=0 No orders to cancel");
                 return;
             }
             
@@ -767,6 +871,7 @@ class TradingBot
             if (count($bids) > 0 && count($asks) > 0) {
                 $rand = mt_rand() / mt_getrandmax();
                 if ($rand < 0.5) {
+                    $this->logger->log("[{$this->pair}] =0=0=0 Cancelling the lowest bid");
                     $orderToCancel = end($bids);
                     $this->cancelOrder($orderToCancel['id']); // Cancel the lowest bid
                     $this->logger->log(
@@ -778,6 +883,7 @@ class TradingBot
                         ),
                     );
                 } else {
+                    $this->logger->log("[{$this->pair}] =0=0=0 Cancelling the highest ask");
                     $orderToCancel = end($asks);
                     $this->cancelOrder($orderToCancel['id']); // Cancel the highest ask
                     $this->logger->log(
@@ -790,6 +896,7 @@ class TradingBot
                     );
                 }
             } elseif (count($bids) > 0) {
+                $this->logger->log("[{$this->pair}] =0=0=0 Cancelling the lowest bid (no asks available)");
                 $orderToCancel = end($bids);
                 $this->cancelOrder($orderToCancel['id']); // Cancel the lowest bid
                 $this->logger->log(
@@ -801,6 +908,7 @@ class TradingBot
                     ),
                 );
             } elseif (count($asks) > 0) {
+                $this->logger->log("[{$this->pair}] =0=0=0 Cancelling the highest ask (no bids available)");
                 $orderToCancel = end($asks);
                 $this->cancelOrder($orderToCancel['id']); // Cancel the highest ask
                 $this->logger->log(
@@ -813,6 +921,8 @@ class TradingBot
                 );
             }
         } elseif (count($pendingOrders) > 0) {
+            $this->logger->log("[{$this->pair}] =0=0=0 Performing a market trade");
+    
             $this->updateOpenOrders(); // Оновлюємо список відкритих ордерів перед виконанням ринкових операцій
             $bids = array_filter($this->openOrders, fn($o) => $o['side'] === 2);
             $asks = array_filter($this->openOrders, fn($o) => $o['side'] === 1);
@@ -820,6 +930,7 @@ class TradingBot
             usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
             if (count($bids) > 0 && count($asks) > 0) {
                 if ($this->lastActionWasSell) {
+                    $this->logger->log("[{$this->pair}] =0=0=0 Buying at the lowest ask");
                     $this->placeMarketOrder(2, $asks[0]['amount']); // Buy at the lowest ask
                     $this->logger->log(
                         sprintf(
@@ -831,6 +942,7 @@ class TradingBot
                     );
                     $this->lastActionWasSell = false;
                 } else {
+                    $this->logger->log("[{$this->pair}] =0=0=0 Selling at the highest bid");
                     $this->placeMarketOrder(1, $bids[0]['amount']); // Sell at the highest bid
                     $this->logger->log(
                         sprintf(
@@ -843,11 +955,13 @@ class TradingBot
                     $this->lastActionWasSell = true;
                 }
             } elseif (count($bids) > 0) {
+                $this->logger->log("[{$this->pair}] =0=0=0 Selling at the highest bid (no asks available)");
                 $this->placeMarketOrder(1, $bids[0]['amount']);
                 $this->logger->log(
                     sprintf('[%s] Market trade: Sold %s @ %s', $this->pair, $bids[0]['amount'], $bids[0]['price']),
                 );
             } elseif (count($asks) > 0) {
+                $this->logger->log("[{$this->pair}] =0=0=0 Buying at the lowest ask (no bids available)");
                 $this->placeMarketOrder(2, $asks[0]['amount']);
                 $this->logger->log(
                     sprintf('[%s] Market trade: Bought %s @ %s', $this->pair, $asks[0]['amount'], $asks[0]['price']),
@@ -880,8 +994,9 @@ class TradingBot
         $this->logger->log(sprintf('[%s] Price calculation using deviation=%.4f%%, market_gap=%.4f%%', 
             $this->pair, $deviationPercent, $marketGap));
         
-        // Calculating the maximum deviation
-        $maxDeviation = $marketPrice * ($deviationPercent / 100);
+        // Перетворення відсотків у десяткові дроби
+        $deviationFactor = $deviationPercent / 100;
+        $marketGapFactor = $marketGap / 100;
         
         // Використовуємо принципово інший алгоритм для рівномірного розподілу
         // 1. Генеруємо випадкове число в діапазоні [0.05, 0.95] для уникнення крайніх значень
@@ -890,37 +1005,39 @@ class TradingBot
         // 2. Використовуємо кубічний корінь для ще більш рівномірного розподілу в центрі
         $randomFactor = pow($randBase, 1/3);
         
-        // 3. Розраховуємо відхилення з обмеженням
-        $randomDeviation = $randomFactor * $maxDeviation;
-        
         // Детальне логування розрахунків
         $this->logger->log(sprintf(
-            '[%s] Price deviation details: randBase=%.4f, randomFactor=%.4f, maxDeviation=%.4f, randomDeviation=%.4f',
+            '[%s] Price deviation details: randBase=%.4f, randomFactor=%.4f, deviationFactor=%.6f, marketGapFactor=%.6f',
             $this->pair,
             $randBase,
             $randomFactor,
-            $maxDeviation,
-            $randomDeviation
+            $deviationFactor,
+            $marketGapFactor
         ));
         
-        // Applying the MarketGap
-        $gapAdjustment = $marketPrice * ($marketGap / 100);
+        // Розрахунок ринкового гепу як абсолютної величини
+        $gapAdjustment = $marketPrice * $marketGapFactor;
         
         // Calculating the price depending on the side (buy/sell)
         $finalPrice = 0.0;
         if ($side === 1) { // Ask (sell)
-            $finalPrice = $marketPrice + $randomDeviation + $gapAdjustment;
+            // Для продажу: ринкова ціна + випадкове відхилення + ринковий геп
+            $finalPrice = $marketPrice * (1 + $deviationFactor * $randomFactor) + $gapAdjustment;
         } else { // Bid (buy)
-            $finalPrice = $marketPrice - $randomDeviation - $gapAdjustment;
+            // Для купівлі: ринкова ціна - випадкове відхилення - ринковий геп
+            $finalPrice = $marketPrice * (1 - $deviationFactor * $randomFactor) - $gapAdjustment;
         }
         
+        // Логування фінальної ціни та її відхилення від ринкової
+        $priceDeviation = (($finalPrice - $marketPrice) / $marketPrice) * 100;
         $this->logger->log(sprintf(
-            '[%s] Final price calculation: marketPrice=%.6f, side=%d, finalPrice=%.6f, deviation=%.6f%%',
+            '[%s] Final price calculation: marketPrice=%.6f, side=%d, finalPrice=%.6f, deviation=%.6f%%, gap applied=%.6f',
             $this->pair,
             $marketPrice,
             $side,
             $finalPrice,
-            (($finalPrice - $marketPrice) / $marketPrice) * 100
+            $priceDeviation,
+            $gapAdjustment
         ));
         
         return $finalPrice;

@@ -524,69 +524,7 @@ class BotManager
             return 0.0;
         }
     }
-    /**
-     * Updating the maximum trade amount for a bot based on the current balance
-     */
-    public function updateBotTradeAmountMax(int $id, float $manualBalance = 0): ?array
-    {
-        // Get the bot
-        $storage = BotStorage::getInstance();
-        $bot = $storage->getBotById($id);
-        
-        if (!$bot) {
-            return null;
-        }
-        
-        // Use the passed value or get the balance from the trade server
-        $botBalance = $manualBalance > 0 ? $manualBalance : $this->getBotBalanceFromTradeServer(Config::BOT_ID);
-        
-        if ($botBalance <= 0) {
-            $this->logger->error("Failed to get a valid balance for bot {$id}");
-            return $bot;
-        }
-        
-        // Update the maximum trade amount
-        $bot['settings']['trade_amount_max'] = $botBalance;
-        $bot['updated_at'] = date('Y-m-d H:i:s');
-        
-        // Update the bot in storage
-        $updatedBot = $storage->updateBot($id, $bot);
-        
-        if ($updatedBot !== null) {
-            $this->logger->log("Updated the maximum trade amount for bot: ID={$id}, Pair={$bot['market']}, New value={$botBalance}");
-        }
-        
-        return $this->formatBotForResponse($updatedBot);
-    }
 
-    public function cancelAllOrders(int $botId): bool
-    {
-        // Get the bot
-        $bot = $this->getBotById($botId);
-        
-        if (!$bot) {
-            return false;
-        }
-        
-        // Get all open orders for this bot
-        $openOrders = $this->getOpenOrders($botId);
-        
-        if (empty($openOrders)) {
-            return true;
-        }
-        
-        // Cancel each order
-        $exchangeManager = ExchangeManager::getInstance();
-        foreach ($openOrders as $order) {
-            $result = $exchangeManager->cancelOrder($order['id'], $bot['market']);
-            
-            if (!isset($result['result']) || $result['result'] === null) {
-                $this->logger->error("Failed to cancel order {$order['id']} for bot {$botId}");
-            }
-        }
-        
-        return true;
-    }
     
     /**
      * Проксі-метод для сумісності з фронтендом
