@@ -153,7 +153,7 @@ const BotDetails = {
             const isActive = this.currentBot.isActive;
 
             // Show the loading indicator
-            App.showAlert('info', `${isActive ? 'Disabling' : 'Enabling'} bot...`, false);
+            App.showAlert('info', `${isActive ? 'Disabling' : 'Enabling'} bot...`, true);
 
             // Change the bot status
             if (isActive) {

@@ -119,7 +119,7 @@ const App = {
             this.deleteModal.hide();
             
             // Show the loading indicator
-            this.showAlert('info', `Deleting bot ${this.botToDelete.market}...`, false);
+            this.showAlert('info', `Deleting bot ${this.botToDelete.market}...`, true);
             
             // Delete the bot
             await API.deleteBot(this.botToDelete.id);

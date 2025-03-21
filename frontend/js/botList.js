@@ -169,7 +169,7 @@ const BotList = {
     async toggleBotStatus(id, enable) {
         try {
             // Show the loading indicator
-            App.showAlert('info', `${enable ? 'Enabling' : 'Disabling'} bot...`, false);
+            App.showAlert('info', `${enable ? 'Enabling' : 'Disabling'} bot...`, true);
             
             // Change the bot status
             if (enable) {
