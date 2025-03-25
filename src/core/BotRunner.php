@@ -137,12 +137,14 @@ try {
             $frequency_from = $pairConfig['settings']['frequency_from'];
             $frequency_to = $pairConfig['settings']['frequency_to'];
             
-            $minDelay = max(0, (int)$frequency_from);
-            $maxDelay = max($minDelay, (int)$frequency_to);
-            
-            $logger->log("Using a delay range: {$minDelay}-{$maxDelay} seconds for pair {$pair}");
-            
-            $delay = mt_rand($minDelay, $maxDelay);
+            // If both frequencies are 0, skip the delay
+            if ($frequency_from === 0 && $frequency_to === 0) {
+                $delay = 0;
+            } else {
+                $minDelay = max(0, (int)$frequency_from);
+                $maxDelay = max($minDelay, (int)$frequency_to);
+                $delay = mt_rand($minDelay, $maxDelay);
+            }
             
             $logger->log("Bot for pair {$pair} waiting {$delay} seconds for the next cycle");
             

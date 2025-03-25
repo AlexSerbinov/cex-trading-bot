@@ -392,7 +392,7 @@ class BotManager
         }
         
         if (isset($botData['frequency_from']) && isset($botData['frequency_to'])) {
-        if ($botData['frequency_from'] <= 0 || $botData['frequency_to'] <= 0) {
+        if ($botData['frequency_from'] < 0 || $botData['frequency_to'] < 0) {
                 throw new InvalidArgumentException("Frequency must be greater than zero");
             }
             
@@ -422,14 +422,14 @@ class BotManager
         }   
 
         if (isset($botData['settings']['price_factor'])) {
-            if ($botData['settings']['price_factor'] <= 0) {
-                throw new InvalidArgumentException("Price factor must be greater than zero");
+            if ($botData['settings']['price_factor'] < 0) {
+                throw new InvalidArgumentException("Price factor cannot be negative");
             }
         }   
         
         if (isset($botData['settings']['market_gap'])) {
-            if ($botData['settings']['market_gap'] <= 0) {
-                throw new InvalidArgumentException("Market gap must be greater than zero");
+            if ($botData['settings']['market_gap'] < 0) {
+                throw new InvalidArgumentException("Market gap cannot be negative");
             }
         }       
         
