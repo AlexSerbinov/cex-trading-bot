@@ -56,6 +56,36 @@ class Config
     
     // Bot ID on the trade server
     public const BOT_ID = 5;
+
+    public const DEAD_WATCHER_ENABLED = true; // Default true
+    public const DEAD_WATCHER_CHECK_INTERVAL = 10; // Default 10 seconds, configurable
+    public const DEAD_WATCHER_BOT_ID = 5; // ID бота для видалення ордерів
+    public const DEAD_WATCHER_URLS = ['http://localhost:5501/dead-watcher/heartbeat']; // Масив URL для Dead Watcher інстансів, заповнюється з конфігу
+
+    /**
+     * Get Dead Watcher URLs from environment or default
+     */
+    public static function getDeadWatcherUrls(): array
+    {
+        $urls = getenv('DEAD_WATCHER_URLS') ? explode(',', getenv('DEAD_WATCHER_URLS')) : self::DEAD_WATCHER_URLS;
+        return array_filter($urls, fn($url) => !empty(trim($url)));
+    }
+
+    /**
+     * Check if Dead Watcher is enabled
+     */
+    public static function isDeadWatcherEnabled(): bool
+    {
+        return (bool)getenv('DEAD_WATCHER_ENABLED') ?: self::DEAD_WATCHER_ENABLED;
+    }
+
+    /**
+     * Get Dead Watcher check interval
+     */
+    public static function getDeadWatcherCheckInterval(): int
+    {
+        return (int)getenv('DEAD_WATCHER_CHECK_INTERVAL') ?: self::DEAD_WATCHER_CHECK_INTERVAL;
+    }
     
     /**
      * Force configuration reload
