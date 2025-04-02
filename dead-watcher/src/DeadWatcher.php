@@ -9,28 +9,27 @@ use Psr\Http\Message\ServerRequestInterface;
 use GuzzleHttp\Client;
 use Dotenv\Dotenv;
 
-require_once __DIR__ . '/../../src/core/Logger.php';
-require_once __DIR__ . '/../../src/core/ApiClient.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/DeadWatcherConfig.php';
 
-require_once __DIR__ . '/../vendor/autoload.php';
 $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->load();
 
 class DeadWatcher
 {
-    private $logger;
+    private Logger $logger;
     private $loop;
-    private $pairs = []; // Динамічний список пар: [pair => lastHeartbeatTimestamp]
-    private $config;
-    private $apiClient;
+    private array $pairs = []; // [pair => lastHeartbeatTimestamp]
+    private DeadWatcherConfig $config;
+    private Client $httpClient;
 
     public function __construct()
     {
-        $this->logger = \Logger::getInstance();
+        $this->logger = new Logger(true, __DIR__ . '/../logs/dead-watcher.log');
         $this->loop = Loop::get();
         $this->config = new DeadWatcherConfig();
-        $this->apiClient = new \ApiClient();
+        $this->httpClient = new Client(['timeout' => 10]);
         $this->logger->log("Dead Watcher initialized on port " . $this->config->getPort());
     }
 
@@ -43,7 +42,6 @@ class DeadWatcher
         $socket = new \React\Socket\SocketServer('0.0.0.0:' . $this->config->getPort(), [], $this->loop);
         $server->listen($socket);
 
-        // Періодична перевірка стану пар
         $this->loop->addPeriodicTimer(1, function () {
             $this->checkHeartbeats();
         });
@@ -65,13 +63,12 @@ class DeadWatcher
                 $botId = $body['bot_id'];
                 $timestamp = $body['timestamp'];
 
-                if ($botId === 5) { // Перевіряємо тільки для bot_id = 5
+                if ($botId === 5) {
                     $this->pairs[$pair] = $timestamp;
                     $this->logger->log("Heartbeat received for pair {$pair} (bot_id 5) at {$timestamp}");
                     return new Response(200, ['Content-Type' => 'application/json'], json_encode(['status' => 'ok']));
                 } else {
                     $this->logger->log("Heartbeat ignored for pair {$pair}, bot_id {$botId}");
-                    // Можливо, варто повернути 200 OK, щоб клієнт не вважав це помилкою
                     return new Response(200, ['Content-Type' => 'application/json'], json_encode(['status' => 'ignored']));
                 }
             } else {
@@ -87,13 +84,12 @@ class DeadWatcher
     {
         $currentTime = time();
         $timeout = $this->config->getHeartbeatTimeout();
-        // $this->logger->log("Checking heartbeats... Current time: {$currentTime}"); // Може бути занадто багато логів
 
         foreach ($this->pairs as $pair => $lastHeartbeat) {
             if ($currentTime - $lastHeartbeat > $timeout) {
                 $this->logger->log("No heartbeat for {$pair} for over {$timeout} seconds, cancelling orders");
                 $this->cancelOrdersForPair($pair);
-                unset($this->pairs[$pair]); // Видаляємо пару після скасування ордерів
+                unset($this->pairs[$pair]);
             }
         }
     }
@@ -107,24 +103,22 @@ class DeadWatcher
             $this->logger->log("Found {$orderCount} open orders for pair {$pair}");
 
             if ($orderCount === 0) {
-                $this->logger->log("No open orders to cancel for pair {$pair}.");
-                return; // Виходимо, якщо немає ордерів для скасування
+                $this->logger->log("No open orders to cancel for pair {$pair}");
+                return;
             }
 
             foreach ($openOrders as $order) {
-                $orderId = $order['id'] ?? 'unknown_id'; // Обробка випадку, якщо id не існує
+                $orderId = $order['id'] ?? 'unknown_id';
                 $this->logger->log("Attempting to cancel order {$orderId} for pair {$pair}");
-                $response = $this->apiClient->post(
-                    $this->config->getTradeServerUrl(),
-                    json_encode([
+                $response = $this->httpClient->post($this->config->getTradeServerUrl(), [
+                    'body' => json_encode([
                         'method' => 'order.cancel',
                         'params' => [5, $pair, $orderId],
                         'id' => rand(1, 1000)
-                    ])
-                );
-                // Додатково можна логувати відповідь від сервера скасування
-                 $this->logger->log("Cancellation response for order {$orderId}: {$response}");
-                $this->logger->log("Successfully sent cancellation request for order {$orderId} for pair {$pair}");
+                    ]),
+                    'headers' => ['Content-Type' => 'application/json']
+                ]);
+                $this->logger->log("Cancellation response for order {$orderId}: " . $response->getBody());
             }
             $this->logger->log("Finished cancellation process for pair {$pair}");
         } catch (\Exception $e) {
@@ -136,25 +130,20 @@ class DeadWatcher
     {
         $this->logger->log("Requesting open orders for pair {$pair} (bot_id 5)");
         try {
-            $response = $this->apiClient->post(
-                $this->config->getTradeServerUrl(),
-                json_encode([
+            $response = $this->httpClient->post($this->config->getTradeServerUrl(), [
+                'body' => json_encode([
                     'method' => 'order.pending',
-                    'params' => [5, $pair, 0, 100], // Запитуємо для bot_id 5
+                    'params' => [5, $pair, 0, 100],
                     'id' => rand(1, 1000)
-                ])
-            );
-            $this->logger->log("Received response for open orders request for pair {$pair}: " . $response);
-            $data = json_decode($response, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->logger->error("Error decoding JSON response for open orders {$pair}: " . json_last_error_msg());
-                return [];
-            }
+                ]),
+                'headers' => ['Content-Type' => 'application/json']
+            ]);
+            $data = json_decode($response->getBody(), true);
+            $this->logger->log("Received response for open orders request for pair {$pair}: " . $response->getBody());
 
             if (!isset($data['result']['records'])) {
-                 $this->logger->log("No 'result.records' found in open orders response for pair {$pair}. Response: " . $response);
-                 return [];
+                $this->logger->log("No 'result.records' found in open orders response for pair {$pair}");
+                return [];
             }
 
             return $data['result']['records'];
@@ -165,6 +154,5 @@ class DeadWatcher
     }
 }
 
-// Запуск Dead Watcher
 $deadWatcher = new DeadWatcher();
 $deadWatcher->run();

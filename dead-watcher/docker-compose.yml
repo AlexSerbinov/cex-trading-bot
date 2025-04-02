@@ -7,6 +7,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./src:/app/src
+      - ./logs:/app/logs
     environment:
       - DEAD_WATCHER_PORT=5503
       - TRADE_SERVER_URL=http://195.7.7.93:18080
@@ -23,6 +24,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./src:/app/src
+      - ./logs:/app/logs
     environment:
       - DEAD_WATCHER_PORT=6503
       - TRADE_SERVER_URL=http://164.68.117.90:18080
