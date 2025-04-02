@@ -11,6 +11,7 @@ services:
         environment:
             - TRADE_SERVER_URL=http://195.7.7.93:18080
             - ENVIRONMENT=dev
+            - DEAD_WATCHER_URLS=http://164.68.117.90:5503/dead-watcher/heartbeat # if you have 2 or more instances of dead-watcher, you can add this via comma separated values
         ports:
             - '5501:8080' # Порт 5501 для Dev-середовища
         networks:
