@@ -60,7 +60,7 @@ class Config
     public const DEAD_WATCHER_ENABLED = true; // Default true
     public const DEAD_WATCHER_CHECK_INTERVAL = 10; // Default 10 seconds, configurable
     public const DEAD_WATCHER_BOT_ID = 5; // ID бота для видалення ордерів
-    public const DEAD_WATCHER_URLS = ['http://localhost:5501/dead-watcher/heartbeat']; // Масив URL для Dead Watcher інстансів, заповнюється з конфігу
+    public const DEAD_WATCHER_URLS = ['http://localhost:5503/dead-watcher/heartbeat']; // Масив URL для Dead Watcher інстансів, заповнюється з конфігу
 
     /**
      * Get Dead Watcher URLs from environment or default
