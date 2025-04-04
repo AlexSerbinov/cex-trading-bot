@@ -8,8 +8,8 @@ declare(strict_types=1);
 class Config
 {
     // Замінено динамічний вираз на статичний метод
-    public const TRADE_SERVER_URL_DEFAULT = 'http://195.7.7.93:18080'; // dev server
-    // const TRADE_SERVER_URL =             'http://164.68.117.90:18080';   // demo server
+    public const TRADE_SERVER_URL_DEFAULT = 'http://195.7.7.93:18080'; // demo server
+    // const TRADE_SERVER_URL =             'http://164.68.117.90:18080';   // dev server
     
     /**
      * Отримання URL торгового сервера
@@ -22,11 +22,10 @@ class Config
     }
     
     public const BOT_USER_ID = 5;
-    public const TAKER_FEE = '0.07';
-    public const MAKER_FEE = '0.02';
+    public const TAKER_FEE = '0';
+    public const MAKER_FEE = '0';
     public const ORDER_SOURCE = 'bot order';
     public const MARKET_TRADE_SOURCE = 'bot trade';
-    public const MARKET_MAKER_ORDER_PROBABILITY = 0.99; // Adjustable probability for market maker orders (0.0 to 1.0)
 
     // Delay constants (in milliseconds)
     public const DELAY_RUN_MIN = 100; // 0.1 second
