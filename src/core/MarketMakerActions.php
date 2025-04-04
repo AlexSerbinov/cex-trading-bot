@@ -49,6 +49,7 @@ class MarketMakerActions
         float $marketPrice,
     ): void {
         $maxOrders = $this->pairConfig['settings']['max_orders'];
+        $minOrders = $this->pairConfig['settings']['min_orders'];
         $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
         $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
         
@@ -58,8 +59,8 @@ class MarketMakerActions
         $this->logger->log("[{$this->pair}] marketMakerProbability: " . $marketMakerProbability);
     
         $this->logger->log(sprintf(
-            '[%s] Performing random actions with max_orders=%d, deviation=%.4f%%, market_gap=%.4f%%, probability=%.2f', 
-            $this->pair, $maxOrders, $deviationPercent * 100, $marketGap * 100, $marketMakerProbability * 100
+            '[%s] Performing random actions with max_orders=%d, min_orders=%d, deviation=%.4f%%, market_gap=%.4f%%, probability=%.2f', 
+            $this->pair, $maxOrders, $minOrders, $deviationPercent * 100, $marketGap * 100, $marketMakerProbability * 100
         ));
     
         // Генеруємо випадкове число від 0 до 1
@@ -80,33 +81,30 @@ class MarketMakerActions
             return;
         }
         
-        // Якщо ми тут, то виконуємо дію маркет-мейкера
+        // Якщо ми тут, то виконуємо market maker trade
+        $this->logger->log("[{$this->pair}] Executing market maker trade");
+        
+        // Виконуємо market trade
+        $this->executeMarketTrade($pendingOrders);
+        
+        // Оновлюємо поточні списки ордерів
+        $this->bot->updateOpenOrders();
+        $openOrders = $this->bot->getOpenOrders();
+        $currentBids = array_filter($openOrders, fn($o) => $o['side'] === 2);
+        $currentAsks = array_filter($openOrders, fn($o) => $o['side'] === 1);
+        
         // Застосовуємо market_gap до ціни
         $gapAdjustment = $marketPrice * $marketGap;
-    
-        $action = mt_rand() / mt_getrandmax();
-        $this->logger->log(sprintf(
-            '[%s] Market maker action selected: action=%.6f',
-            $this->pair,
-            $action
-        ));
-    
-        if ($action < 0.3 && count($currentBids) < $maxOrders) {
+        
+        // Відновлюємо кількість ордерів до мінімуму
+        while (count($currentBids) < $minOrders) {
             $this->createNewBid($marketPrice, $deviationPercent, $gapAdjustment);
-        } elseif ($action < 0.6 && count($currentAsks) < $maxOrders) {
+            $currentBids[] = ['side' => 2]; // Додаємо до локального списку
+        }
+        
+        while (count($currentAsks) < $minOrders) {
             $this->createNewAsk($marketPrice, $deviationPercent, $gapAdjustment);
-        } elseif ($action < 0.8 && count($pendingOrders) > 0) {
-            $this->cancelOrder($pendingOrders);
-            
-            // При використанні маркер-мейкера, після скасування ордера треба створити новий
-            $newAction = mt_rand() / mt_getrandmax();
-            if ($newAction < 0.5) {
-                $this->createNewBid($marketPrice, $deviationPercent, $gapAdjustment);
-            } else {
-                $this->createNewAsk($marketPrice, $deviationPercent, $gapAdjustment);
-            }
-        } else {
-            $this->executeMarketTrade($pendingOrders);
+            $currentAsks[] = ['side' => 1]; // Додаємо до локального списку
         }
     }
 
