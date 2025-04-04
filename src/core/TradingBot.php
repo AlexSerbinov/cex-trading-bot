@@ -93,11 +93,49 @@ class TradingBot
         $this->initialized = true;
     }
 
-/**
+    /**
+     * Updates the bot's configuration with the latest settings
+     */
+    public function updateConfig(): void
+    {
+        $newConfig = Config::getPairConfig($this->pair);
+        if ($newConfig !== null) {
+            $this->pairConfig = $newConfig;
+            
+            // Update MarketMakerActions with new config
+            $this->marketMakerActions = new MarketMakerActions(
+                $this,
+                $this->logger,
+                $this->pair,
+                $this->pairConfig
+            );
+            
+            // Log the updated configuration
+            $settings = $this->pairConfig['settings'];
+            $this->logger->log(sprintf(
+                'Updated settings for %s: min_orders=%s, max_orders=%s, trade_amount_min=%s, trade_amount_max=%s, frequency_from=%s, frequency_to=%s, probability=%s, market_gap=%s, price_factor=%s',
+                $this->pair,
+                $settings['min_orders'],
+                $settings['max_orders'],
+                $settings['trade_amount_min'],
+                $settings['trade_amount_max'],
+                $settings['frequency_from'],
+                $settings['frequency_to'],
+                $settings['market_maker_order_probability'],
+                $settings['market_gap'],
+                $settings['price_factor']
+            ));
+        }
+    }
+
+    /**
      * Runs a single trading cycle.
      */
     public function runSingleCycle(): void
     {
+        // Update configuration before each cycle
+        $this->updateConfig();
+        
         if (!$this->initialized) {
             $this->logger->log("[{$this->pair}] The bot is not initialized, skipping the cycle");
             return;

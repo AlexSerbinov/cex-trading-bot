@@ -112,6 +112,9 @@ try {
                         break;
                     }
                     
+                    // Update bot configuration
+                    $bot->updateConfig();
+                    
                     $frequency_from = $pairConfig['settings']['frequency_from'];
                     $frequency_to = $pairConfig['settings']['frequency_to'];
                     
