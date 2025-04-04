@@ -71,25 +71,25 @@ class TradingBot
      */
     public function initialize(): void
     {
-        $this->logger->log("[{$this->pair}] -=-= Initializing the bot...");
+        $this->logger->log("[{$this->pair}] Initializing the bot...");
         if ($this->initialized) {
-            $this->logger->log("[{$this->pair}] -=-= The bot is already initialized, skipping the initialization");
+            $this->logger->log("[{$this->pair}] The bot is already initialized, skipping the initialization");
             return;
         }
-        $this->logger->log("[{$this->pair}] -=-= The bot is not initialized, initializing...");
+        $this->logger->log("[{$this->pair}] The bot is not initialized, initializing...");
         
 
         // $this->logger->log("Initialization of the bot for the pair {$this->pair}...");
-        $this->logger->log("[{$this->pair}] -=-= Clearing all orders");
+        $this->logger->log("[{$this->pair}] Clearing all orders");
         $this->clearAllOrders();
-        $this->logger->log("[{$this->pair}] -=-= Cleared all orders");
+        $this->logger->log("[{$this->pair}] Cleared all orders");
         // Getting the order book from the external API
         $orderBook = $this->getExternalOrderBook();
         
         // Initializing the initial orders
-        $this->logger->log("[{$this->pair}] -=-= Initializing the order book");
+        $this->logger->log("[{$this->pair}] Initializing the order book");
         $this->initializeOrderBook($orderBook);
-        $this->logger->log("[{$this->pair}] -=-= Initialized order book ");
+        $this->logger->log("[{$this->pair}] Initialized order book ");
         $this->initialized = true;
     }
 
@@ -274,11 +274,11 @@ class TradingBot
      */
     public function clearAllOrders(): void
     {
-        $this->logger->log("[{$this->pair}] -=-= +++ Clearing all orders");
+        $this->logger->log("[{$this->pair}] Clearing all orders");
         
         // Отримання списку відкритих ордерів
         $openOrders = $this->exchangeManager->getOpenOrders($this->pair);
-        $this->logger->log("[{$this->pair}] -=-= +++ Found " . count($openOrders) . " open orders to clear");
+        $this->logger->log("[{$this->pair}] Found " . count($openOrders) . " open orders to clear");
         
         // Збираємо всі ID для скасування
         $orderIds = array_map(function($order) {
@@ -292,7 +292,7 @@ class TradingBot
             usleep(100000); // 100 мс
         }
         
-        $this->logger->log("[{$this->pair}] -=-= +++ All orders cleared");
+        $this->logger->log("[{$this->pair}] All orders cleared");
     }
 
     /**
@@ -440,7 +440,7 @@ class TradingBot
      */
     private function initializeOrderBook(array $orderBook): void
     {
-        $this->logger->log("[{$this->pair}] -=-= +_= Initializing the order book");
+        $this->logger->log("[{$this->pair}] Initializing the order book");
         $tradeAmountMin = $this->pairConfig['settings']['trade_amount_min'];
         $tradeAmountMax = $this->pairConfig['settings']['trade_amount_max'];
         
@@ -458,7 +458,7 @@ class TradingBot
         // Отримання налаштувань для розподілу цін
         $priceFactor = $this->pairConfig['settings']['price_factor'];
         $marketGap = $this->pairConfig['settings']['market_gap'];
-        $this->logger->log("[{$this->pair}] -=-= +_= marketPrice: {$marketPrice}, using price_factor: {$priceFactor}%, market_gap: {$marketGap}%");
+        $this->logger->log("[{$this->pair}] marketPrice: {$marketPrice}, using price_factor: {$priceFactor}%, market_gap: {$marketGap}%");
         
         // Отримання значень з settings
         $minOrders = $this->pairConfig['settings']['min_orders'];
@@ -471,7 +471,7 @@ class TradingBot
         // Додаткове логування для параметрів ціноутворення
         $this->logger->log(
             sprintf(
-                "[%s] -=-= +_= Initializing order book with price distribution: price_factor=%.4f%%, market_gap=%.4f%%",
+                "[%s] Initializing order book with price distribution: price_factor=%.4f%%, market_gap=%.4f%%",
                 $this->pair, 
                 $priceFactor,
                 $marketGap
@@ -481,7 +481,7 @@ class TradingBot
         // Випадкова кількість ордерів в діапазоні
         $numOrders = mt_rand($minOrders, $maxOrders);
         
-        $this->logger->log("[{$this->pair}] -=-= +_= Initializing order book with {$numOrders} orders (min: {$minOrders}, max: {$maxOrders}), market price: {$marketPrice}");
+        $this->logger->log("[{$this->pair}] Initializing order book with {$numOrders} orders (min: {$minOrders}, max: {$maxOrders}), market price: {$marketPrice}");
         
         for ($i = 0; $i < $numOrders; $i++) {
             // Випадковий вибір сторони (bid або ask)
@@ -507,7 +507,7 @@ class TradingBot
             
             // Переконуємося, що обсяг не нульовий після форматування
             if ((float)$formattedAmount <= 0) {
-                $this->logger->error("[{$this->pair}] -=-= +_= Generated zero amount after formatting: original={$amount}, formatted={$formattedAmount}, using minimum");
+                $this->logger->error("[{$this->pair}] Generated zero amount after formatting: original={$amount}, formatted={$formattedAmount}, using minimum");
                 $formattedAmount = number_format($tradeAmountMin, 8, '.', '');
             }
             
@@ -516,7 +516,7 @@ class TradingBot
             $sideText = ($side == 1 ? "ask" : "bid");
             $this->logger->log(
                 sprintf(
-                    "[%s] -=-= +_= Initialized %s: %s @ %.12f (deviation: %.4f%% from market price, amount adjusted by: %.4f)",
+                    "[%s] Initialized %s: %s @ %.12f (deviation: %.4f%% from market price, amount adjusted by: %.4f)",
                     $this->pair,
                     $sideText,
                     $formattedAmount,
@@ -530,7 +530,7 @@ class TradingBot
             $this->placeLimitOrder($side, $formattedAmount, number_format($price, 12, '.', ''));
         }
         
-        $this->logger->log("[{$this->pair}] -=-= +_= Order book initialization complete with price_factor={$priceFactor}% and market_gap={$marketGap}%");
+        $this->logger->log("[{$this->pair}] Order book initialization complete with price_factor={$priceFactor}% and market_gap={$marketGap}%");
     }
 
     /**

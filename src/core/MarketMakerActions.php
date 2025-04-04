@@ -55,7 +55,7 @@ class MarketMakerActions
         // Ймовірність створення ордерів маркет-мейкера
         $marketMakerProbability = $this->pairConfig['settings']['market_maker_order_probability'] / 100;
         
-        $this->logger->log("[{$this->pair}] =0=0=0 marketMakerProbability: " . $marketMakerProbability);
+        $this->logger->log("[{$this->pair}] marketMakerProbability: " . $marketMakerProbability);
     
         $this->logger->log(sprintf(
             '[%s] Performing random actions with max_orders=%d, deviation=%.4f%%, market_gap=%.4f%%, probability=%.2f', 
@@ -66,7 +66,7 @@ class MarketMakerActions
         $randomValue = mt_rand() / mt_getrandmax();
         
         $this->logger->log(sprintf(
-            '[%s] =0=0=0 Probability check: randomValue=%.6f, marketMakerProbability=%.6f',
+            '[%s] Probability check: randomMarketMakerValue=%.6f, marketMakerProbability=%.6f',
             $this->pair,
             $randomValue,
             $marketMakerProbability
@@ -75,7 +75,7 @@ class MarketMakerActions
         // Якщо випадкове число більше за ймовірність створення ордерів маркет-мейкера
         // або якщо ймовірність дорівнює 0, завжди скасовуємо ордер і створюємо новий
         if ($randomValue > $marketMakerProbability || $marketMakerProbability <= 0) {
-            $this->logger->log("[{$this->pair}] =0=0=0 Low probability for market maker action, will update one order instead");
+            $this->logger->log("[{$this->pair}] Low probability for market maker action, will update one order instead");
             $this->updateExistingOrder($marketPrice, $deviationPercent, $marketGap);
             return;
         }
@@ -86,7 +86,7 @@ class MarketMakerActions
     
         $action = mt_rand() / mt_getrandmax();
         $this->logger->log(sprintf(
-            '[%s] =0=0=0 Market maker action selected: action=%.6f',
+            '[%s] Market maker action selected: action=%.6f',
             $this->pair,
             $action
         ));
@@ -128,7 +128,7 @@ class MarketMakerActions
         $asks = array_filter($openOrders, fn($o) => $o['side'] === 1);
         
         if (empty($bids) && empty($asks)) {
-            $this->logger->log("[{$this->pair}] =0=0=0 No orders to update");
+            $this->logger->log("[{$this->pair}] No orders to update");
             return;
         }
         
@@ -155,7 +155,7 @@ class MarketMakerActions
      */
     private function updateAskOrder(array $asks, float $marketPrice, float $deviationPercent, float $gapAdjustment): void
     {
-        $this->logger->log("[{$this->pair}] =0=0=0 Updating an ask order");
+        $this->logger->log("[{$this->pair}] Updating an ask order");
 
         // Сортуємо аски за ціною (від низької до високої)
         usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
@@ -206,7 +206,7 @@ class MarketMakerActions
      */
     private function updateBidOrder(array $bids, float $marketPrice, float $deviationPercent, float $gapAdjustment): void
     {
-        $this->logger->log("[{$this->pair}] =0=0=0 Updating a bid order");
+        $this->logger->log("[{$this->pair}] Updating a bid order");
 
         // Сортуємо біди за ціною (від високої до низької)
         usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']);
@@ -256,7 +256,7 @@ class MarketMakerActions
      */
     private function createNewBid(float $marketPrice, float $deviationPercent, float $gapAdjustment): void
     {
-        $this->logger->log("[{$this->pair}] =0=0=0 Placing a new bid");
+        $this->logger->log("[{$this->pair}] Placing a new bid");
 
         $randBase = 0.05 + (mt_rand(0, 900) / 1000);
         $randomFactor = pow($randBase, 1/3);
@@ -288,7 +288,7 @@ class MarketMakerActions
      */
     private function createNewAsk(float $marketPrice, float $deviationPercent, float $gapAdjustment): void
     {
-        $this->logger->log("[{$this->pair}] =0=0=0 Placing a new ask");
+        $this->logger->log("[{$this->pair}] Placing a new ask");
 
         $randBase = 0.05 + (mt_rand(0, 900) / 1000);
         $randomFactor = pow($randBase, 1/3);
@@ -318,7 +318,7 @@ class MarketMakerActions
      */
     private function cancelOrder(array $pendingOrders): void
     {
-        $this->logger->log("[{$this->pair}] =0=0=0 Cancelling an order");
+        $this->logger->log("[{$this->pair}] Cancelling an order");
 
         $this->bot->updateOpenOrders(); // Оновлюємо список відкритих ордерів один раз перед операціями скасування
         $openOrders = $this->bot->getOpenOrders();
@@ -326,7 +326,7 @@ class MarketMakerActions
         $asks = array_filter($openOrders, fn($o) => $o['side'] === 1);
         
         if (empty($bids) && empty($asks)) {
-            $this->logger->log("[{$this->pair}] =0=0=0 No orders to cancel");
+            $this->logger->log("[{$this->pair}] No orders to cancel");
             return;
         }
         
@@ -336,7 +336,7 @@ class MarketMakerActions
         if (count($bids) > 0 && count($asks) > 0) {
             $rand = mt_rand() / mt_getrandmax();
             if ($rand < 0.5) {
-                $this->logger->log("[{$this->pair}] =0=0=0 Cancelling the lowest bid");
+                $this->logger->log("[{$this->pair}] Cancelling the lowest bid");
                 $orderToCancel = end($bids);
                 $this->bot->cancelOrder($orderToCancel['id']); // Cancel the lowest bid
                 $this->logger->log(
@@ -348,7 +348,7 @@ class MarketMakerActions
                     ),
                 );
             } else {
-                $this->logger->log("[{$this->pair}] =0=0=0 Cancelling the highest ask");
+                $this->logger->log("[{$this->pair}] Cancelling the highest ask");
                 $orderToCancel = end($asks);
                 $this->bot->cancelOrder($orderToCancel['id']); // Cancel the highest ask
                 $this->logger->log(
@@ -361,7 +361,7 @@ class MarketMakerActions
                 );
             }
         } elseif (count($bids) > 0) {
-            $this->logger->log("[{$this->pair}] =0=0=0 Cancelling the lowest bid (no asks available)");
+            $this->logger->log("[{$this->pair}] Cancelling the lowest bid (no asks available)");
             $orderToCancel = end($bids);
             $this->bot->cancelOrder($orderToCancel['id']); // Cancel the lowest bid
             $this->logger->log(
@@ -373,7 +373,7 @@ class MarketMakerActions
                 ),
             );
         } elseif (count($asks) > 0) {
-            $this->logger->log("[{$this->pair}] =0=0=0 Cancelling the highest ask (no bids available)");
+            $this->logger->log("[{$this->pair}] Cancelling the highest ask (no bids available)");
             $orderToCancel = end($asks);
             $this->bot->cancelOrder($orderToCancel['id']); // Cancel the highest ask
             $this->logger->log(
@@ -394,7 +394,7 @@ class MarketMakerActions
      */
     private function executeMarketTrade(array $pendingOrders): void
     {
-        $this->logger->log("[{$this->pair}] =0=0=0 Performing a market trade");
+        $this->logger->log("[{$this->pair}] Performing a market trade");
 
         $this->bot->updateOpenOrders(); // Оновлюємо список відкритих ордерів перед виконанням ринкових операцій
         $openOrders = $this->bot->getOpenOrders();
@@ -405,7 +405,7 @@ class MarketMakerActions
         
         if (count($bids) > 0 && count($asks) > 0) {
             if ($this->bot->lastActionWasSell) {
-                $this->logger->log("[{$this->pair}] =0=0=0 Buying at the lowest ask");
+                $this->logger->log("[{$this->pair}] Buying at the lowest ask");
                 $this->bot->placeMarketOrder(2, $asks[0]['amount']); // Buy at the lowest ask
                 $this->logger->log(
                     sprintf(
@@ -417,7 +417,7 @@ class MarketMakerActions
                 );
                 $this->bot->lastActionWasSell = false;
             } else {
-                $this->logger->log("[{$this->pair}] =0=0=0 Selling at the highest bid");
+                $this->logger->log("[{$this->pair}] Selling at the highest bid");
                 $this->bot->placeMarketOrder(1, $bids[0]['amount']); // Sell at the highest bid
                 $this->logger->log(
                     sprintf(
@@ -430,13 +430,13 @@ class MarketMakerActions
                 $this->bot->lastActionWasSell = true;
             }
         } elseif (count($bids) > 0) {
-            $this->logger->log("[{$this->pair}] =0=0=0 Selling at the highest bid (no asks available)");
+            $this->logger->log("[{$this->pair}] Selling at the highest bid (no asks available)");
             $this->bot->placeMarketOrder(1, $bids[0]['amount']);
             $this->logger->log(
                 sprintf('[%s] Market trade: Sold %s @ %s', $this->pair, $bids[0]['amount'], $bids[0]['price']),
             );
         } elseif (count($asks) > 0) {
-            $this->logger->log("[{$this->pair}] =0=0=0 Buying at the lowest ask (no bids available)");
+            $this->logger->log("[{$this->pair}] Buying at the lowest ask (no bids available)");
             $this->bot->placeMarketOrder(2, $asks[0]['amount']);
             $this->logger->log(
                 sprintf('[%s] Market trade: Bought %s @ %s', $this->pair, $asks[0]['amount'], $asks[0]['price']),
