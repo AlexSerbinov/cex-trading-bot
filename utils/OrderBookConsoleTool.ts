@@ -2,12 +2,12 @@ import axios from 'axios';
 import chalk from 'chalk';
 
 // Конфігурація
-const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 dev
-// const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // 90 demo
+const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 demo
+// const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // 90 dev
 const REFRESH_INTERVAL = 500; // Оновлення кожні 500 мс
 
 // Отримуємо торгову пару з аргументів командного рядка
-const PAIR = process.argv[2]?.startsWith('-') ? process.argv[2].substring(1) : 'DOGE_USDT';
+const PAIR = process.argv[2]?.startsWith('-') ? process.argv[2].substring(1) : 'SOL_USDT';
 
 // Функція для отримання ордер буку (bids або asks)
 async function getOrderBook(side: number) {
@@ -19,7 +19,8 @@ async function getOrderBook(side: number) {
     try {
         const response = await axios.post(TRADE_SERVER_URL, body);
         if (response.data && response.data.result && response.data.result.orders) {
-            return response.data.result.orders.map((order: any) => ({
+            return response.data.result.orders.map((order: any) => (
+                {
                 price: parseFloat(order.price),
                 amount: parseFloat(order.amount),
                 side: order.side,
@@ -46,12 +47,13 @@ function formatOrderBook(bids: any[], asks: any[]) {
 
     // Формуємо рядки для виведення
     let output = chalk.bold(`Order Book (${PAIR})\n`);
-    output += chalk.bold('№\tPrice (USDT)\tAmount (LTC)\tTotal\n');
+    output += chalk.bold('№\tPrice (USDT)\t\tAmount (SOL)\tTotal\n');
 
     // Виводимо asks (червоні) з нумерацією
     displayAsks.forEach((ask, index) => {
         const total = (ask.price * ask.amount).toFixed(2);
-        output += chalk.red(`${index + 1}\t${ask.price.toFixed(5)}\t${ask.amount.toFixed(8)}\t${total}\n`);
+        output += chalk.red(`${index + 1}\t${ask.price.toFixed(12)}\t${ask.amount.toFixed(8)}\t${total}\n`);
+        // output += chalk.red(`${index + 1}\t${ask.price}\t${ask.amount.toFixed(8)}\t${total}\n`);
     });
 
     // Додаємо поточну ціну
@@ -61,7 +63,7 @@ function formatOrderBook(bids: any[], asks: any[]) {
     // Виводимо bids (зелені) з нумерацією
     displayBids.forEach((bid, index) => {
         const total = (bid.price * bid.amount).toFixed(2);
-        output += chalk.green(`${index + 1}\t${bid.price.toFixed(5)}\t${bid.amount.toFixed(8)}\t${total}\n`);
+        output += chalk.green(`${index + 1}\t${bid.price.toFixed(12)}\t${bid.amount.toFixed(8)}\t${total}\n`);
     });
 
     return output;
