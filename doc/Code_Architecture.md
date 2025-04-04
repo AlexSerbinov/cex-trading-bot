@@ -130,6 +130,27 @@ The project includes Swagger for API documentation and testing:
 
 The Trading Bot’s architecture is a modular, containerized system built on PHP, Apache, and Nginx, packaged with Docker for easy deployment. It separates backend logic (bot management and API) from frontend serving, with Swagger enhancing developer interaction. The use of distinct Development and Demo environments, combined with a flexible file structure, supports both testing and production-like scenarios, all while maintaining a populated order book for the exchange.
 
+### Validation and Safety Measures
+
+1. **Price Factor Validation**
+   - Minimum value: 0.001%
+   - Enforced in multiple layers:
+     - Frontend validation (UI input restrictions)
+     - Backend validation in `BotManager`, `BotStorage`, and `Config` classes
+     - Runtime validation in `TradingBot` and `MarketMakerActions`
+   - Purpose: Prevents creation of identical orders by ensuring sufficient price deviation
+   - Automatic adjustment: Values below 0.001% are automatically set to 0.001%
+
+2. **Order Management**
+   - Maintains minimum and maximum order counts
+   - Prevents duplicate orders
+   - Ensures proper price distribution
+
+3. **Configuration Safety**
+   - Validates all input parameters
+   - Maintains data consistency across components
+   - Provides fallback values for missing settings
+
 ---
 
 This completes the **Architecture** section with a detailed breakdown of technologies, Docker setup, file purposes, Swagger, and deployment specifics. Let me know if you’d like to refine any part or add more details!

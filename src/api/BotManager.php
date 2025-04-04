@@ -125,7 +125,7 @@ class BotManager
                 'trade_amount_max' => $data['settings']['trade_amount_max'],
                 'frequency_from' => $data['settings']['frequency_from'],
                 'frequency_to' => $data['settings']['frequency_to'],
-                'price_factor' => $data['settings']['price_factor'],
+                'price_factor' => max(0.001, $data['settings']['price_factor']),
                 'market_gap' => $data['settings']['market_gap'],
                 'market_maker_order_probability' => $data['settings']['market_maker_order_probability']
             ]
@@ -424,6 +424,10 @@ class BotManager
         if (isset($botData['settings']['price_factor'])) {
             if ($botData['settings']['price_factor'] < 0) {
                 throw new InvalidArgumentException("Price factor cannot be negative");
+            }
+            // Enforce minimum price_factor value
+            if ($botData['settings']['price_factor'] < 0.001) {
+                $botData['settings']['price_factor'] = 0.001;
             }
         }   
         

@@ -494,7 +494,7 @@ class TradingBot
         $marketPrice = $this->calculateMarketPrice($orderBook);
         
         // Отримання налаштувань для розподілу цін
-        $priceFactor = $this->pairConfig['settings']['price_factor'];
+        $priceFactor = max(0.001, $this->pairConfig['settings']['price_factor']);
         $marketGap = $this->pairConfig['settings']['market_gap'];
         $this->logger->log("[{$this->pair}] marketPrice: {$marketPrice}, using price_factor: {$priceFactor}%, market_gap: {$marketGap}%");
         
@@ -587,7 +587,7 @@ class TradingBot
     ): void {
         $minOrders = $this->pairConfig['settings']['min_orders'];
         $maxOrders = $this->pairConfig['settings']['max_orders'];
-        $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
+        $priceFactor = $this->pairConfig['settings']['price_factor'] / 100;
         $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
         
         $this->logger->log(
@@ -596,7 +596,7 @@ class TradingBot
                 $this->pair,
                 $minOrders,
                 $maxOrders,
-                $deviationPercent * 100,
+                $priceFactor * 100,
                 $marketGap * 100
             )
         );
@@ -611,7 +611,7 @@ class TradingBot
             $gapAdjustment = $marketPrice * $marketGap;
             
             $bidPrice = number_format(
-                $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
+                $marketPrice * (1 - $priceFactor * $randomFactor) - $gapAdjustment,
                 12,
                 '.',
                 '',
@@ -650,7 +650,7 @@ class TradingBot
             $gapAdjustment = $marketPrice * $marketGap;
             
             $askPrice = number_format(
-                $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
+                $marketPrice * (1 + $priceFactor * $randomFactor) + $gapAdjustment,
                 12,
                 '.',
                 '',
@@ -766,15 +766,15 @@ class TradingBot
     private function calculateOrderPrice(float $marketPrice, int $side): float
     {
         // Отримання налаштувань з settings або з кореневого об'єкту для зворотної сумісності
-        $deviationPercent = $this->pairConfig['settings']['price_factor'];
+        $priceFactor = max(0.001, $this->pairConfig['settings']['price_factor']);
         $marketGap = $this->pairConfig['settings']['market_gap'];
         
         // Логування для діагностики
         $this->logger->log(sprintf('[%s] Price calculation using deviation=%.4f%%, market_gap=%.4f%%', 
-            $this->pair, $deviationPercent, $marketGap));
+            $this->pair, $priceFactor, $marketGap));
         
         // Перетворення відсотків у десяткові дроби
-        $deviationFactor = $deviationPercent / 100;
+        $deviationFactor = $priceFactor / 100;
         $marketGapFactor = $marketGap / 100;
         
         // Використовуємо принципово інший алгоритм для рівномірного розподілу

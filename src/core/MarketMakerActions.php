@@ -50,7 +50,7 @@ class MarketMakerActions
     ): void {
         $maxOrders = $this->pairConfig['settings']['max_orders'];
         $minOrders = $this->pairConfig['settings']['min_orders'];
-        $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
+        $priceFactor = $this->pairConfig['settings']['price_factor'] / 100;
         $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
         
         // Ймовірність створення ордерів маркет-мейкера
@@ -60,7 +60,7 @@ class MarketMakerActions
     
         $this->logger->log(sprintf(
             '[%s] Performing random actions with max_orders=%d, min_orders=%d, deviation=%.4f%%, market_gap=%.4f%%, probability=%.2f', 
-            $this->pair, $maxOrders, $minOrders, $deviationPercent * 100, $marketGap * 100, $marketMakerProbability * 100
+            $this->pair, $maxOrders, $minOrders, $priceFactor * 100, $marketGap * 100, $marketMakerProbability * 100
         ));
     
         // Генеруємо випадкове число від 0 до 1
@@ -77,7 +77,7 @@ class MarketMakerActions
         // або якщо ймовірність дорівнює 0, завжди скасовуємо ордер і створюємо новий
         if ($randomValue > $marketMakerProbability || $marketMakerProbability <= 0) {
             $this->logger->log("[{$this->pair}] Low probability for market maker action, will update one order instead");
-            $this->updateExistingOrder($marketPrice, $deviationPercent, $marketGap);
+            $this->updateExistingOrder($marketPrice, $priceFactor, $marketGap);
             return;
         }
         
@@ -98,12 +98,12 @@ class MarketMakerActions
         
         // Відновлюємо кількість ордерів до мінімуму
         while (count($currentBids) < $minOrders) {
-            $this->createNewBid($marketPrice, $deviationPercent, $gapAdjustment);
+            $this->createNewBid($marketPrice, $priceFactor, $gapAdjustment);
             $currentBids[] = ['side' => 2]; // Додаємо до локального списку
         }
         
         while (count($currentAsks) < $minOrders) {
-            $this->createNewAsk($marketPrice, $deviationPercent, $gapAdjustment);
+            $this->createNewAsk($marketPrice, $priceFactor, $gapAdjustment);
             $currentAsks[] = ['side' => 1]; // Додаємо до локального списку
         }
     }
@@ -112,10 +112,10 @@ class MarketMakerActions
      * Update an existing order
      * 
      * @param float $marketPrice Market price
-     * @param float $deviationPercent Price deviation percentage
+     * @param float $priceFactor Price deviation percentage
      * @param float $marketGap Market gap
      */
-    private function updateExistingOrder(float $marketPrice, float $deviationPercent, float $marketGap): void
+    private function updateExistingOrder(float $marketPrice, float $priceFactor, float $marketGap): void
     {
         // Оновлюємо список відкритих ордерів
         $this->bot->updateOpenOrders();
@@ -137,9 +137,9 @@ class MarketMakerActions
         $gapAdjustment = $marketPrice * $marketGap;
         
         if ($useAsks) {
-            $this->updateAskOrder($asks, $marketPrice, $deviationPercent, $gapAdjustment);
+            $this->updateAskOrder($asks, $marketPrice, $priceFactor, $gapAdjustment);
         } else {
-            $this->updateBidOrder($bids, $marketPrice, $deviationPercent, $gapAdjustment);
+            $this->updateBidOrder($bids, $marketPrice, $priceFactor, $gapAdjustment);
         }
     }
 
@@ -148,10 +148,10 @@ class MarketMakerActions
      * 
      * @param array $asks List of ask orders
      * @param float $marketPrice Market price
-     * @param float $deviationPercent Price deviation percentage
+     * @param float $priceFactor Price deviation percentage
      * @param float $gapAdjustment Gap adjustment
      */
-    private function updateAskOrder(array $asks, float $marketPrice, float $deviationPercent, float $gapAdjustment): void
+    private function updateAskOrder(array $asks, float $marketPrice, float $priceFactor, float $gapAdjustment): void
     {
         $this->logger->log("[{$this->pair}] Updating an ask order");
 
@@ -176,7 +176,7 @@ class MarketMakerActions
         $randomFactor = pow($randBase, 1/3);
         
         $askPrice = number_format(
-            $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
+            $marketPrice * (1 + $priceFactor * $randomFactor) + $gapAdjustment,
             12,
             '.',
             ''
@@ -199,10 +199,10 @@ class MarketMakerActions
      * 
      * @param array $bids List of bid orders
      * @param float $marketPrice Market price
-     * @param float $deviationPercent Price deviation percentage
+     * @param float $priceFactor Price deviation percentage
      * @param float $gapAdjustment Gap adjustment
      */
-    private function updateBidOrder(array $bids, float $marketPrice, float $deviationPercent, float $gapAdjustment): void
+    private function updateBidOrder(array $bids, float $marketPrice, float $priceFactor, float $gapAdjustment): void
     {
         $this->logger->log("[{$this->pair}] Updating a bid order");
 
@@ -227,7 +227,7 @@ class MarketMakerActions
         $randomFactor = pow($randBase, 1/3);
         
         $bidPrice = number_format(
-            $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
+            $marketPrice * (1 - $priceFactor * $randomFactor) - $gapAdjustment,
             12,
             '.',
             ''
@@ -249,10 +249,10 @@ class MarketMakerActions
      * Create a new bid
      * 
      * @param float $marketPrice Market price
-     * @param float $deviationPercent Price deviation percentage
+     * @param float $priceFactor Price deviation percentage
      * @param float $gapAdjustment Gap adjustment
      */
-    private function createNewBid(float $marketPrice, float $deviationPercent, float $gapAdjustment): void
+    private function createNewBid(float $marketPrice, float $priceFactor, float $gapAdjustment): void
     {
         $this->logger->log("[{$this->pair}] Placing a new bid");
 
@@ -260,7 +260,7 @@ class MarketMakerActions
         $randomFactor = pow($randBase, 1/3);
         
         $bidPrice = number_format(
-            $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
+            $marketPrice * (1 - $priceFactor * $randomFactor) - $gapAdjustment,
             12,
             '.',
             ''
@@ -281,10 +281,10 @@ class MarketMakerActions
      * Create a new ask
      * 
      * @param float $marketPrice Market price
-     * @param float $deviationPercent Price deviation percentage
+     * @param float $priceFactor Price deviation percentage
      * @param float $gapAdjustment Gap adjustment
      */
-    private function createNewAsk(float $marketPrice, float $deviationPercent, float $gapAdjustment): void
+    private function createNewAsk(float $marketPrice, float $priceFactor, float $gapAdjustment): void
     {
         $this->logger->log("[{$this->pair}] Placing a new ask");
 
@@ -292,7 +292,7 @@ class MarketMakerActions
         $randomFactor = pow($randBase, 1/3);
         
         $askPrice = number_format(
-            $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
+            $marketPrice * (1 + $priceFactor * $randomFactor) + $gapAdjustment,
             12,
             '.',
             ''
@@ -440,5 +440,11 @@ class MarketMakerActions
                 sprintf('[%s] Market trade: Bought %s @ %s', $this->pair, $asks[0]['amount'], $asks[0]['price']),
             );
         }
+    }
+
+    private function calculatePriceDeviation(float $basePrice): float
+    {
+        $priceFactor = max(0.001, $this->pairConfig['settings']['price_factor']) / 100;
+        return $priceFactor;
     }
 } 

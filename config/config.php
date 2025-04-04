@@ -255,9 +255,7 @@ class Config
         self::$config[$pair] = [
             'id' => $newId,
             'exchange' => $botData['exchange'] ?? 'kraken',
-            // 'min_orders' => $botData['min_orders'] ?? 15,
-            // 'max_orders' => $botData['max_orders'] ?? 17,
-            'price_deviation_percent' => $botData['price_deviation_percent'],
+            'price_factor' => max(0.001, $botData['settings']['price_factor']),
             'frequency_from' => $botData['settings']['frequency_from'],
             'frequency_to' => $botData['settings']['frequency_to'],
             'bot_balance' => $botData['settings']['bot_balance'],
@@ -269,12 +267,9 @@ class Config
             'min_orders' => $botData['settings']['min_orders'],
             'max_orders' => $botData['settings']['max_orders'],
             'market_gap' => $botData['settings']['market_gap'],
-            'price_factor' => $botData['settings']['price_factor'],
             'market_maker_order_probability' => $botData['settings']['market_maker_order_probability'],
         ];
         
-
-
         // Save the configuration
         self::saveConfig();
         
@@ -382,14 +377,19 @@ class Config
             // Оновлюємо налаштування, якщо вони є
             if (isset($botData['settings']) && is_array($botData['settings'])) {
                 foreach ($botData['settings'] as $key => $value) {
+                    if ($key === 'price_factor') {
+                        // Enforce minimum value for price_factor
+                        $value = max(0.001, $value);
+                        self::$config[$foundPair]['settings'][$key] = $value;
+                        self::$config[$foundPair]['price_factor'] = $value;
+                        continue;
+                    }
                     self::$config[$foundPair]['settings'][$key] = $value;
                     
                     // Також оновлюємо відповідні поля в кореневому об'єкті для сумісності
                     if ($key === 'trade_amount_min' || $key === 'trade_amount_max' || 
                         $key === 'frequency_from' || $key === 'frequency_to') {
                         self::$config[$foundPair][$key] = $value;
-                    } else if ($key === 'price_factor') {
-                        self::$config[$foundPair]['price_deviation_percent'] = $value;
                     } else if ($key === 'market_gap') {
                         self::$config[$foundPair]['market_gap'] = $value;
                     } else if ($key === 'min_orders' || $key === 'max_orders') {

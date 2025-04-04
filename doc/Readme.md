@@ -1,4 +1,3 @@
-
 ## Documentation: Trading Bot Project
 
 ## 1. Setup
@@ -45,7 +44,7 @@ The Trading Bot relies on external trade server URLs and sufficient bot balance 
 
 **Balance Requirement**: Before running bots, ensure sufficient funds:
 1. Visit the admin URL for your environment (e.g., `https://newexchanger.com/admin/payment/wallet/fill_request/list` for Development).
-2. Verify or top up the bot’s balance via the admin interface.
+2. Verify or top up the bot's balance via the admin interface.
 3. Insufficient balance will prevent bots from placing orders at the configured amounts, leading to incorrect behavior.
 
 ### Running Locally (For Development Purposes)
@@ -67,6 +66,24 @@ This ensures all background processes and PID files are cleaned up.
 ### Additional Notes
 - **PID and Lock Files**: The `data/pids/` and `data/locks/` directories manage process IDs and locks to prevent duplicate instances. These are handled automatically but may need manual cleanup after crashes.
 - **Configuration**: Bot settings are stored in `config/bots_config.json`. Modify trading parameters (e.g., `trade_amount_min`, `price_factor`) before starting, if needed.
+
+### Configuration Parameters
+
+The bot's behavior is controlled by several key parameters:
+
+- `trade_amount_min` and `trade_amount_max`: Define the range for order amounts
+- `price_factor`: Determines price deviation from market price (minimum 0.001%). Values below 0.001% will be automatically set to 0.001% to prevent identical orders
+- `market_gap`: Sets the minimum gap between orders
+- `min_orders` and `max_orders`: Control the number of active orders
+- `market_maker_order_probability`: Probability of market maker actions
+
+### Important Notes
+
+1. **Price Factor**: The `price_factor` parameter must be at least 0.001%. If you set a lower value, it will be automatically adjusted to 0.001%. This minimum value is crucial to prevent the creation of identical orders, which could lead to undesired trading behavior.
+
+2. **Market Gap**: Works in conjunction with `price_factor` to ensure proper order distribution.
+
+3. **Order Amounts**: The actual order amounts will be randomly generated within the specified range.
 
 ---
 

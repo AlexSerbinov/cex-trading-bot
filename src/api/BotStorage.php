@@ -109,7 +109,7 @@ class BotStorage
                 'trade_amount_max' =>  ($bot['settings']['trade_amount_max']),
                 'frequency_from' =>  ($bot['settings']['frequency_from']),
                 'frequency_to' =>  ($bot['settings']['frequency_to']),
-                'price_factor' =>  ($bot['settings']['price_factor']),
+                'price_factor' =>  max(0.001, $bot['settings']['price_factor']),
                 'market_gap' =>  ($bot['settings']['market_gap']),
                 'min_orders' =>  ($bot['settings']['min_orders']),
                 'max_orders' =>  ($bot['settings']['max_orders']),
@@ -137,7 +137,7 @@ class BotStorage
             'trade_amount_max' => ($bot['settings']['trade_amount_max']),
             'frequency_from' => ($bot['settings']['frequency_from']),
             'frequency_to' => ($bot['settings']['frequency_to']),
-            'price_factor' => ($bot['settings']['price_factor']),
+            'price_factor' => max(0.001, $bot['settings']['price_factor']),
             'market_gap' => ($bot['settings']['market_gap']),
             'min_orders' => ($bot['settings']['min_orders']),
             'max_orders' => ($bot['settings']['max_orders']),
@@ -440,7 +440,7 @@ class BotStorage
             'trade_amount_max' => $settings['trade_amount_max'],
             'frequency_from' => $settings['frequency_from'],
             'frequency_to' => $settings['frequency_to'],
-            'price_deviation_percent' => $settings['price_factor'],
+            'price_factor' => $settings['price_factor'],
             'market_gap' => $settings['market_gap'],
             'min_orders' => $settings['min_orders'],
             'max_orders' => $settings['max_orders'],
@@ -482,7 +482,7 @@ class BotStorage
                 'trade_amount_max' => $settings['trade_amount_max'],
                 'frequency_from' => $settings['frequency_from'],
                 'frequency_to' => $settings['frequency_to'],
-                'price_factor' => $settings['price_factor'],
+                'price_factor' => max(0.001, $settings['price_factor']),
                 'market_gap' => $settings['market_gap'],
                 'market_maker_order_probability' => $settings['market_maker_order_probability']
             ]
@@ -513,7 +513,7 @@ class BotStorage
                 'trade_amount_max' => $bot['trade_amount_max'],
                 'frequency_from' => $bot['frequency_from'],
                 'frequency_to' => $bot['frequency_to'],
-                'price_factor' => $bot['price_deviation_percent'],
+                'price_factor' => max(0.001, $bot['price_factor']),
                 'market_gap' => $bot['market_gap'],
                 'market_maker_order_probability' => $bot['market_maker_order_probability']
             ]
