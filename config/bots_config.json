@@ -32,9 +32,9 @@
             "frequency_to": 1,
             "price_factor": 0.01,
             "market_gap": 0,
-            "min_orders": 12,
-            "max_orders": 14,
-            "market_maker_order_probability": 90
+            "min_orders": 10,
+            "max_orders": 11,
+            "market_maker_order_probability": 0
         }
     },
     "ETH_BTC": {

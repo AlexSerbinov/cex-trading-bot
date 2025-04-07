@@ -49,7 +49,7 @@ Below is a detailed breakdown of each parameter in `bots_config.json`, its purpo
 
 - **`trading_pair`**:
   - **Description**: Specifies the trading pair for the bot (e.g., `BTC_USDT`, `ETH_BTC`).
-  - **Frontend**: Displayed as a dropdown list that fetches all active pairs from the trade server (e.g., `http://195.7.7.93:18080` for Development).
+  - **Frontend**: Displayed as a dropdown list that fetches all active pairs from the trade server (e.g., `http://1:18080` for Development).
   - **API Behavior**: When adding a pair via API, the system performs two checks:
     1. Verifies if the pair exists on the trade server.
     2. Confirms if the pair is supported on the selected exchange (e.g., Binance or Kraken).

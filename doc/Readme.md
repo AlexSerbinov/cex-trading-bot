@@ -32,13 +32,13 @@ This command gracefully shuts down all containers.
 The Trading Bot relies on external trade server URLs and sufficient bot balance for correct operation. Check `URLs.txt` for environment-specific URLs:
 - **Development**:
   - Frontend: `dev.newexchanger.com`
-  - Trade Server: `http://195.7.7.93:18080`
+  - Trade Server: `http://164.68.117.90:18080`
   - Admin: `https://newexchanger.com/admin/payment/wallet/fill_request/list`
   - DepthBot Swagger: `http://164.68.117.90:5501/`
   - DepthBot Frontend: `http://164.68.117.90:5502/`
 - **Demo**:
   - Frontend: `new.newexchanger.com`
-  - Trade Server: `http://164.68.117.90:18080`
+  - Trade Server: `http://:195.7.7.93:18080`
   - Admin: `https://dev.api.newexchanger.com/admin/payment/wallet/fill_request/list`
   - DepthBot Swagger: `http://164.68.117.90:6501/`
   - DepthBot Frontend: `http://164.68.117.90:6502/`

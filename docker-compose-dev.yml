@@ -9,7 +9,7 @@ services:
             - ./index.php:/app/index.php
             - ./public:/app/public
         environment:
-            - TRADE_SERVER_URL=http://195.7.7.93:18080
+            - TRADE_SERVER_URL=http://164.68.117.90:18080
             - ENVIRONMENT=dev
             - DEAD_WATCHER_URLS=http://164.68.117.90:5503/dead-watcher/heartbeat # if you have 2 or more instances of dead-watcher, you can add this via comma separated values
         ports:

@@ -756,29 +756,32 @@ class TradingBot
             $marketGapFactor
         ));
         
-        // Розрахунок ринкового гепу як абсолютної величини
-        $gapAdjustment = $marketPrice * $marketGapFactor;
+        // Спочатку застосовуємо marketGap до базової ціни
+        $basePrice = $marketPrice;
+        if ($side === 1) { // Ask (sell)
+            $basePrice += $marketPrice * $marketGapFactor;
+        } else { // Bid (buy)
+            $basePrice -= $marketPrice * $marketGapFactor;
+        }
         
-        // Calculating the price depending on the side (buy/sell)
+        // Потім застосовуємо priceFactor до вже скоригованої ціни
         $finalPrice = 0.0;
         if ($side === 1) { // Ask (sell)
-            // Для продажу: ринкова ціна + випадкове відхилення + ринковий геп
-            $finalPrice = $marketPrice * (1 + $deviationFactor * $randomFactor) + $gapAdjustment;
+            $finalPrice = $basePrice * (1 + $deviationFactor * $randomFactor);
         } else { // Bid (buy)
-            // Для купівлі: ринкова ціна - випадкове відхилення - ринковий геп
-            $finalPrice = $marketPrice * (1 - $deviationFactor * $randomFactor) - $gapAdjustment;
+            $finalPrice = $basePrice * (1 - $deviationFactor * $randomFactor);
         }
         
         // Логування фінальної ціни та її відхилення від ринкової
         $priceDeviation = (($finalPrice - $marketPrice) / $marketPrice) * 100;
         $this->logger->log(sprintf(
-            '[%s] Final price calculation: marketPrice=%.6f, side=%d, finalPrice=%.6f, deviation=%.6f%%, gap applied=%.6f',
+            '[%s] Final price calculation: marketPrice=%.6f, basePrice=%.6f, side=%d, finalPrice=%.6f, deviation=%.6f%%',
             $this->pair,
             $marketPrice,
+            $basePrice,
             $side,
             $finalPrice,
-            $priceDeviation,
-            $gapAdjustment
+            $priceDeviation
         ));
         
         return $finalPrice;

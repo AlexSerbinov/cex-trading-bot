@@ -1,0 +1,120 @@
+curl -X POST http://195.7.7.93:18080 -H "Content-Type: application/json" -d '{
+    "method": "order.deals",
+    "params": [44173, 0, 100],
+    "id": 1
+  }'
+  {
+      "error": null,
+      "id": 1,
+      "result": {
+          "offset": 0,
+          "limit": 100,
+          "records": [
+              {
+                  "time": 1743762122.030472,
+                  "user": 5,
+                  "price": "83235.36",
+                  "id": 24544,
+                  "amount": "0.00329747",
+                  "role": 1,
+                  "deal": "274.4661025392",
+                  "fee": "0",
+                  "deal_order_id": 44202
+              },
+              {
+                  "time": 1743762121.862735,
+                  "user": 5,
+                  "price": "83235.36",
+                  "id": 24543,
+                  "amount": "0.02657391",
+                  "role": 1,
+                  "deal": "2211.8889654576",
+                  "fee": "0",
+                  "deal_order_id": 44201
+              },
+              {
+                  "time": 1743762120.407037,
+                  "user": 5,
+                  "price": "83235.36",
+                  "id": 24542,
+                  "amount": "0.05545788",
+                  "role": 1,
+                  "deal": "4616.0566066368",
+                  "fee": "0",
+                  "deal_order_id": 44200
+              },
+              {
+                  "time": 1743762119.3082139,
+                  "user": 5,
+                  "price": "83235.36",
+                  "id": 24541,
+                  "amount": "0.05355104",
+                  "role": 1,
+                  "deal": "4457.3400927744",
+                  "fee": "0",
+                  "deal_order_id": 44198
+              },
+              {
+                  "time": 1743762116.624239,
+                  "user": 5,
+                  "price": "83235.36",
+                  "id": 24540,
+                  "amount": "0.05874777",
+                  "role": 1,
+                  "deal": "4889.8917851472",
+                  "fee": "0",
+                  "deal_order_id": 44193
+              },
+              {
+                  "time": 1741365810.3881669,
+                  "user": 109,
+                  "price": "91229",
+                  "id": 11582,
+                  "amount": "0.1",
+                  "role": 1,
+                  "deal": "9122.9",
+                  "fee": "0.00015",
+                  "deal_order_id": 69422
+              }
+          ]
+      }
+  }%                                                                                                             
+
+
+  curl -X POST http://195.7.7.93:18080 -H "Content-Type: application/json" -d '{
+    "method": "order.deals",
+    "params": [44193, 0, 100],
+    "id": 1
+  }'
+  {
+      "error": null,
+      "id": 1,
+      "result": {
+          "offset": 0,
+          "limit": 100,
+          "records": [
+              {
+                  "time": 1743762116.624239,
+                  "user": 5,
+                  "price": "83235.36",
+                  "id": 24540,
+                  "amount": "0.05874777",
+                  "role": 2,
+                  "deal": "4889.8917851472",
+                  "fee": "0",
+                  "deal_order_id": 44173
+              },
+              {
+                  "time": 1741172691.658814,
+                  "user": 5,
+                  "price": "109.04959",
+                  "id": 3157,
+                  "amount": "0.00016513",
+                  "role": 1,
+                  "deal": "0.018007009838012",
+                  "fee": "0.0003601401967602",
+                  "deal_order_id": 44197
+              }
+          ]
+      }
+  }%                                                                                                             
