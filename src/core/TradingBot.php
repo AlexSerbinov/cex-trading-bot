@@ -303,7 +303,7 @@ class TradingBot
      * @param string $price Price
      * @return int Order ID
      */
-    public function placeLimitOrder(int $side, string $amount, string $price)
+    public function placeLimitOrder(int $side, string $amount, string $price): int
     {
         $this->logger->log("[{$this->pair}] Placing a limit order price={$price}, amount={$amount}, for side={$side}, amount={$amount},  with fees: " . Config::TAKER_FEE . " and " . Config::MAKER_FEE);
         $body = [
@@ -333,9 +333,14 @@ class TradingBot
                     json_encode($data, JSON_PRETTY_PRINT),
                 ),
             );
+            throw new RuntimeException("Failed to place limit order: " . json_encode($data['error']));
         }
 
-        return $data;
+        if (!isset($data['result']) || !isset($data['result']['id'])) {
+            throw new RuntimeException("Invalid response format: missing order ID");
+        }
+
+        return (int)$data['result']['id'];
     }
 
     /**
@@ -579,7 +584,7 @@ class TradingBot
                 '',
             );
             $bidAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.19, 8, '.', '');
-            $this->placeLimitOrder(2, $bidAmount, $bidPrice);
+            $orderId = $this->placeLimitOrder(2, $bidAmount, $bidPrice);
             $this->logger->log(
                 sprintf(
                     '[%s] Added bid to achieve %d-%d: %s @ %s (factor: %.4f, gap: %.6f)',
@@ -598,7 +603,7 @@ class TradingBot
                 'amount' => $bidAmount,
                 'side' => 2,
                 'type' => 2,
-                'id' => time(),
+                'id' => $orderId,
             ];
         }
 
@@ -618,7 +623,7 @@ class TradingBot
                 '',
             );
             $askAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.19, 8, '.', '');
-            $this->placeLimitOrder(1, $askAmount, $askPrice);
+            $orderId = $this->placeLimitOrder(1, $askAmount, $askPrice);
             $this->logger->log(
                 sprintf(
                     '[%s] Added ask to achieve %d-%d: %s @ %s (factor: %.4f, gap: %.6f)',
@@ -637,15 +642,14 @@ class TradingBot
                 'amount' => $askAmount,
                 'side' => 1,
                 'type' => 1,
-                'id' => time(),
+                'id' => $orderId,
             ];
         }
 
         // Cancel excess bids (more than max)
         if (count($currentBids) > $maxOrders) {
             $bidsToCancel = count($currentBids) - $maxOrders;
-            $this->updateOpenOrders(); // Оновлюємо список тільки один раз перед пачкою скасувань
-            $bids = array_filter($this->openOrders, fn($o) => $o['side'] === 2);
+            $bids = array_values($currentBids);
             usort($bids, fn($a, $b) => (float) $a['price'] - (float) $b['price']); // Sort by lowest prices
             
             // Зберігаємо ідентифікатори для скасування
@@ -662,13 +666,17 @@ class TradingBot
                 );
                 $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
             }
+            
+            // Оновлюємо масив currentBids після скасування
+            $currentBids = array_filter($currentBids, function($bid) use ($bidIdsToCancel) {
+                return !in_array($bid['id'], $bidIdsToCancel);
+            });
         }
 
         // Cancel excess asks (more than max)
         if (count($currentAsks) > $maxOrders) {
             $asksToCancel = count($currentAsks) - $maxOrders;
-            $this->updateOpenOrders(); // Оновлюємо список тільки один раз перед пачкою скасувань
-            $asks = array_filter($this->openOrders, fn($o) => $o['side'] === 1);
+            $asks = array_values($currentAsks);
             usort($asks, fn($a, $b) => (float) $b['price'] - (float) $a['price']); // Sort by highest prices
             
             // Зберігаємо ідентифікатори для скасування
@@ -685,6 +693,11 @@ class TradingBot
                 );
                 $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
             }
+            
+            // Оновлюємо масив currentAsks після скасування
+            $currentAsks = array_filter($currentAsks, function($ask) use ($askIdsToCancel) {
+                return !in_array($ask['id'], $askIdsToCancel);
+            });
         }
     }
 
@@ -802,9 +815,9 @@ class TradingBot
         $bestBidPrice = $orderBook['bids'][0][0] - $gapAdjustment;
         $bestAskPrice = $orderBook['asks'][0][0] + $gapAdjustment;
         
-        // Getting the current bids and asks
-        $currentBids = $this->getCurrentOrderBook(2); // Bids
-        $currentAsks = $this->getCurrentOrderBook(1); // Asks
+        // Getting the current bids and asks from pending orders
+        $currentBids = array_filter($pendingOrders, fn($o) => $o['side'] === 2);
+        $currentAsks = array_filter($pendingOrders, fn($o) => $o['side'] === 1);
         
         $this->logger->log(
             sprintf(
