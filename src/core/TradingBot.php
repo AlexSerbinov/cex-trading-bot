@@ -266,7 +266,44 @@ class TradingBot
             );
         }
 
-        return $data['result']['records'] ?? [];
+        $pendingOrders = $data['result']['records'] ?? [];
+        
+        // Детальне логування стакану
+        if (!empty($pendingOrders)) {
+            $bids = array_filter($pendingOrders, fn($o) => $o['side'] === 2);
+            $asks = array_filter($pendingOrders, fn($o) => $o['side'] === 1);
+            
+            // Сортуємо ордери за ціною
+            usort($bids, fn($a, $b) => (float)$b['price'] - (float)$a['price']); // Біди сортуємо за спаданням
+            usort($asks, fn($a, $b) => (float)$a['price'] - (float)$b['price']); // Аски сортуємо за зростанням
+            
+            $orderBookLog = "\nOrder Book Details:\n";
+            $orderBookLog .= "=== ASKS (Sell Orders) ===\n";
+            foreach ($asks as $ask) {
+                $orderBookLog .= sprintf(
+                    "Price: %.12f | Amount: %.8f | ID: %d\n",
+                    (float)$ask['price'],
+                    (float)$ask['amount'],
+                    $ask['id']
+                );
+            }
+            
+            $orderBookLog .= "\n=== BIDS (Buy Orders) ===\n";
+            foreach ($bids as $bid) {
+                $orderBookLog .= sprintf(
+                    "Price: %.12f | Amount: %.8f | ID: %d\n",
+                    (float)$bid['price'],
+                    (float)$bid['amount'],
+                    $bid['id']
+                );
+            }
+            
+            $this->logger->log("[{$this->pair}] {$orderBookLog}");
+        } else {
+            $this->logger->log("[{$this->pair}] No pending orders found");
+        }
+
+        return $pendingOrders;
     }
 
     /**
@@ -740,36 +777,27 @@ class TradingBot
      */
     private function calculateOrderPrice(float $marketPrice, int $side): float
     {
-        // Отримання налаштувань з settings або з кореневого об'єкту для зворотної сумісності
+        // Отримання налаштувань з settings
         $deviationPercent = $this->pairConfig['settings']['price_factor'];
         $marketGap = $this->pairConfig['settings']['market_gap'];
         
+
         // Логування для діагностики
         $this->logger->log(sprintf('[%s] Price calculation using deviation=%.4f%%, market_gap=%.4f%%', 
-            $this->pair, $deviationPercent, $marketGap));
-        
+        $this->pair, $deviationPercent, $marketGap));
+            
         // Перетворення відсотків у десяткові дроби
         $deviationFactor = $deviationPercent / 100;
         $marketGapFactor = $marketGap / 100;
         
-        // Використовуємо принципово інший алгоритм для рівномірного розподілу
-        // 1. Генеруємо випадкове число в діапазоні [0.05, 0.95] для уникнення крайніх значень
-        $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+        // Генеруємо випадкове число від 0 до 1 для розподілу ордерів
+        $randBase = mt_rand(0, 1000) / 1000;
         
-        // 2. Використовуємо кубічний корінь для ще більш рівномірного розподілу в центрі
-        $randomFactor = pow($randBase, 1/3);
+        // Використовуємо квадратичну функцію для кращого розподілу
+        // Це дасть нам більше ордерів ближче до ринкової ціни
+        $randomFactor = $randBase * $randBase;
         
-        // Детальне логування розрахунків
-        $this->logger->log(sprintf(
-            '[%s] Price deviation details: randBase=%.4f, randomFactor=%.4f, deviationFactor=%.6f, marketGapFactor=%.6f',
-            $this->pair,
-            $randBase,
-            $randomFactor,
-            $deviationFactor,
-            $marketGapFactor
-        ));
-        
-        // Спочатку застосовуємо marketGap до базової ціни
+        // Спочатку застосовуємо базовий market gap
         $basePrice = $marketPrice;
         if ($side === 1) { // Ask (sell)
             $basePrice += $marketPrice * $marketGapFactor;
@@ -777,24 +805,23 @@ class TradingBot
             $basePrice -= $marketPrice * $marketGapFactor;
         }
         
-        // Потім застосовуємо priceFactor до вже скоригованої ціни
-        $finalPrice = 0.0;
+        // Потім застосовуємо price factor до ціни з gap
         if ($side === 1) { // Ask (sell)
-            $finalPrice = $basePrice * (1 + $deviationFactor * $randomFactor);
+            $finalPrice = $basePrice * (1 + ($deviationFactor * $randomFactor));
         } else { // Bid (buy)
-            $finalPrice = $basePrice * (1 - $deviationFactor * $randomFactor);
+            $finalPrice = $basePrice * (1 - ($deviationFactor * $randomFactor));
         }
         
-        // Логування фінальної ціни та її відхилення від ринкової
-        $priceDeviation = (($finalPrice - $marketPrice) / $marketPrice) * 100;
+        // Детальне логування
         $this->logger->log(sprintf(
-            '[%s] Final price calculation: marketPrice=%.6f, basePrice=%.6f, side=%d, finalPrice=%.6f, deviation=%.6f%%',
+            '[%s] Price calculation details: marketPrice=%.6f, basePrice=%.6f, side=%d, randomFactor=%.4f, deviation=%.2f%%, finalPrice=%.6f',
             $this->pair,
             $marketPrice,
             $basePrice,
             $side,
-            $finalPrice,
-            $priceDeviation
+            $randomFactor,
+            ($finalPrice - $marketPrice) / $marketPrice * 100,
+            $finalPrice
         ));
         
         return $finalPrice;
