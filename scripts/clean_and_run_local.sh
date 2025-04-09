@@ -40,10 +40,12 @@ fi
 
 echo "Completed." 
 
-
 # Визначаємо кореневу директорію проекту
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
+# Створюємо директорію для логів, якщо вона не існує
+mkdir -p "$PROJECT_ROOT/data/logs"
 
 # Зупиняємо всі існуючі процеси
 echo "Зупинка всіх існуючих процесів..."
@@ -62,13 +64,13 @@ php "$PROJECT_ROOT/tools/clean_system.php"
 
 # Запускаємо бекенд
 echo "Запуск бекенду на порту 8080..."
-cd "$PROJECT_ROOT" && php -S localhost:8080 router.php > /dev/null 2>&1 &
+cd "$PROJECT_ROOT" && php -S localhost:8080 router.php 2>> "$PROJECT_ROOT/data/logs/backend_error.log" &
 BACKEND_PID=$!
 echo "Бекенд запущено з PID: $BACKEND_PID"
 
 # Запускаємо фронтенд
 echo "Запуск фронтенду на порту 8081..."
-cd "$PROJECT_ROOT" && php -S localhost:8081 -t frontend > /dev/null 2>&1 &
+cd "$PROJECT_ROOT" && php -S localhost:8081 -t frontend 2>> "$PROJECT_ROOT/data/logs/frontend_error.log" &
 FRONTEND_PID=$!
 echo "Фронтенд запущено з PID: $FRONTEND_PID"
 
@@ -88,12 +90,12 @@ if [ -f "$BOT_MANAGER_LOCK" ]; then
     else
         echo "Лок-файл існує, але процес не запущений або це не TradingBotManager. Видаляємо старий лок-файл."
         rm -f "$BOT_MANAGER_LOCK"
-        cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php > /dev/null 2>&1 &
+        cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php 2>> "$PROJECT_ROOT/data/logs/bots_error.log" &
         BOTS_PID=$!
         echo "Боти запущені з новим PID: $BOTS_PID"
     fi
 else
-    cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php > /dev/null 2>&1 &
+    cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php 2>> "$PROJECT_ROOT/data/logs/bots_error.log" &
     BOTS_PID=$!
     echo "Боти запущені з PID: $BOTS_PID"
 fi
@@ -112,4 +114,13 @@ echo ""
 echo "Для зупинки всіх процесів використовуйте: ./scripts/stop_all.sh"
 echo ""
 echo "Показ логів..."
-tail -f "$PROJECT_ROOT/data/logs/bot.log" 
+echo "Для перегляду помилок дивіться файли:"
+echo "- $PROJECT_ROOT/data/logs/backend_error.log"
+echo "- $PROJECT_ROOT/data/logs/frontend_error.log"
+echo "- $PROJECT_ROOT/data/logs/bots_error.log"
+echo ""
+tail -f \
+    "$PROJECT_ROOT/data/logs/bot.log" \
+    "$PROJECT_ROOT/data/logs/backend_error.log" \
+    "$PROJECT_ROOT/data/logs/frontend_error.log" \
+    "$PROJECT_ROOT/data/logs/bots_error.log" 

@@ -2,9 +2,11 @@
     "require": {
         "guzzlehttp/guzzle": "^7.9",
         "symfony/console": "^7.2",
-        "react/event-loop": "^0.4.3",
-        "react/promise": "^3.2",
-        "react/http": "^0.4.0"
+        "react/event-loop": "^1.5",
+        "react/promise": "^3.1",
+        "react/http": "^1.9",
+        "react/socket": "^1.14",
+        "react/stream": "^1.4"
     },
     "autoload": {
         "psr-4": {
