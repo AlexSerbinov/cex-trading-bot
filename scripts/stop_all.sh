@@ -14,9 +14,13 @@ pkill -f "BotRunner.php"
 echo "Stopping TradingBotManager.php processes..."
 pkill -f "TradingBotManager.php"
 
-# Stop the HTTP server
-echo "Stopping the HTTP server..."
+# Stop the backend HTTP server
+echo "Stopping the backend HTTP server..."
 pkill -f "php -S localhost:8080"
+
+# Stop the frontend HTTP server
+echo "Stopping the frontend HTTP server..."
+pkill -f "php -S localhost:8081"
 
 # Clean up PID files
 echo "Cleaning up PID files..."

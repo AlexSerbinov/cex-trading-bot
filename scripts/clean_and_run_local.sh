@@ -62,7 +62,7 @@ rm -f "$PROJECT_ROOT/data/pids"/*.pid
 echo "Очищення системного кешу..."
 php "$PROJECT_ROOT/tools/clean_system.php"
 
-# Налаштовуємо конфігурацію фронтенду
+# Налаштовуємо конфігурацію фронтенду - використовуємо створений нами скрипт
 "$SCRIPT_DIR/configure_frontend.sh" "local" "localhost" "8080"
 
 # Запускаємо бекенд
