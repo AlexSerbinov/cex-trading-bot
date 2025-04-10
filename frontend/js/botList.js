@@ -35,7 +35,7 @@ const BotList = {
             // Show the loading indicator
             this.botListElement.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center">
+                    <td colspan="9" class="text-center">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -53,7 +53,7 @@ const BotList = {
             if (bots.length === 0) {
                 this.botListElement.innerHTML = `
                     <tr>
-                        <td colspan="7" class="text-center">No available bots</td>
+                        <td colspan="9" class="text-center">No available bots</td>
                     </tr>
                 `;
                 return;
@@ -66,7 +66,7 @@ const BotList = {
             console.error('Error in loadBots:', error);
             this.botListElement.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center text-danger">
+                    <td colspan="9" class="text-center text-danger">
                         Error loading bots: ${error.message}
                     </td>
                 </tr>
@@ -92,7 +92,6 @@ const BotList = {
             
             // Create the HTML for the row
             row.innerHTML = `
-                <td>${bot.id}</td>
                 <td>${bot.market}</td>
                 <td>${bot.exchange}</td>
                 <td>
