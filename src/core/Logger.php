@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../Helpers/LogManager.php';
+require_once __DIR__ . '/../helpers/LogManager.php';
 
 use App\Helpers\LogManager;
 
