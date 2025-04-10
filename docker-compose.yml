@@ -1,4 +1,3 @@
-
 services:
     backend:
         build:
@@ -6,10 +5,11 @@ services:
             dockerfile: backend/Dockerfile
         volumes:
             - ./config:/app/config
-            - ./data:/app/data
+            - ./data/logs:/app/data/logs
             - ./src:/app/src
         environment:
             - TRADE_SERVER_URL=${TRADE_SERVER_URL:-http://164.68.117.90:18080}
+            - ENVIRONMENT=local
         networks:
             - app-net
         restart: unless-stopped
@@ -20,7 +20,7 @@ services:
             dockerfile: api/Dockerfile
         volumes:
             - ./config:/var/www/html/config
-            - ./data:/var/www/html/data
+            - ./data/logs:/var/www/html/data/logs
             - ./src:/var/www/html/src
             - ./.htaccess:/var/www/html/.htaccess
         environment:

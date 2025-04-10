@@ -10,6 +10,7 @@ services:
             - ./router.php:/app/router.php
             - ./index.php:/app/index.php
             - ./public:/app/public
+            - ./data/logs:/app/data/logs
         environment:
             - TRADE_SERVER_URL=http://195.7.7.93:18080
             - ENVIRONMENT=demo

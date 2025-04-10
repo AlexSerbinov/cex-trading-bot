@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../Helpers/LogManager.php';
+
+use App\Helpers\LogManager;
+
 /**
  * Class for logging.
  */
@@ -18,6 +22,7 @@ class Logger
     private bool $consoleOutput;
     private int $logLevel;
     private static ?Logger $instance = null;
+    private LogManager $logManager;
 
     /**
      * Constructor
@@ -29,8 +34,21 @@ class Logger
     private function __construct(bool $consoleOutput = true, ?string $logFile = null, int $logLevel = self::WARNING)
     {
         $this->consoleOutput = $consoleOutput;
-        $this->logFile = $logFile ?? __DIR__ . '/../../data/logs/bot.log';
+        
+        // Враховуємо оточення для визначення шляху до логів
+        $environment = getenv('ENVIRONMENT') ?: 'local';
+        
+        // Якщо шлях до логу не вказано явно, використовуємо шлях за замовчуванням
+        if ($logFile === null) {
+            // Шлях до логу з урахуванням середовища
+            $this->logFile = __DIR__ . '/../../data/logs/' . $environment . '/bot.log';
+        } else {
+            // Використовуємо вказаний шлях
+            $this->logFile = $logFile;
+        }
+        
         $this->logLevel = $logLevel;
+        $this->logManager = LogManager::getInstance();
         
         // Creating the log directory if it does not exist
         $logDir = dirname($this->logFile);
@@ -45,6 +63,10 @@ class Logger
     public static function getInstance(bool $consoleOutput = true, ?string $logFile = null, int $logLevel = self::WARNING): Logger
     {
         if (self::$instance === null) {
+            self::$instance = new self($consoleOutput, $logFile, $logLevel);
+        } 
+        else if ($logFile !== null && self::$instance->logFile !== $logFile) {
+            // Якщо вказано інший файл для логів, створюємо новий екземпляр
             self::$instance = new self($consoleOutput, $logFile, $logLevel);
         }
         return self::$instance;
@@ -131,16 +153,19 @@ class Logger
      */
     public function log(string $message, bool $includeTimestamp = true): void
     {
-        $logMessage = $includeTimestamp ? '[' . date('Y-m-d H:i:s') . '] ' . $message : $message;
-        
-        // Adding a message to the file
-        file_put_contents($this->logFile, $logMessage . PHP_EOL, FILE_APPEND);
-        
-        if ($this->consoleOutput) {
-            // Завжди використовуємо error_log для запису в журнал, який Docker може перехопити
-            error_log($logMessage);
+        try {
+            // Get the base filename without path
+            $baseLogFile = basename($this->logFile);
             
-            // Виводимо через echo тільки в CLI-режимі, щоб уникнути потрапляння в API-відповідь
+            // Check and rotate logs before writing
+            $this->logManager->checkLogs();
+            
+            $logMessage = $includeTimestamp ? '[' . date('Y-m-d H:i:s') . '] ' . $message : $message;
+            
+            // Adding a message to the file
+            file_put_contents($this->logFile, $logMessage . PHP_EOL, FILE_APPEND);
+            
+            // Always use echo in CLI mode to ensure consistent output to both console and file
             if (php_sapi_name() === 'cli') {
                 echo $logMessage . PHP_EOL;
                 
@@ -149,7 +174,14 @@ class Logger
                     @ob_flush();
                     @flush();
                 }
+            } 
+            // In non-CLI mode, use error_log for Docker to capture
+            else if ($this->consoleOutput) {
+                error_log($logMessage);
             }
+        } catch (\Throwable $e) {
+            error_log("Error in Logger: " . $e->getMessage());
+            error_log($e->getTraceAsString());
         }
     }
 
@@ -170,6 +202,4 @@ class Logger
     {
         file_put_contents($this->logFile, '');
     }
-    
-
 } 

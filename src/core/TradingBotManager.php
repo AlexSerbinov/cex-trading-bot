@@ -22,7 +22,8 @@ class TradingBotManager
      */
     public function __construct()
     {
-        $this->logger = Logger::getInstance();
+        // Використовуємо той самий файл для логів, який використовується в clean_and_run_local.sh
+        $this->logger = Logger::getInstance(true, __DIR__ . '/../../data/logs/bots_error.log');
         $this->logger->log("Ініціалізація TradingBotManager, PID=" . getmypid());
         $this->botProcess = new BotProcess();
         $this->configFile = __DIR__ . '/../../config/bots_config.json';
@@ -175,7 +176,7 @@ class TradingBotManager
 
 // Running the bot manager if the file is called directly
 if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
-    $logger = Logger::getInstance();
+    $logger = Logger::getInstance(true, __DIR__ . '/../../data/logs/bots_error.log');
     $logger->log("=== ЗАПУСК TRADING BOT MANAGER ===");
     
     // Перевіряємо, чи вже запущений TradingBotManager

@@ -2,6 +2,24 @@
 
 declare(strict_types=1);
 
+// Підключаємо необхідні файли
+require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/src/core/Logger.php';
+require_once __DIR__ . '/src/core/ErrorHandler.php';
+require_once __DIR__ . '/src/Helpers/LogManager.php';
+
+// Включаємо відображення помилок
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+
+// Ініціалізуємо обробник помилок
+ErrorHandler::initialize();
+
+// Ініціалізуємо менеджер логів при запуску
+$logManager = App\Helpers\LogManager::getInstance();
+$logManager->forceCheck(); // Примусова перевірка при запуску
+
 // Отримуємо шлях запиту
 $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
