@@ -10,6 +10,7 @@ const App = {
         BotList.init();
         BotDetails.init();
         BotForm.init();
+        BotBalances.init(); // Initialize the balances module
         
         // Add event handlers
         document.getElementById('create-bot-btn').addEventListener('click', () => {
@@ -19,6 +20,11 @@ const App = {
         document.getElementById('nav-bots').addEventListener('click', (e) => {
             e.preventDefault();
             this.showBotList();
+        });
+        
+        document.getElementById('nav-balances').addEventListener('click', (e) => { // New navigation item handler
+            e.preventDefault();
+            this.showBotBalances();
         });
         
         // Initialize the delete confirmation modal
@@ -55,12 +61,16 @@ const App = {
         // Hide other containers
         document.getElementById('bot-details-container').classList.add('d-none');
         document.getElementById('bot-form-container').classList.add('d-none');
+        document.getElementById('bot-balances-container').classList.add('d-none');
         
         // Show the list of bots
         document.getElementById('bot-list-container').classList.remove('d-none');
         
         // Update the list of bots
         BotList.loadBots();
+        
+        // Update nav
+        this.updateNavActive('nav-bots');
     },
     
     /**
@@ -70,12 +80,16 @@ const App = {
         // Hide other containers
         document.getElementById('bot-list-container').classList.add('d-none');
         document.getElementById('bot-form-container').classList.add('d-none');
+        document.getElementById('bot-balances-container').classList.add('d-none');
         
         // Show the bot details
         document.getElementById('bot-details-container').classList.remove('d-none');
         
         // Load the bot details
         BotDetails.loadBotDetails(id);
+        
+        // Update nav
+        this.updateNavActive('nav-bots');
     },
     
     /**
@@ -85,6 +99,7 @@ const App = {
         // Hide other containers
         document.getElementById('bot-list-container').classList.add('d-none');
         document.getElementById('bot-details-container').classList.add('d-none');
+        document.getElementById('bot-balances-container').classList.add('d-none');
         
         // Show the form
         document.getElementById('bot-form-container').classList.remove('d-none');
@@ -99,6 +114,41 @@ const App = {
         if (id) {
             BotForm.loadBotForEdit(id);
         }
+        
+        // Update nav
+        this.updateNavActive('nav-bots');
+    },
+    
+    /**
+     * Show the bot balances
+     */
+    showBotBalances() {
+        // Hide other containers
+        document.getElementById('bot-list-container').classList.add('d-none');
+        document.getElementById('bot-details-container').classList.add('d-none');
+        document.getElementById('bot-form-container').classList.add('d-none');
+        
+        // Show the balances
+        document.getElementById('bot-balances-container').classList.remove('d-none');
+        
+        // Load balances
+        BotBalances.loadBalances();
+        
+        // Update nav
+        this.updateNavActive('nav-balances');
+    },
+    
+    /**
+     * Update active navigation item
+     */
+    updateNavActive(activeId) {
+        // Remove active class from all nav items
+        document.querySelectorAll('.nav-link').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Add active class to the current nav item
+        document.getElementById(activeId).classList.add('active');
     },
     
     /**

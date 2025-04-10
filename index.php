@@ -220,6 +220,64 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
             exit;
         }
         
+        // GET /api/balances - отримати баланси ботів
+        if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pathParts[0] === 'balances' && count($pathParts) === 1) {
+            require_once __DIR__ . '/src/core/TradeServer.php';
+            
+            // Використовуємо USER_ID=5 як ідентифікатор користувача для ботів
+            $userId = 5;
+            $tradeServer = new TradeServer();
+            $balances = $tradeServer->getUserBalances($userId);
+            
+            echo json_encode($balances);
+            exit;
+        }
+        
+        // POST /api/balances/topup - поповнити баланс бота
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pathParts[0] === 'balances' && count($pathParts) === 2 && $pathParts[1] === 'topup') {
+            require_once __DIR__ . '/src/core/TradeServer.php';
+            
+            // Отримуємо дані з тіла запиту
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!isset($data['currency']) || !isset($data['amount'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Необхідно вказати валюту та суму']);
+                exit;
+            }
+            
+            $currency = $data['currency'];
+            $amount = $data['amount'];
+            
+            // Перевіряємо коректність суми (повинна бути рядком або числом, яке можна перетворити на рядок)
+            if (!is_numeric($amount) || floatval($amount) <= 0) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Сума повинна бути позитивним числом']);
+                exit;
+            }
+            
+            // Передаємо суму як рядок без додаткового форматування
+            // Переконуємося, що amount це рядок без форматування
+            $amount = (string)$amount;
+            
+            // Використовуємо USER_ID=5 як ідентифікатор користувача для ботів
+            $userId = 5;
+            $tradeServer = new TradeServer();
+            
+            // Унікальний ідентифікатор операції (як число, а не рядок)
+            $operationId = time(); // Використовуємо час як унікальний ID
+            
+            try {
+                $logger->log("Updating balance for user {$userId} with currency {$currency}, amount {$amount}, operationId {$operationId}");
+                $result = $tradeServer->updateBalance($userId, $currency, 'deposit', $operationId, $amount);
+                echo json_encode(['success' => true, 'result' => $result]);
+            } catch (Exception $e) {
+                http_response_code(500);
+                echo json_encode(['error' => 'Помилка поповнення балансу: ' . $e->getMessage()]);
+            }
+            exit;
+        }
+        
         // Якщо жоден з обробників не спрацював
         http_response_code(404);
         echo json_encode(['error' => 'Ресурс не знайдено']);

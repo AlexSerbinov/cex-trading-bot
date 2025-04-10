@@ -189,4 +189,45 @@ const API = {
             throw error;
         }
     },
+    
+    /**
+     * Get bot balances
+     */
+    async getBotBalances() {
+        try {
+            const response = await fetch(`${this.baseUrl}/balances`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching balances:', error);
+            throw error;
+        }
+    },
+    
+    /**
+     * Top up bot balance
+     */
+    async topUpBotBalance(currency, amount) {
+        try {
+            const response = await fetch(`${this.baseUrl}/balances/topup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ currency, amount }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error topping up balance:', error);
+            throw error;
+        }
+    },
 };

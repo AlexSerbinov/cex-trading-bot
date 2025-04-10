@@ -200,15 +200,7 @@ class Config
     public static function getAllBots(): array
     {
         self::loadConfig();
-        
-        $bots = [];
-        foreach (self::$config as $pair => $config) {
-            $bot = $config;
-            $bot['market'] = $pair;
-            $bots[] = $bot;
-        }
-        
-        return $bots;
+        return self::$config;
     }
     
     /**
@@ -520,4 +512,10 @@ class Config
             self::saveConfig();
         }
     }
-} 
+}
+
+// Global configuration for the TradeServer
+$config = [
+    'trade_server_url' => Config::getTradeServerUrl(),
+    'bot_user_id' => Config::BOT_ID
+]; 
