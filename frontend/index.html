@@ -67,8 +67,8 @@
                                     <th>Exchange <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="The exchange from which the bot will copy the OrderBook."></i></th>
                                     <th>Status <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Current status of the bot - Active (running) or Inactive (stopped)."></i></th>
                                     <th>
-                                        Min/Max orders
-                                        <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Minimum and maximum number of orders that the bot will maintain in the order book"></i>
+                                        Orders
+                                        <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Бажана кількість ордерів, яку бот буде підтримувати. На високоволатильному ринку ордерів може бути менше. Для зменшення впливу волатильності рекомендується виставляти більше market gap."></i>
                                     </th>
                                     <th>Min/Max amount <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Minimum and maximum trade amounts for each operation."></i></th>
                                     <th>Frequency (sec) <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Time interval range between bot actions in seconds."></i></th>
@@ -189,17 +189,10 @@
                                 </div>
                                 <div class="mb-3">
                                     <label for="min_orders" class="form-label">
-                                        Minimum orders
-                                        <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Minimum number of orders that the bot will maintain in the order book"></i>
+                                        Orders
+                                        <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Бажана кількість ордерів, яку бот буде підтримувати. На високоволатильному ринку ордерів може бути менше. Для зменшення впливу волатильності рекомендується виставляти більше market gap."></i>
                                     </label>
                                     <input type="number" class="form-control" id="min_orders" name="min_orders" min="1" value="2" required />
-                                </div>
-                                <div class="mb-3">
-                                    <label for="max_orders" class="form-label">
-                                        Maximum orders
-                                        <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Maximum number of orders that the bot will maintain in the order book"></i>
-                                    </label>
-                                    <input type="number" class="form-control" id="max_orders" name="max_orders" min="1" value="4" required />
                                 </div>
                                 <div class="mb-3">
                                     <label for="market_maker_order_probability" class="form-label">

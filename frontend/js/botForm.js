@@ -56,7 +56,6 @@ const BotForm = {
             this.form.market.value = bot.market;
             this.form.exchange.value = bot.exchange;
             this.form.min_orders.value = bot.settings.min_orders;
-            this.form.max_orders.value = bot.settings.max_orders;
             this.form.trade_amount_min.value = bot.settings.trade_amount_min;
             this.form.trade_amount_max.value = bot.settings.trade_amount_max;
             this.form.frequency_from.value = bot.settings.frequency_from;
@@ -114,7 +113,8 @@ const BotForm = {
                 exchange: this.form.exchange.value,
                 settings: {
                     min_orders: parseInt(this.form.min_orders.value),
-                    max_orders: parseInt(this.form.max_orders.value),
+                    // Для max_orders використовуємо те ж саме значення, оскільки в UI тепер є тільки одне поле "Orders"
+                    max_orders: parseInt(this.form.min_orders.value),
                     trade_amount_min: parseFloat(this.form.trade_amount_min.value),
                     trade_amount_max: parseFloat(this.form.trade_amount_max.value),
                     frequency_from: parseInt(this.form.frequency_from.value),
@@ -149,4 +149,4 @@ const BotForm = {
             App.showAlert('danger', `Error saving bot: ${error.message}`);
         }
     }
-}; 
+};

@@ -239,11 +239,11 @@ const BotDetails = {
                 </div>
             </div>
             <div class="bot-detail-row">
-                <div class="bot-detail-label">Min/Max orders:</div>
+                <div class="bot-detail-label">Orders:</div>
                 <div class="bot-detail-value">
-                    ${bot.settings.min_orders || 2} / ${bot.settings.max_orders || 4}
+                    ${bot.settings.min_orders || 2}
                     <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
-                       title="Minimum and maximum number of orders that the bot will maintain in the order book"></i>
+                       title="Бажана кількість ордерів, яку бот буде підтримувати. На високоволатильному ринку ордерів може бути менше. Для зменшення впливу волатильності рекомендується виставляти більше market gap."></i>
                 </div>
             </div>
             <div class="bot-detail-row">
