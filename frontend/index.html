@@ -128,7 +128,7 @@
                                             title="Minimum amount of the base currency for each trade. The bot will randomly choose a trade amount between min and max values. Lower values create more frequent but smaller trades, while higher values create less frequent but larger trades. This affects the bot's trading volume and risk exposure."
                                         ></i
                                     ></label>
-                                    <input type="number" class="form-control" id="trade_amount_min" name="trade_amount_min" step="0.001" min="0.0001" value="0.1" />
+                                    <input type="number" class="form-control" id="trade_amount_min" name="trade_amount_min" step="any" min="0" value="0.1" />
                                 </div>
                                     <div class="mb-3">
                                         <label for="trade_amount_max" class="form-label"
@@ -139,7 +139,7 @@
                                             title="Maximum amount of the base currency for each trade. The bot will randomly choose a trade amount between min and max values. Higher values allow for larger trades, which can create more significant price movements and higher trading volume. This should not exceed your available balance."
                                         ></i
                                     ></label>
-                                    <input type="number" class="form-control" id="trade_amount_max" name="trade_amount_max" step="0.01" min="0.001" value="1.0" />
+                                    <input type="number" class="form-control" id="trade_amount_max" name="trade_amount_max" step="any" min="0" value="1.0" />
                                 </div>
                                 <div class="mb-3">
                                     <label for="frequency_from" class="form-label"
@@ -172,7 +172,7 @@
                                             title="Maximum percentage deviation from the market price when creating orders. This parameter determines how far from the current market price the bot will place its orders. Higher values create a wider price range for orders, simulating more volatile market conditions. Lower values keep orders closer to the current market price, creating tighter spreads."
                                         ></i
                                     ></label>
-                                    <input type="number" class="form-control" id="price_factor" name="price_factor" step="0.01" min="0" value="1" required />
+                                    <input type="number" class="form-control" id="price_factor" name="price_factor" step="any" min="0" value="1" required />
                                     <div class="form-text">Maximum price deviation from the market price in percent</div>
                                 </div>
                                 <div class="mb-3">
@@ -184,7 +184,7 @@
                                             title="Percentage step from the best price on the external exchange. This parameter controls the gap between the best buy and sell orders, thereby regulating the spread. A higher Market Gap creates a larger spread between buy and sell prices, which acts as a protective mechanism to control liquidity and reduce risks. For example, with a 1% Market Gap, if BTC is trading at $100,000, with best buy at $100,002 and best sell at $99,999, your bot will place orders at $99,002 for buying and $100,999 for selling, creating a wider spread."
                                         ></i
                                     ></label>
-                                    <input type="number" class="form-control" id="market_gap" name="market_gap" step="0.001" min="0" value="0.05" required />
+                                    <input type="number" class="form-control" id="market_gap" name="market_gap" step="any" min="0" value="0.05" required />
                                     <div class="form-text">Percentage step from the best price on the external exchange</div>
                                 </div>
                                 <div class="mb-3">
@@ -199,7 +199,7 @@
                                         Market maker order probability (%)
                                         <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" title="Probability of creating market maker orders. Higher values increase the likelihood of creating market maker orders, which help maintain liquidity in the market."></i>
                                     </label>
-                                    <input type="number" class="form-control" id="market_maker_order_probability" name="market_maker_order_probability" min="0" max="100" value="0" required />
+                                    <input type="number" class="form-control" id="market_maker_order_probability" name="market_maker_order_probability" step="any" min="0" max="100" value="0" required />
                                     <div class="form-text">Probability of creating market maker orders (1-100%)</div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Save</button>
@@ -303,7 +303,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label for="top-up-amount" class="form-label">Amount</label>
-                                        <input type="number" class="form-control" id="top-up-amount" step="0.00000001" min="0" required>
+                                        <input type="number" class="form-control" id="top-up-amount" step="any" min="0" required>
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary" id="top-up-submit">Top Up</button>

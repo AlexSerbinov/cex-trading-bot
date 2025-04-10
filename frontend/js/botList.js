@@ -107,7 +107,7 @@ const BotList = {
                 <td>${bot.settings.trade_amount_min} / ${bot.settings.trade_amount_max}</td>
                 <td>${bot.settings.frequency_from} / ${bot.settings.frequency_to}</td>
                 <td>${bot.settings.price_factor}% / ${bot.settings.market_gap}%</td>
-                <td>${bot.settings.market_maker_order_probability || 30}%
+                <td>${bot.settings.market_maker_order_probability || 0}%
                     <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
                        title="Probability of creating market maker orders"></i>
                 </td>
