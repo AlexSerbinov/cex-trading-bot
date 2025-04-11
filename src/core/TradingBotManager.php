@@ -22,20 +22,20 @@ class TradingBotManager
      */
     public function __construct()
     {
-        // Використовуємо той самий файл для логів, який використовується в clean_and_run_local.sh
+        // Use the same log file as used in clean_and_run_local.sh
         $this->logger = Logger::getInstance(true, __DIR__ . '/../../data/logs/bots_error.log');
-        $this->logger->log("Ініціалізація TradingBotManager, PID=" . getmypid());
+        $this->logger->log("Initialization of TradingBotManager, PID=" . getmypid());
         $this->botProcess = new BotProcess();
         $this->configFile = __DIR__ . '/../../config/bots_config.json';
-        $this->logger->log("Інтервал перевірки встановлено на {$this->checkInterval} секунд");
+        $this->logger->log("Check interval set to {$this->checkInterval} seconds");
         
         // Registering a signal handler for proper termination
-        $this->logger->log("Реєстрація обробників сигналів");
+        $this->logger->log("Registering signal handlers");
         pcntl_signal(SIGTERM, [$this, 'handleSignal']);
         pcntl_signal(SIGINT, [$this, 'handleSignal']);
         // Adding SIGHUP handling for better compatibility
         pcntl_signal(SIGHUP, [$this, 'handleSignal']);
-        $this->logger->log("TradingBotManager успішно ініціалізовано");
+        $this->logger->log("TradingBotManager successfully initialized");
     }
 
     /**
@@ -45,7 +45,7 @@ class TradingBotManager
     {
         $pidDir = __DIR__ . '/../../data/pids';
         $pidFiles = is_dir($pidDir) ? glob($pidDir . '/*.pid') : [];
-        $this->logger->log("Отримано сигнал {$signal}, зупиняємо всі боти. PID-файли: " . implode(", ", $pidFiles));
+        $this->logger->log("Received signal {$signal}, stopping all bots. PID files: " . implode(", ", $pidFiles));
         
         $this->botProcess->stopAllProcesses();
         
@@ -60,41 +60,41 @@ class TradingBotManager
     }
 
     /**
-     * Метод для очищення всіх ордерів для активних пар
+     * Method for clearing all orders for active pairs
      */
     public function clearAllOrdersForActivePairs(): void
     {
         $enabledPairs = Config::getEnabledPairs();
-        $this->logger->log("Очищення ордерів для активних пар: " . implode(", ", $enabledPairs));
+        $this->logger->log("Clearing orders for active pairs: " . implode(", ", $enabledPairs));
         
         foreach ($enabledPairs as $pair) {
-            $this->logger->log("Блокування для очищення ордерів пари {$pair}...");
+            $this->logger->log("Locking for clearing orders for pair {$pair}...");
             $lockFile = __DIR__ . "/../../data/locks/{$pair}_cleaning.lock";
             $lockHandle = fopen($lockFile, 'c');
             
             if (!$lockHandle) {
-                $this->logger->log("Помилка створення файлу блокування для пари {$pair}");
+                $this->logger->log("Error creating lock file for pair {$pair}");
                 continue;
             }
             
             $locked = flock($lockHandle, LOCK_EX | LOCK_NB);
-            $this->logger->log("Статус блокування для пари {$pair}: " . ($locked ? "успішно" : "заблоковано"));
+            $this->logger->log("Lock status for pair {$pair}: " . ($locked ? "successfully" : "locked"));
             
             if ($locked) {
                 try {
                     // Code for clearing orders for the pair
-                    $this->logger->log("Виконується очищення ордерів для пари {$pair}...");
+                    $this->logger->log("Clearing orders for pair {$pair}...");
                     // Add your order clearing code here
-                    $this->logger->log("Очищення ордерів для пари {$pair} завершено успішно");
+                    $this->logger->log("Clearing orders for pair {$pair} completed successfully");
                 } catch (Exception $e) {
-                    $this->logger->log("Помилка при очищенні ордерів для пари {$pair}: " . $e->getMessage());
+                    $this->logger->log("Error clearing orders for pair {$pair}: " . $e->getMessage());
                 } finally {
                     flock($lockHandle, LOCK_UN);
                     fclose($lockHandle);
-                    $this->logger->log("Розблокування для пари {$pair} виконано");
+                    $this->logger->log("Unlocking for pair {$pair} completed");
                 }
             } else {
-                $this->logger->log("Неможливо отримати блокування для пари {$pair}, пропускаємо очищення");
+                $this->logger->log("Unable to get lock for pair {$pair}, skipping clearing");
                 fclose($lockHandle);
             }
         }
@@ -105,7 +105,7 @@ class TradingBotManager
      */
     public function runAllBots(): void
     {
-        $this->logger->log("Запуск менеджера ботів у режимі паралельного виконання");
+        $this->logger->log("Starting bot manager in parallel execution mode");
         
         // Forcefully clearing and reloading the configuration
         Config::reloadConfig();
@@ -113,30 +113,30 @@ class TradingBotManager
         // First, stop all existing processes
         $pidDir = __DIR__ . '/../../data/pids';
         $pidFiles = is_dir($pidDir) ? glob($pidDir . '/*.pid') : [];
-        $this->logger->log("Зупинка всіх існуючих процесів. Знайдені PID-файли: " . implode(", ", $pidFiles));
+        $this->logger->log("Stopping all existing processes. Found PID files: " . implode(", ", $pidFiles));
         
         $this->botProcess->stopAllProcesses();
-        $this->logger->log("Всі існуючі процеси зупинено");
+        $this->logger->log("All existing processes stopped");
         
         // Очищення всіх ордерів для активних пар
-        $this->logger->log("Початок очищення ордерів для всіх активних пар");
+        $this->logger->log("Starting clearing of orders for all active pairs");
         $this->clearAllOrdersForActivePairs();
-        $this->logger->log("Очищення ордерів для всіх активних пар завершено");
+        $this->logger->log("Clearing of orders for all active pairs completed");
         
         // Start processes for all active pairs
         $enabledPairs = Config::getEnabledPairs();
-        $this->logger->log("Запуск процесів для активних пар: " . implode(", ", $enabledPairs));
+        $this->logger->log("Starting processes for active pairs: " . implode(", ", $enabledPairs));
         
         $this->botProcess->startAllProcesses();
-        $this->logger->log("Всі процеси для активних пар запущено");
+        $this->logger->log("All processes for active pairs started");
         
         // Remembering the last modification time of the configuration
         $this->lastConfigModTime = file_exists($this->configFile) ? filemtime($this->configFile) : 0;
         
-        // Встановлюємо час останнього оновлення на поточний,
-        // щоб уникнути подвійного запуску процесів відразу після їх створення
+        // Setting the last update time to the current time,
+        // to avoid double process creation immediately after their creation
         $lastUpdateTime = time();
-        $this->logger->log("Час останнього оновлення встановлено на {$lastUpdateTime}, наступне оновлення через 60 секунд");
+        $this->logger->log("Last update time set to {$lastUpdateTime}, next update in 60 seconds");
         
         // Main loop of the manager
         while (true) {
@@ -148,27 +148,27 @@ class TradingBotManager
             if (file_exists($this->configFile)) {
                 $currentModTime = filemtime($this->configFile);
                 if ($currentModTime > $this->lastConfigModTime) {
-                    $this->logger->log("Виявлено зміни в конфігурації, оновлюємо процеси");
+                    $this->logger->log("Changes in the configuration detected, updating processes");
                     $this->botProcess->updateProcesses();
                     $this->lastConfigModTime = $currentModTime;
                 }
             }
             
             // Forcefully updating processes every 60 seconds
-            // Використовуємо статичну змінну з початковим значенням, яке ми встановили раніше
+            // Using a static variable with the initial value we set earlier
             if ($currentTime - $lastUpdateTime >= 60) {
-                $this->logger->log("Планове оновлення процесів (кожні 60 секунд)");
-                $this->logger->log("Час від останнього оновлення: " . ($currentTime - $lastUpdateTime) . " секунд");
+                $this->logger->log("Scheduled process update (every 60 seconds)");
+                $this->logger->log("Time since last update: " . ($currentTime - $lastUpdateTime) . " seconds");
                 
                 // Спочатку очищаємо недійсні PID-файли
                 $this->botProcess->cleanupInvalidPidFiles();
                 $this->botProcess->updateProcesses();
                 $lastUpdateTime = $currentTime;
-                $this->logger->log("Планове оновлення процесів завершено");
+                $this->logger->log("Scheduled process update completed");
             }
             
             // Short delay before the next check
-            $this->logger->log("Очікування {$this->checkInterval} секунд до наступної перевірки...");
+            $this->logger->log("Waiting {$this->checkInterval} seconds before the next check...");
             sleep($this->checkInterval);
         }
     }
@@ -177,66 +177,66 @@ class TradingBotManager
 // Running the bot manager if the file is called directly
 if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
     $logger = Logger::getInstance(true, __DIR__ . '/../../data/logs/bots_error.log');
-    $logger->log("=== ЗАПУСК TRADING BOT MANAGER ===");
+    $logger->log("=== STARTING TRADING BOT MANAGER ===");
     
-    // Перевіряємо, чи вже запущений TradingBotManager
+    // Check if TradingBotManager is already running
     $lockFile = __DIR__ . '/../../data/pids/trading_bot_manager.lock';
-    $logger->log("Перевірка лок-файлу: {$lockFile}");
+    $logger->log("Checking lock file: {$lockFile}");
     
-    // Docker-специфічна перевірка запущених процесів
+    // Docker-specific check for running processes
     if (file_exists($lockFile)) {
         $pid = (int)file_get_contents($lockFile);
-        $logger->log("Знайдено існуючий лок-файл з PID: {$pid}");
+        $logger->log("Found existing lock file with PID: {$pid}");
         
-        // Перевіряємо, чи процес із цим PID ще живий
+        // Check if the process with this PID is still running
         $processExists = false;
         
-        // Перевірка методом 1: через /proc (основний метод у Linux)
+        // Check method 1: via /proc (main method in Linux)
         if (file_exists("/proc/{$pid}")) {
-            $logger->log("PID {$pid} існує в /proc");
+            $logger->log("PID {$pid} exists in /proc");
             
-            // Додаткова перевірка через cmdline
+            // Additional check via cmdline
             if (file_exists("/proc/{$pid}/cmdline")) {
                 $cmdline = file_get_contents("/proc/{$pid}/cmdline");
-                $logger->log("Командний рядок процесу: " . $cmdline);
+                $logger->log("Command line of the process: " . $cmdline);
                 
                 if (strpos($cmdline, 'TradingBotManager') !== false) {
                     $processExists = true;
-                    $logger->log("Процес підтверджено як TradingBotManager");
+                    $logger->log("Process confirmed as TradingBotManager");
                 }
             }
         }
         
-        // Перевірка методом 2: через функцію posix_kill (якщо доступна)
+        // Check method 2: via posix_kill function (if available)
         if (function_exists('posix_kill')) {
-            // Сигнал 0 - перевірка існування процесу без відправки сигналу
+            // Signal 0 - check if the process exists without sending a signal
             if (posix_kill($pid, 0)) {
-                $logger->log("PID {$pid} підтверджено через posix_kill");
+                $logger->log("PID {$pid} confirmed via posix_kill");
                 $processExists = true;
             } else {
-                $logger->log("PID {$pid} не існує за перевіркою posix_kill");
+                $logger->log("PID {$pid} does not exist via posix_kill check");
             }
         }
         
         if ($processExists) {
-            $logger->log("TradingBotManager вже запущений з PID {$pid}. Виходимо.");
-            echo "TradingBotManager вже запущений з PID {$pid}. Виходимо.\n";
+            $logger->log("TradingBotManager already running with PID {$pid}. Exiting.");
+            echo "TradingBotManager already running with PID {$pid}. Exiting.\n";
             exit(0);
         } else {
-            $logger->log("Процес з PID {$pid} не виявлено або це не TradingBotManager. Видаляємо старий лок-файл.");
+            $logger->log("Process with PID {$pid} not found or it is not TradingBotManager. Removing the old lock file.");
             unlink($lockFile);
         }
     } else {
-        $logger->log("Лок-файл не знайдено. Створюємо новий.");
+        $logger->log("Lock file not found. Creating a new one.");
     }
     
-    // Зберігаємо поточний PID
+    // Saving the current PID
     $currentPid = getmypid();
-    $logger->log("Створюємо новий лок-файл з PID: {$currentPid}");
+    $logger->log("Creating a new lock file with PID: {$currentPid}");
     file_put_contents($lockFile, $currentPid);
-    $logger->log("Збережено поточний PID {$currentPid} в лок-файл");
+    $logger->log("Saved current PID {$currentPid} in the lock file");
     
     $manager = new TradingBotManager();
-    $logger->log("Створено екземпляр TradingBotManager");
+    $logger->log("Created an instance of TradingBotManager");
     $manager->runAllBots();
 }
