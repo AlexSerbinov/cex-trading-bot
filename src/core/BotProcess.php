@@ -56,10 +56,42 @@ class BotProcess
         
         $this->logger->log("Запуск процесу для пари {$pair}");
         
+        // Отримуємо конфігурацію для пари
+        $config = Config::getPairConfig($pair);
+        if (!$config) {
+            $this->logger->error("Не вдалося отримати конфігурацію для пари {$pair}, запуск неможливий");
+            return false;
+        }
+        
+        // Зберігаємо хеш налаштувань для цієї пари
+        $safePair = $this->formatPairForFileName($pair);
+        $configSettingsHash = md5(json_encode($config['settings'] ?? []));
+        $configHashFile = $this->pidDir . "/{$safePair}_config_hash.txt";
+        file_put_contents($configHashFile, $configSettingsHash);
+        $this->logger->log("Збережено хеш конфігурації для пари {$pair}: {$configSettingsHash}");
+        
+        // Спочатку завжди очищаємо ордери для пари
+        $this->logger->log("Очищення всіх ордерів для пари {$pair} перед запуском процесу");
+        require_once __DIR__ . '/TradingBot.php';
+        try {
+            if ($config) {
+                $tempBot = new TradingBot($pair, $config);
+                $tempBot->clearAllOrders();
+                $this->logger->log("Ордери для пари {$pair} успішно очищені");
+            } else {
+                $this->logger->error("Не вдалося отримати конфігурацію для пари {$pair}, очищення ордерів пропущено");
+            }
+        } catch (Exception $e) {
+            $this->logger->error("Помилка при очищенні ордерів для пари {$pair}: " . $e->getMessage());
+            // Продовжуємо запуск процесу, навіть якщо очищення не вдалося
+        }
+        
         // Check if the process is already running for this pair
         if ($this->isProcessRunning($pair)) {
-            $this->logger->log("Процес для пари {$pair} вже запущений");
-            return true;
+            $this->logger->log("Процес для пари {$pair} вже запущений, зупиняємо його перед запуском нового");
+            $this->stopProcess($pair);
+            $this->logger->log("Очікуємо 1 секунду після зупинки процесу для пари {$pair}");
+            sleep(1);
         }
         
         // Додаткова перевірка запущених процесів для цієї пари
@@ -650,6 +682,16 @@ class BotProcess
         }
         $this->logger->log("Поточні запущені процеси для пар: " . implode(", ", $runningPairs));
         
+        // Отримуємо поточну конфігурацію ботів
+        $configFile = __DIR__ . '/../../config/bots_config.json';
+        $currentConfig = [];
+        if (file_exists($configFile)) {
+            $content = file_get_contents($configFile);
+            if ($content !== false) {
+                $currentConfig = json_decode($content, true) ?: [];
+            }
+        }
+        
         // Зупиняємо процеси для неактивних пар
         $pidFiles = glob($this->pidDir . '/*.pid');
         foreach ($pidFiles as $pidFile) {
@@ -676,9 +718,54 @@ class BotProcess
             try {
                 if (!in_array($pair, $runningPairs)) {
                     $this->logger->log("Пара {$pair} активна, але не запущена. Запускаємо новий процес.");
+                    // Використовуємо метод startProcess, який тепер очищає ордери перед запуском
                     $this->startProcess($pair);
                 } else {
-                    $this->logger->log("Пара {$pair} вже має запущений процес, пропускаємо.");
+                    // Перевіряємо, чи змінилася конфігурація саме для цієї пари
+                    $this->logger->log("Пара {$pair} вже має запущений процес, перевіряємо чи змінилась конфігурація для цієї пари.");
+                    
+                    $safePair = $this->formatPairForFileName($pair);
+                    $pidFile = $this->getPidFilePath($safePair);
+                    
+                    if (file_exists($pidFile)) {
+                        $pidFileModTime = filemtime($pidFile);
+                        
+                        // Перевіримо тільки зміни для цієї конкретної пари
+                        $needRestart = false;
+                        
+                        // Перевіряємо наявність пари в новій конфігурації
+                        if (isset($currentConfig[$pair])) {
+                            // Пара існує в новій конфігурації, давайте перевіримо хеш налаштувань
+                            $configSettingsHash = md5(json_encode($currentConfig[$pair]['settings'] ?? []));
+                            
+                            // Отримуємо поточний хеш налаштувань
+                            $currentPairConfigFile = $this->pidDir . "/{$safePair}_config_hash.txt";
+                            $storedHash = file_exists($currentPairConfigFile) ? file_get_contents($currentPairConfigFile) : '';
+                            
+                            if ($configSettingsHash !== $storedHash) {
+                                $this->logger->log("Виявлено зміни в налаштуваннях для пари {$pair}. Перезапускаємо процес.");
+                                $needRestart = true;
+                            } else {
+                                $this->logger->log("Конфігурація для пари {$pair} не змінювалась, залишаємо процес працювати.");
+                            }
+                        } else {
+                            // Пара відсутня в новій конфігурації, це дивно, але ми маємо перезапустити процес
+                            $this->logger->log("Пара {$pair} відсутня в конфігурації, але процес запущений. Перезапускаємо.");
+                            $needRestart = true;
+                        }
+                        
+                        if ($needRestart) {
+                            // Зупиняємо процес
+                            $this->stopProcess($pair);
+                            // Запускаємо з очищенням ордерів
+                            $this->startProcess($pair);
+                            
+                            // Зберігаємо новий хеш конфігурації
+                            if (isset($currentConfig[$pair])) {
+                                file_put_contents($currentPairConfigFile, $configSettingsHash);
+                            }
+                        }
+                    }
                 }
             } catch (Exception $e) {
                 $this->logger->error("Error starting the process for {$pair}: " . $e->getMessage());

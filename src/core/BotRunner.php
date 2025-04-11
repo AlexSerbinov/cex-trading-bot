@@ -96,7 +96,7 @@ try {
             if (file_exists($configFile)) {
                 $currentModTime = filemtime($configFile);
                 if ($currentModTime > $lastConfigModTime) {
-                    $logger->log("Changes in the configuration detected, updating the bot settings");
+                    $logger->log("Changes in the configuration detected, checking for updates to {$pair}");
                     
                     // Checking if the pair is still active
                     $enabledPairs = Config::getEnabledPairs();
@@ -105,17 +105,36 @@ try {
                         break;
                     }
                     
+                    // Отримуємо стару конфігурацію пари
+                    $oldConfig = $pairConfig;
+                    
                     // Updating the configuration
-                    $pairConfig = Config::getPairConfig($pair);
-                    if ($pairConfig === null) {
+                    $newPairConfig = Config::getPairConfig($pair);
+                    if ($newPairConfig === null) {
                         $logger->error("Configuration for pair {$pair} not found");
                         break;
                     }
                     
-                    $frequency_from = $pairConfig['settings']['frequency_from'];
-                    $frequency_to = $pairConfig['settings']['frequency_to'];
+                    // Перевіряємо, чи змінилися налаштування для цієї пари
+                    $oldSettingsHash = md5(json_encode($oldConfig['settings'] ?? []));
+                    $newSettingsHash = md5(json_encode($newPairConfig['settings'] ?? []));
                     
-                    $logger->log("Updated configuration for {$pair}: frequency_from={$frequency_from}, frequency_to={$frequency_to}");
+                    if ($oldSettingsHash !== $newSettingsHash) {
+                        $logger->log("Configuration settings for pair {$pair} have changed, clearing orders");
+                        
+                        // Додаємо очищення всіх ордерів перед застосуванням нової конфігурації
+                        $logger->log("Clearing all orders before applying new configuration for pair {$pair}");
+                        $bot->clearAllOrders();
+                        
+                        // Оновлюємо конфігурацію
+                        $pairConfig = $newPairConfig;
+                        $frequency_from = $pairConfig['settings']['frequency_from'];
+                        $frequency_to = $pairConfig['settings']['frequency_to'];
+                        
+                        $logger->log("Updated configuration for {$pair}: frequency_from={$frequency_from}, frequency_to={$frequency_to}");
+                    } else {
+                        $logger->log("No changes detected in configuration settings for pair {$pair}, continuing");
+                    }
                     
                     $lastConfigModTime = $currentModTime;
                 }
@@ -173,16 +192,36 @@ try {
                     if ($currentModTime > $lastConfigModTime) {
                         $logger->log("Changes in the configuration detected during waiting");
                         
+                        // Зберігаємо стару конфігурацію
+                        $oldConfig = $pairConfig;
+                        
                         // Updating the configuration
-                        $pairConfig = Config::getPairConfig($pair);
-                        if ($pairConfig === null) {
+                        $newPairConfig = Config::getPairConfig($pair);
+                        if ($newPairConfig === null) {
                             $logger->error("Configuration for pair {$pair} not found");
                             break 2; // Exiting both loops
                         }
                         
+                        // Перевіряємо, чи змінилися налаштування для цієї пари
+                        $oldSettingsHash = md5(json_encode($oldConfig['settings'] ?? []));
+                        $newSettingsHash = md5(json_encode($newPairConfig['settings'] ?? []));
+                        
                         $lastConfigModTime = $currentModTime;
-                        $logger->log("Changes in the configuration detected during waiting, continuing work");
-                        break; // Exiting the inner loop and starting a new cycle of the bot
+                        
+                        if ($oldSettingsHash !== $newSettingsHash) {
+                            $logger->log("Configuration settings for pair {$pair} have changed during waiting");
+                            // Оновлюємо конфігурацію
+                            $pairConfig = $newPairConfig;
+                            
+                            // Додаємо очищення всіх ордерів перед продовженням роботи
+                            $logger->log("Clearing all orders before applying new configuration during wait period for pair {$pair}");
+                            $bot->clearAllOrders();
+                            
+                            $logger->log("Changes in the configuration detected during waiting, continuing work");
+                            break; // Exiting the inner loop and starting a new cycle of the bot
+                        } else {
+                            $logger->log("No changes detected in configuration settings for pair {$pair} during waiting, continuing");
+                        }
                     }
                 }
             }
