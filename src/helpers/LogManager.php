@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Helpers;
+namespace App\helpers;
 
 require_once __DIR__ . '/LogRotator.php';
 

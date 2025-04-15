@@ -6,7 +6,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/src/core/Logger.php';
 require_once __DIR__ . '/src/core/ErrorHandler.php';
-require_once __DIR__ . '/src/Helpers/LogManager.php';
+require_once __DIR__ . '/src/helpers/LogManager.php';
 
 // Включаємо відображення помилок
 error_reporting(E_ALL);
@@ -17,7 +17,7 @@ ini_set('display_startup_errors', '1');
 ErrorHandler::initialize();
 
 // Ініціалізуємо менеджер логів при запуску
-$logManager = App\Helpers\LogManager::getInstance();
+$logManager = App\helpers\LogManager::getInstance();
 $logManager->forceCheck(); // Примусова перевірка при запуску
 
 // Отримуємо шлях запиту
