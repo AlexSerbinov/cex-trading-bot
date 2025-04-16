@@ -591,8 +591,8 @@ class TradingBot
     ): void {
         $minOrders = $this->pairConfig['settings']['min_orders'];
         $maxOrders = $this->pairConfig['settings']['max_orders'];
-        $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
-        $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
+        $deviationPercent = $this->pairConfig['settings']['price_factor'];
+        $marketGap = $this->pairConfig['settings']['market_gap'];
         
         $this->logger->log(
             sprintf(
@@ -600,38 +600,27 @@ class TradingBot
                 $this->pair,
                 $minOrders,
                 $maxOrders,
-                $deviationPercent * 100,
-                $marketGap * 100
+                $deviationPercent,
+                $marketGap
             )
         );
 
         // Add bids if there are too few
         while (count($currentBids) < $minOrders) {
-            // Use the same algorithm as in calculateOrderPrice
-            $randBase = 0.05 + (mt_rand(0, 900) / 1000);
-            $randomFactor = pow($randBase, 1/3);
+            // Використовуємо той самий алгоритм, що і в calculateOrderPrice
+            $price = $this->calculateOrderPrice($marketPrice, 2); // 2 = bid
             
-            // Apply the market_gap to the price
-            $gapAdjustment = $marketPrice * $marketGap;
-            
-            $bidPrice = number_format(
-                $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
-                12,
-                '.',
-                '',
-            );
+            $bidPrice = number_format($price, 12, '.', '');
             $bidAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.19, 8, '.', '');
             $orderId = $this->placeLimitOrder(2, $bidAmount, $bidPrice);
             $this->logger->log(
                 sprintf(
-                    '[%s] Added bid to achieve %d-%d: %s @ %s (factor: %.4f, gap: %.6f)',
+                    '[%s] Added bid to achieve %d-%d: %s @ %s',
                     $this->pair,
                     $minOrders,
                     $maxOrders,
                     $bidAmount,
-                    $bidPrice,
-                    $randomFactor,
-                    $gapAdjustment
+                    $bidPrice
                 ),
             );
             $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
@@ -646,31 +635,20 @@ class TradingBot
 
         // Add asks if there are too few
         while (count($currentAsks) < $minOrders) {
-            // Use the same algorithm as in calculateOrderPrice
-            $randBase = 0.05 + (mt_rand(0, 900) / 1000);
-            $randomFactor = pow($randBase, 1/3);
+            // Використовуємо той самий алгоритм, що і в calculateOrderPrice
+            $price = $this->calculateOrderPrice($marketPrice, 1); // 1 = ask
             
-            // Apply the market_gap to the price
-            $gapAdjustment = $marketPrice * $marketGap;
-            
-            $askPrice = number_format(
-                $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
-                12,
-                '.',
-                '',
-            );
+            $askPrice = number_format($price, 12, '.', '');
             $askAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.19, 8, '.', '');
             $orderId = $this->placeLimitOrder(1, $askAmount, $askPrice);
             $this->logger->log(
                 sprintf(
-                    '[%s] Added ask to achieve %d-%d: %s @ %s (factor: %.4f, gap: %.6f)',
+                    '[%s] Added ask to achieve %d-%d: %s @ %s',
                     $this->pair,
                     $minOrders,
                     $maxOrders,
                     $askAmount,
-                    $askPrice,
-                    $randomFactor,
-                    $gapAdjustment
+                    $askPrice
                 ),
             );
             $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
