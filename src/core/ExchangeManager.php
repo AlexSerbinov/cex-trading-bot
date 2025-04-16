@@ -507,7 +507,7 @@ class ExchangeManager
             $endTime = microtime(true);
             $execTime = round(($endTime - $startTime) * 1000);
             
-            $this->logger->log("[{$pair}] Cancel request execution time: {$execTime}ms");
+            // $this->logger->log("[{$pair}] Cancel request execution time: {$execTime}ms");
             
             $data = json_decode($response, true);
             return $data;

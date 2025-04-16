@@ -3,7 +3,7 @@
         "id": 3,
         "market": "BTC_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-08 07:32:36",
         "updated_at": "2025-04-10 15:34:20",
         "settings": {
@@ -22,7 +22,7 @@
         "id": 18,
         "market": "BTC_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-04-10 14:59:41",
         "settings": {
@@ -41,7 +41,7 @@
         "id": 7,
         "market": "ETH_BTC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -85,10 +85,10 @@
         "settings": {
             "trade_amount_min": 0.05,
             "trade_amount_max": 0.5,
-            "frequency_from": 0,
-            "frequency_to": 10,
+            "frequency_from": 1,
+            "frequency_to": 2,
             "price_factor": 10,
-            "market_gap": 10,
+            "market_gap": 0,
             "min_orders": 12,
             "max_orders": 14,
             "market_maker_order_probability": 0
@@ -98,7 +98,7 @@
         "id": 8,
         "market": "LTC_BTC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-04-10 14:33:47",
         "settings": {
@@ -117,7 +117,7 @@
         "id": 6,
         "market": "LTC_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-08 08:28:37",
         "updated_at": "2025-03-08 08:29:10",
         "settings": {
@@ -136,7 +136,7 @@
         "id": 16,
         "market": "LTC_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -155,7 +155,7 @@
         "id": 19,
         "market": "DOGE_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -174,7 +174,7 @@
         "id": 20,
         "market": "DOGE_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -193,7 +193,7 @@
         "id": 14,
         "market": "BNB_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -212,7 +212,7 @@
         "id": 15,
         "market": "BNB_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -231,7 +231,7 @@
         "id": 21,
         "market": "SOL_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -250,7 +250,7 @@
         "id": 22,
         "market": "SOL_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -269,7 +269,7 @@
         "id": 23,
         "market": "TON_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -288,7 +288,7 @@
         "id": 24,
         "market": "TON_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -307,7 +307,7 @@
         "id": 25,
         "market": "XRP_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -326,7 +326,7 @@
         "id": 26,
         "market": "XRP_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -345,7 +345,7 @@
         "id": 27,
         "market": "XRP_BTC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -364,7 +364,7 @@
         "id": 28,
         "market": "TRX_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -383,7 +383,7 @@
         "id": 29,
         "market": "TRX_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -402,7 +402,7 @@
         "id": 30,
         "market": "USDC_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
