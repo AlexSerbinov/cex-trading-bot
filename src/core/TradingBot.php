@@ -67,56 +67,43 @@ class TradingBot
     }
 
     /**
-     * Updates the bot configuration during runtime.
-     *
-     * @param array $newConfig New configuration for the pair
-     * @return bool True if update was successful
+     * Updates the bot configuration without restarting it.
+     * 
+     * @param array $newConfig New configuration for the bot
+     * @return void
      */
-    public function updateConfig(array $newConfig): bool
+    public function updateConfig(array $newConfig): void
     {
-        $this->logger->log("!!!!! TradingBot::updateConfig(): [{$this->pair}] Оновлення конфігурації бота...");
+        $this->logger->log("!!!!! TradingBot: Оновлення конфігурації для пари {$this->pair}");
         
-        // Журналюємо стару конфігурацію перед оновленням
-        $oldSettings = $this->pairConfig['settings'] ?? [];
-        $this->logger->log("!!!!! TradingBot::updateConfig(): [{$this->pair}] Стара конфігурація: " . json_encode($oldSettings));
+        // Зберігаємо старі значення для логування
+        $oldFrequencyFrom = $this->pairConfig['settings']['frequency_from'] ?? 'Не встановлено';
+        $oldFrequencyTo = $this->pairConfig['settings']['frequency_to'] ?? 'Не встановлено';
+        $oldOrderCount = $this->pairConfig['settings']['order_count'] ?? 'Не встановлено';
+        $oldVolume = $this->pairConfig['settings']['volume'] ?? 'Не встановлено';
         
         // Оновлюємо конфігурацію
         $this->pairConfig = $newConfig;
         
-        // Журналюємо нову конфігурацію
-        $newSettings = $this->pairConfig['settings'] ?? [];
-        $this->logger->log("!!!!! TradingBot::updateConfig(): [{$this->pair}] Нова конфігурація: " . json_encode($newSettings));
+        // Логуємо зміни в основних параметрах
+        $newFrequencyFrom = $this->pairConfig['settings']['frequency_from'] ?? 'Не встановлено';
+        $newFrequencyTo = $this->pairConfig['settings']['frequency_to'] ?? 'Не встановлено';
+        $newOrderCount = $this->pairConfig['settings']['order_count'] ?? 'Не встановлено';
+        $newVolume = $this->pairConfig['settings']['volume'] ?? 'Не встановлено';
         
-        // Аналізуємо зміни для діагностики
-        $changedSettings = [];
-        foreach ($newSettings as $key => $value) {
-            if (!isset($oldSettings[$key]) || $oldSettings[$key] != $value) {
-                $changedSettings[$key] = [
-                    'old' => $oldSettings[$key] ?? 'не встановлено',
-                    'new' => $value
-                ];
-            }
+        $this->logger->log("!!!!! TradingBot: Зміни в конфігурації для пари {$this->pair}:");
+        $this->logger->log("!!!!! TradingBot: - Частота від: {$oldFrequencyFrom} -> {$newFrequencyFrom}");
+        $this->logger->log("!!!!! TradingBot: - Частота до: {$oldFrequencyTo} -> {$newFrequencyTo}");
+        $this->logger->log("!!!!! TradingBot: - Кількість ордерів: {$oldOrderCount} -> {$newOrderCount}");
+        $this->logger->log("!!!!! TradingBot: - Обсяг: {$oldVolume} -> {$newVolume}");
+        
+        // Оновлення стратегії, якщо вона змінилася
+        if (isset($newConfig['settings']['strategy']) && isset($this->pairConfig['settings']['strategy'])) {
+            $oldStrategy = $this->marketMakerActions ? get_class($this->marketMakerActions) : 'Не встановлено';
+            $this->logger->log("!!!!! TradingBot: - Стратегія: {$oldStrategy} -> буде оновлено під час ініціалізації");
         }
         
-        if (!empty($changedSettings)) {
-            $this->logger->log("!!!!! TradingBot::updateConfig(): [{$this->pair}] Змінені параметри: " . json_encode($changedSettings));
-        } else {
-            $this->logger->log("!!!!! TradingBot::updateConfig(): [{$this->pair}] Конфігурація змінилася, але основні параметри залишилися такими ж");
-        }
-        
-        // Оновлюємо об'єкт MarketMakerActions з новою конфігурацією
-        $this->marketMakerActions = new MarketMakerActions(
-            $this,
-            $this->logger,
-            $this->pair,
-            $this->pairConfig
-        );
-        
-        // Встановлюємо прапорець, що бот потребує повторної ініціалізації
-        $this->initialized = false;
-        $this->logger->log("!!!!! TradingBot::updateConfig(): [{$this->pair}] Конфігурацію оновлено успішно, бот потребує повторної ініціалізації");
-        
-        return true;
+        $this->logger->log("!!!!! TradingBot: Конфігурація для пари {$this->pair} успішно оновлена");
     }
 
     /**
@@ -126,7 +113,7 @@ class TradingBot
     {
         $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Початок ініціалізації бота...");
         
-        if ($this->initialized) {
+        if ($this->isInitialized) {
             $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Бот вже ініціалізований, пропускаємо ініціалізацію");
             return;
         }
@@ -148,7 +135,7 @@ class TradingBot
         $this->initializeOrderBook($orderBook);
         $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Ордербук ініціалізовано");
         
-        $this->initialized = true;
+        $this->isInitialized = true;
         $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Ініціалізацію бота успішно завершено");
     }
 
@@ -157,7 +144,7 @@ class TradingBot
      */
     public function runSingleCycle(): void
     {
-        if (!$this->initialized) {
+        if (!$this->isInitialized) {
             $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Бот не ініціалізований, пропускаємо цикл");
             return;
         }

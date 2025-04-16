@@ -12,6 +12,12 @@ class BotProcess
 {
     private Logger $logger;
     private string $pidDir;
+    private array $pairConfigHashes = [];
+    private $args;
+    private $phpBinary;
+    private $botScriptPath;
+    /** @var array Хеші конфігурацій для кожної пари */
+    private $configHashes = [];
     
     /**
      * Constructor
@@ -37,6 +43,28 @@ class BotProcess
             $this->logger->log("BotProcess: Створено директорію для лок-файлів: {$lockDir}");
         } else {
             $this->logger->log("BotProcess: Директорія для лок-файлів існує");
+        }
+        
+        // Ініціалізуємо хеші конфігурацій для всіх пар
+        $this->initPairConfigHashes();
+    }
+    
+    /**
+     * Ініціалізація хешів конфігурацій для всіх пар
+     */
+    private function initPairConfigHashes(): void
+    {
+        $this->logger->log("!!!!! BotProcess::initPairConfigHashes(): Ініціалізація хешів конфігурацій");
+        
+        // Отримуємо всі пари з конфігурації
+        $allPairs = Config::getAllPairs();
+        
+        foreach ($allPairs as $pair) {
+            $pairConfig = Config::getPairConfig($pair);
+            if ($pairConfig) {
+                $this->pairConfigHashes[$pair] = md5(json_encode($pairConfig));
+                $this->logger->log("!!!!! BotProcess::initPairConfigHashes(): Ініціалізовано хеш для пари {$pair}");
+            }
         }
     }
     
@@ -631,77 +659,66 @@ class BotProcess
      */
     public function updateProcesses(): void
     {
-        $this->logger->log("!!!!! BotProcess::updateProcesses(): Початок оновлення процесів ботів");
+        $this->logger->info("!!!!! Оновлення процесів на основі активних пар");
         
-        // Forcefully reload the configuration
-        Config::reloadConfig();
+        // Отримуємо список активних пар
+        $pairs = Config::getActivePairs();
+        $this->logger->info("!!!!! Активні пари: " . implode(", ", $pairs ?: []));
         
-        // Getting the list of active pairs
-        $enabledPairs = Config::getEnabledPairs();
-        $this->logger->log("!!!!! BotProcess::updateProcesses(): Активні пари: " . implode(", ", $enabledPairs));
+        // Отримуємо список запущених процесів
+        $runningProcesses = $this->getRunningProcesses();
         
-        // Отримуємо список запущених процесів для всіх пар
-        $runningPairs = [];
-        foreach ($enabledPairs as $pair) {
-            if ($this->isProcessRunning($pair)) {
-                $runningPairs[] = $pair;
-            }
-        }
-        $this->logger->log("!!!!! BotProcess::updateProcesses(): Поточні запущені процеси для пар: " . implode(", ", $runningPairs));
-        
-        // Зупиняємо процеси для неактивних пар
-        $pidFiles = glob($this->pidDir . '/*.pid');
-        $this->logger->log("!!!!! BotProcess::updateProcesses(): Знайдено PID-файли: " . implode(", ", $pidFiles));
-        
-        foreach ($pidFiles as $pidFile) {
-            $pairName = basename($pidFile, '.pid');
+        // Перевіряємо кожну активну пару
+        foreach ($pairs as $pair) {
+            // Отримуємо поточний хеш конфігурації для пари
+            $config = Config::getPairConfig($pair);
             
-            try {
-                $pair = $this->restorePairFormat($pairName);
-                $this->logger->log("!!!!! BotProcess::updateProcesses(): Перевірка пари {$pair} з PID-файлу {$pidFile}");
-                
-                if (!in_array($pair, $enabledPairs)) {
-                    $this->logger->log("!!!!! BotProcess::updateProcesses(): Пара {$pair} неактивна, зупиняємо процес");
+            if (empty($config)) {
+                $this->logger->error("!!!!! Відсутня конфігурація для пари $pair");
+                continue;
+            }
+            
+            $configHash = md5(json_encode($config));
+            $oldConfigHash = $this->pairConfigHashes[$pair] ?? null;
+            
+            $this->logger->info("!!!!! Пара: $pair, Старий хеш: " . ($oldConfigHash ?: 'відсутній') . ", Новий хеш: $configHash");
+            
+            // Перевіряємо, чи змінилася конфігурація або чи не запущений процес
+            if ($oldConfigHash !== $configHash || !in_array($pair, $runningProcesses)) {
+                // Якщо процес вже запущено, зупиняємо його перед перезапуском
+                if (in_array($pair, $runningProcesses)) {
+                    $this->logger->info("!!!!! Конфігурація для пари $pair змінилася. Зупиняємо процес для перезапуску.");
                     $this->stopProcess($pair);
                 } else {
-                    $this->logger->log("!!!!! BotProcess::updateProcesses(): Пара {$pair} активна");
-                    // Порівняння з попередньою конфігурацією не потрібне,
-                    // оскільки оновлення конфігурації відбувається в BotRunner
-                    
-                    // Перевіряємо, чи процес запущений
-                    if ($this->isProcessRunning($pair)) {
-                        $this->logger->log("!!!!! BotProcess::updateProcesses(): Пара {$pair} вже має запущений процес, пропускаємо");
-                    } else {
-                        $this->logger->log("!!!!! BotProcess::updateProcesses(): Процес для пари {$pair} не запущений, запускаємо");
-                        $this->startProcess($pair);
-                    }
+                    $this->logger->info("!!!!! Процес для пари $pair не запущений. Запускаємо новий процес.");
                 }
-            } catch (Exception $e) {
-                $this->logger->error("!!!!! BotProcess::updateProcesses(): Помилка обробки PID файлу {$pairName}: " . $e->getMessage());
-                // Try to delete the problematic PID file
-                if (file_exists($pidFile)) {
-                    $this->logger->log("!!!!! BotProcess::updateProcesses(): Видаляємо проблемний PID файл {$pidFile}");
-                    unlink($pidFile);
+                
+                // Запускаємо процес з новою конфігурацією
+                $this->startProcess($pair);
+                
+                // Зберігаємо новий хеш конфігурації
+                $this->pairConfigHashes[$pair] = $configHash;
+                $this->logger->info("!!!!! Оновлено хеш конфігурації для пари $pair");
+            } else {
+                $this->logger->info("!!!!! Конфігурація для пари $pair не змінилася. Процес працює, перезапуск не потрібен.");
+            }
+        }
+        
+        // Перевіряємо, чи є зайві процеси, які потрібно зупинити
+        foreach ($runningProcesses as $runningPair) {
+            if (!in_array($runningPair, $pairs)) {
+                $this->logger->info("!!!!! Пара $runningPair більше не активна. Зупиняємо процес.");
+                $this->stopProcess($runningPair);
+                
+                // Видаляємо хеш конфігурації для неактивної пари
+                if (isset($this->pairConfigHashes[$runningPair])) {
+                    unset($this->pairConfigHashes[$runningPair]);
+                    $this->logger->info("!!!!! Видалено хеш конфігурації для неактивної пари $runningPair");
                 }
             }
         }
         
-        // Запускаємо процеси для нових активних пар, які ще не запущені
-        foreach ($enabledPairs as $pair) {
-            try {
-                if (!in_array($pair, $runningPairs)) {
-                    $this->logger->log("!!!!! BotProcess::updateProcesses(): Пара {$pair} активна, але не запущена. Запускаємо новий процес.");
-                    $startResult = $this->startProcess($pair);
-                    $this->logger->log("!!!!! BotProcess::updateProcesses(): Результат запуску процесу для пари {$pair}: " . ($startResult ? "успішно" : "невдало"));
-                } else {
-                    $this->logger->log("!!!!! BotProcess::updateProcesses(): Пара {$pair} вже має запущений процес, пропускаємо");
-                }
-            } catch (Exception $e) {
-                $this->logger->error("!!!!! BotProcess::updateProcesses(): Помилка запуску процесу для {$pair}: " . $e->getMessage());
-            }
-        }
-        
-        $this->logger->log("!!!!! BotProcess::updateProcesses(): Завершено оновлення процесів ботів");
+        $this->logger->info("!!!!! Оновлення процесів завершено");
     }
     
     /**
@@ -876,5 +893,45 @@ class BotProcess
         }
         
         $this->logger->log("Всі процеси для пари {$pair} зупинено");
+    }
+    
+    /**
+     * Отримання списку всіх запущених процесів (пар)
+     *
+     * @return array Масив з назвами пар, для яких запущені процеси
+     */
+    public function getRunningProcesses(): array
+    {
+        $this->logger->info("!!!!! Отримання списку запущених процесів");
+        $runningProcesses = [];
+        
+        $pidFiles = glob($this->pidDir . '/*.pid');
+        $this->logger->info("!!!!! Знайдено PID-файли: " . implode(", ", $pidFiles ?: []));
+        
+        foreach ($pidFiles as $pidFile) {
+            $pairName = basename($pidFile, '.pid');
+            
+            try {
+                $pair = $this->restorePairFormat($pairName);
+                
+                if ($this->isProcessRunning($pair)) {
+                    $runningProcesses[] = $pair;
+                } else {
+                    // Якщо PID-файл існує, але процес не запущений, видаляємо файл
+                    $this->logger->info("!!!!! PID-файл для пари $pair існує, але процес не запущений. Видаляємо файл.");
+                    unlink($pidFile);
+                }
+            } catch (Exception $e) {
+                $this->logger->error("!!!!! Помилка обробки PID файлу для пари $pairName: " . $e->getMessage());
+                // Видаляємо проблемний PID-файл
+                if (file_exists($pidFile)) {
+                    $this->logger->info("!!!!! Видаляємо проблемний PID файл $pidFile");
+                    unlink($pidFile);
+                }
+            }
+        }
+        
+        $this->logger->info("!!!!! Запущені процеси: " . implode(", ", $runningProcesses ?: []));
+        return $runningProcesses;
     }
 } 
