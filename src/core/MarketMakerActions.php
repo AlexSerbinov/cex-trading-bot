@@ -58,7 +58,7 @@ class MarketMakerActions
         $this->logger->log("[{$this->pair}] marketMakerProbability: " . $marketMakerProbability);
     
         $this->logger->log(sprintf(
-            '[%s] Performing random actions with max_orders=%d, deviation=%.4f%%, market_gap=%.4f%%, probability=%.2f', 
+            // '[%s] Performing random actions with max_orders=%d, deviation=%.4f%%, market_gap=%.4f%%, probability=%.2f', 
             $this->pair, $maxOrders, $deviationPercent * 100, $marketGap * 100, $marketMakerProbability * 100
         ));
     
@@ -66,7 +66,7 @@ class MarketMakerActions
         $randomValue = mt_rand() / mt_getrandmax();
         
         $this->logger->log(sprintf(
-            '[%s] Probability check: randomMarketMakerValue=%.6f, marketMakerProbability=%.6f',
+            // '[%s] Probability check: randomMarketMakerValue=%.6f, marketMakerProbability=%.6f',
             $this->pair,
             $randomValue,
             $marketMakerProbability

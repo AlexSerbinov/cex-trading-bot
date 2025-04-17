@@ -201,8 +201,8 @@ class BotProcess
             
             if (!$pid || !is_numeric($pid) || $pid <= 0) {
                 $this->logger->error("!!!!! BotProcess::startProcess(): Помилка при запуску процесу для пари {$pair}, неправильний PID: {$pid}");
-                flock($lockHandle, LOCK_UN);
-                fclose($lockHandle);
+                // flock($lockHandle, LOCK_UN); // REMOVED
+                // fclose($lockHandle); // REMOVED
                 return false;
             }
             
@@ -211,31 +211,41 @@ class BotProcess
             // Saving the PID to a file
             $this->savePid($safePair, (int)$pid);
             
-            // Releasing the lock
-            flock($lockHandle, LOCK_UN);
-            fclose($lockHandle);
+            // Releasing the lock - MOVED TO finally
+            // flock($lockHandle, LOCK_UN); // REMOVED
+            // fclose($lockHandle); // REMOVED
             
             // Checking if the process is actually running
             usleep(500000); // 0.5 second
-            if (file_exists("/proc/{$pid}")) {
-                $this->logger->log("!!!!! BotProcess::startProcess(): Перевірено, що процес {$pid} для пари {$pair} успішно запущений");
+            $this->logger->log("????? BotProcess::startProcess(): Перевірка, чи процес {$pid} для пари {$pair} успішно запущений");
+
+            $processExists = false;
+            if (function_exists('posix_kill')) {
+                $processExists = posix_kill((int)$pid, 0); // Use posix_kill to check if process exists
+                $this->logger->log("????? BotProcess::startProcess(): Результат перевірки posix_kill для PID {$pid}: " . ($processExists ? "існує" : "не існує"));
+            } else {
+                $this->logger->error("!!!!! BotProcess::startProcess(): Функція posix_kill недоступна. Неможливо надійно перевірити стан процесу {$pid}.");
+                // Optionally, assume it started if posix is not available, 
+                // but this is less reliable.
+                // $processExists = true; 
+            }
+
+            if ($processExists) {
+                $this->logger->log("!!!!! BotProcess::startProcess(): Перевірено, що процес {$pid} для пари {$pair} успішно запущений (використовуючи posix_kill)");
                 return true;
             } else {
-                $this->logger->error("!!!!! BotProcess::startProcess(): Процес {$pid} для пари {$pair} не запустився або швидко завершився");
-                
+                $this->logger->error("!!!!! BotProcess::startProcess(): Процес {$pid} для пари {$pair} не запустився або швидко завершився (перевірено через posix_kill)");
                 $this->removePidFile($safePair);
                 return false;
             }
             
-        } catch (\Throwable $e) {
-            $this->logger->error("!!!!! BotProcess::startProcess(): Виняток при запуску процесу для пари {$pair}: " . $e->getMessage());
-            $this->logger->error("!!!!! BotProcess::startProcess(): Стек-трейс: " . $e->getTraceAsString());
-            
-            // Releasing the lock
-            flock($lockHandle, LOCK_UN);
-            fclose($lockHandle);
-            
-            return false;
+        } finally {
+            // Ensure the lock is always released and the handle closed
+            if (is_resource($lockHandle)) {
+                 $this->logger->log("!!!!! BotProcess::startProcess(): Звільнення блокування та закриття лок-файлу для пари {$pair} в блоці finally");
+                 flock($lockHandle, LOCK_UN);
+                 fclose($lockHandle);
+            }
         }
     }
     
@@ -290,27 +300,26 @@ class BotProcess
         
         $this->logger->log("!!!!! BotProcess::stopProcess(): Знайдено PID: {$pid} для зупинки пари {$pair}");
         
-        // Trying to stop the process gracefully first (SIGTERM)
-        $this->logger->log("!!!!! BotProcess::stopProcess(): Надсилаємо сигнал SIGTERM до процесу {$pid} для пари {$pair}");
-        $sigResult = false;
-        if (function_exists('posix_kill')) {
-            $sigResult = posix_kill($pid, SIGTERM);
-            $this->logger->log("!!!!! BotProcess::stopProcess(): Результат posix_kill для пари {$pair}: " . ($sigResult ? "успішно" : "невдало"));
-        } else {
-            // Fallback для систем без posix_kill (Docker)
-            $this->logger->log("!!!!! BotProcess::stopProcess(): posix_kill не доступний для пари {$pair}, використовуємо kill -15");
-            exec("kill -15 {$pid}", $output, $retval);
-            $sigResult = ($retval === 0);
-            $this->logger->log("!!!!! BotProcess::stopProcess(): Результат kill -15 для пари {$pair}: " . ($sigResult ? "успішно" : "невдало") . ", код: {$retval}");
-        }
-        
         // Waiting for the process to exit
         $this->logger->log("!!!!! BotProcess::stopProcess(): Очікуємо завершення процесу {$pid} для пари {$pair}...");
         $maxWait = 5; // максимальний час очікування у секундах
         $waited = 0;
+        $processExists = true; // Assume it exists initially
         while ($waited < $maxWait) {
-            if (!file_exists("/proc/{$pid}")) {
-                $this->logger->log("!!!!! BotProcess::stopProcess(): Процес {$pid} для пари {$pair} завершено за {$waited} секунд");
+            if (function_exists('posix_kill')) {
+                $processExists = posix_kill($pid, 0); // Check using posix_kill
+            } else {
+                // Fallback: If posix_kill is not available, we can't reliably check.
+                // We might break the loop earlier or just wait the full time.
+                // Let's break assuming the kill command worked after a short delay.
+                if ($waited > 1) { // Wait at least 1 second in this case
+                   $this->logger->warning("!!!!! BotProcess::stopProcess(): posix_kill недоступний, неможливо точно перевірити стан процесу {$pid}.");
+                   $processExists = false; // Assume stopped
+                }
+            }
+            
+            if (!$processExists) {
+                $this->logger->log("!!!!! BotProcess::stopProcess(): Процес {$pid} для пари {$pair} завершено за {$waited} секунд (перевірено через posix_kill)");
                 break;
             }
             sleep(1);
@@ -318,7 +327,7 @@ class BotProcess
         }
         
         // If the process is still running, forcefully terminate it (SIGKILL)
-        if (file_exists("/proc/{$pid}")) {
+        if ($processExists) { // Use the last known state from the loop
             $this->logger->log("!!!!! BotProcess::stopProcess(): Процес {$pid} для пари {$pair} все ще працює після {$waited} секунд, надсилаємо SIGKILL");
             if (function_exists('posix_kill')) {
                 posix_kill($pid, SIGKILL);
@@ -350,8 +359,14 @@ class BotProcess
         }
         
         // Verifying that the process is no longer running
-        if (file_exists("/proc/{$pid}")) {
-            $this->logger->log("!!!!! BotProcess::stopProcess(): УВАГА: Процес {$pid} для пари {$pair} все ще працює після всіх спроб зупинки");
+        $finalCheckExists = false;
+        if (function_exists('posix_kill')) {
+             $finalCheckExists = posix_kill($pid, 0);
+        }
+        // If posix_kill is not available, we cannot perform a reliable final check.
+        
+        if ($finalCheckExists) {
+            $this->logger->log("!!!!! BotProcess::stopProcess(): УВАГА: Процес {$pid} для пари {$pair} все ще працює після всіх спроб зупинки (перевірено через posix_kill)");
             return false;
         }
         
@@ -430,43 +445,35 @@ class BotProcess
         
         $this->logger->log("!!!!! BotProcess::isProcessRunning(): Знайдено PID: {$pid} для пари {$pair}");
         
-        // Checking if the process is running using proc filesystem (works in Docker)
-        if (file_exists("/proc/{$pid}")) {
-            // Додаткова перевірка, чи це процес BotRunner
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Процес з PID {$pid} існує, перевіряємо чи це BotRunner");
-            $cmdlineFile = "/proc/{$pid}/cmdline";
-            
-            if (file_exists($cmdlineFile)) {
-                $cmdline = file_get_contents($cmdlineFile);
-                if (strpos($cmdline, 'BotRunner') !== false && strpos($cmdline, $pair) !== false) {
-                    $this->logger->log("!!!!! BotProcess::isProcessRunning(): Підтверджено: процес з PID {$pid} є BotRunner для пари {$pair}");
-                    
-                    // Якщо процес існує, але лок-файл не існує або не заблокований,
-                    // спробуємо відновити лок-файл
-                    if (!file_exists($lockFile)) {
-                        $this->logger->log("!!!!! BotProcess::isProcessRunning(): УВАГА: Процес для пари {$pair} існує, але лок-файл не знайдено. Створюємо новий лок-файл.");
-                        file_put_contents($lockFile, $pid);
-                    }
-                    
-                    return true;
-                } else {
-                    $this->logger->log("!!!!! BotProcess::isProcessRunning(): Процес з PID {$pid} існує, але це не BotRunner для пари {$pair}");
-                    $this->logger->log("!!!!! BotProcess::isProcessRunning(): Командний рядок: " . $cmdline);
-                }
-            } else {
-                $this->logger->log("!!!!! BotProcess::isProcessRunning(): Не вдалося прочитати cmdline для процесу {$pid}");
-            }
+        // Checking if the process is running using posix_kill (cross-platform)
+        $processExists = false;
+        if (function_exists('posix_kill')) {
+            $processExists = posix_kill($pid, 0);
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Перевірка процесу {$pid} через posix_kill: " . ($processExists ? "існує" : "не існує"));
         } else {
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Процес з PID {$pid} не існує");
+            $this->logger->error("!!!!! BotProcess::isProcessRunning(): Функція posix_kill недоступна. Неможливо надійно перевірити стан процесу {$pid}.");
+            // Cannot reliably check, maybe return true to avoid constant restarts? Or false?
+            // Returning false is safer to avoid stale PID files if posix isn't available.
+            unlink($pidFile);
+            return false;
+        }
+
+        if ($processExists) {
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Процес з PID {$pid} для пари {$pair} запущений.");
+            // Optional: Could add a check here if the lock file exists and is locked,
+            // and try to relock/recreate PID if inconsistencies are found.
+            return true;
+        } else {
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Процес з PID {$pid} не існує (перевірено через posix_kill)");
         }
         
-        // Якщо ми дійшли сюди, то PID файл існує, але процес не запущений або не є BotRunner
-        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Видаляємо невірний PID файл для пари {$pair}");
+        // If we got here, the PID file exists, but the process doesn't
+        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Видаляємо застарілий PID файл {$pidFile} для пари {$pair}");
         unlink($pidFile);
         
-        // Також видаляємо лок-файл, якщо він існує
+        // Also remove the lock file if it exists
         if (file_exists($lockFile)) {
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Видаляємо лок-файл для пари {$pair}");
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Видаляємо лок-файл {$lockFile} для пари {$pair}");
             @unlink($lockFile);
         }
         
