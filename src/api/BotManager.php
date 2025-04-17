@@ -130,6 +130,12 @@ class BotManager
             ]
         ];
         
+        // Enforce minimum price_factor
+        if (isset($botData['settings']['price_factor']) && $botData['settings']['price_factor'] < 0.01) {
+            $this->logger->log("Adjusting price_factor from {" . $botData['settings']['price_factor'] . "} to 0.01 for pair {" . $data['market'] . "}");
+            $botData['settings']['price_factor'] = 0.01;
+        }
+        
         // Check the bot balance before creating
         $tradeAmountMax = $botData['settings']['trade_amount_max'];
         $pair = $data['market'];
@@ -205,6 +211,15 @@ class BotManager
             
             if (!empty($settings)) {
                 $data['settings'] = $settings;
+            }
+        }
+        
+        // Enforce minimum price_factor if it exists in the update data
+        if (isset($data['settings']['price_factor'])) {
+            $originalValue = $data['settings']['price_factor'];
+            if ($originalValue < 0.01) {
+                $this->logger->log("Adjusting price_factor from {$originalValue} to 0.01 for bot ID {$id}");
+                $data['settings']['price_factor'] = 0.01;
             }
         }
         

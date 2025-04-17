@@ -81,7 +81,7 @@ Below is a detailed breakdown of each parameter in `bots_config.json`, its purpo
   - **Recommendation**: For active markets, set to `0`/`1` to minimize delays. For less active pairs, a range of `3`/`5` seconds can help manage load.
 
 - **`price_deviation`** (in percentage):
-  - **Description**: Determines the price range for the bot’s order grid relative to the market price.
+  - **Description**: Determines the price range for the bot’s order grid relative to the market price. The minimum allowed value is `0.01%`. If a value less than `0.01%` (including `0`) is provided, it will automatically be set to `0.01%`.
   - **Behavior**: If set to `0.09%` (0.0009) and the market price of BTC is $100,000, the bot places orders in a grid from $99,910 to $100,090 (for 10 orders, each step is ~$9). The grid extends both below and above the market price.
   - **Recommendation**: A value of `0.09%` to `0.1%` works well for most pairs to create a tight grid. Higher values (e.g., `0.5%`) may spread orders too far, reducing visibility in the order book.
 

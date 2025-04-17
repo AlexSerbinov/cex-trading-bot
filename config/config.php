@@ -270,7 +270,10 @@ class Config
             'market_maker_order_probability' => $botData['settings']['market_maker_order_probability'],
         ];
         
-
+        // Enforce minimum price_factor
+        if (self::$config[$pair]['settings']['price_factor'] < 0.01) {
+            self::$config[$pair]['settings']['price_factor'] = 0.01;
+        }
 
         // Save the configuration
         self::saveConfig();
@@ -345,6 +348,13 @@ class Config
             unset(self::$config[$foundPair]);
             self::$config[$newPair] = $config;
             
+            // Enforce minimum price_factor
+            if (isset(self::$config[$newPair]['settings']['price_factor']) && self::$config[$newPair]['settings']['price_factor'] < 0.01) {
+                self::$config[$newPair]['settings']['price_factor'] = 0.01;
+                // Also update the compatibility field if needed
+                self::$config[$newPair]['price_deviation_percent'] = 0.01;
+            }
+            
             // Save the configuration
             self::saveConfig();
             
@@ -396,6 +406,13 @@ class Config
                     }
                 }
                 
+                // Enforce minimum price_factor after potential update
+                if (isset(self::$config[$foundPair]['settings']['price_factor']) && self::$config[$foundPair]['settings']['price_factor'] < 0.01) {
+                    self::$config[$foundPair]['settings']['price_factor'] = 0.01;
+                    // Also update the compatibility field if needed
+                    self::$config[$foundPair]['price_deviation_percent'] = 0.01;
+                }
+                
                 // Видаляємо налаштування з botData, оскільки вони вже оброблені
                 unset($botData['settings']);
             }
@@ -403,6 +420,13 @@ class Config
             // Update the configuration
             foreach ($botData as $key => $value) {
                 self::$config[$foundPair][$key] = $value;
+            }
+
+            // Enforce minimum price_factor after potential update
+            if (isset(self::$config[$foundPair]['settings']['price_factor']) && self::$config[$foundPair]['settings']['price_factor'] < 0.01) {
+                self::$config[$foundPair]['settings']['price_factor'] = 0.01;
+                // Also update the compatibility field if needed
+                self::$config[$foundPair]['price_deviation_percent'] = 0.01;
             }
             
             // Save the configuration
