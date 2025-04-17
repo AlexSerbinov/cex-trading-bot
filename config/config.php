@@ -8,8 +8,8 @@ declare(strict_types=1);
 class Config
 {
     // Замінено динамічний вираз на статичний метод
-    // public const TRADE_SERVER_URL_DEFAULT = 'http://195.7.7.93:18080'; // demo server
-    public const TRADE_SERVER_URL_DEFAULT = 'http://164.68.117.90:18080';   // dev server
+    public const TRADE_SERVER_URL_DEFAULT = 'http://195.7.7.93:18080'; // demo server
+    // public const TRADE_SERVER_URL_DEFAULT = 'http://164.68.117.90:18080';   // dev server
     
     /**
      * Отримання URL торгового сервера

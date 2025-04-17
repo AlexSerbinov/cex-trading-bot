@@ -490,6 +490,16 @@ class TradingBot
         $response = $this->apiClient->post(Config::getTradeServerUrl(), json_encode($body));
         $data = json_decode($response, true);
 
+        // Log the actual server response for debugging
+        $this->logger->log(sprintf(
+            '[%s] Server response for placeMarketOrder (side=%d): %s',
+            $this->pair,
+            $side,
+            $response // Log the raw response string
+            // json_encode($data, JSON_PRETTY_PRINT) // Or log the parsed data
+        ));
+
+        // TODO: Check the actual response from the server?
         return true; // Simulation of successful execution
     }
 

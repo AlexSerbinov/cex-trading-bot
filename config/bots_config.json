@@ -13,8 +13,8 @@
             "frequency_to": 1,
             "price_factor": 10,
             "market_gap": 1,
-            "min_orders": 4,
-            "market_maker_order_probability": 0
+            "min_orders": 14,
+            "market_maker_order_probability": 100
         }
     },
     "BTC_USDC": {
