@@ -7,6 +7,10 @@ require_once __DIR__ . '/TradingBot.php';
 require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/BotProcess.php';
 
+// Keep use statements for await, remove/ignore asyncSleep alias
+use function React\Async\await;
+// use function React\Promise\Timer\sleep as asyncSleep; // Keep or remove, doesn't matter now
+
 /**
  * Class for running trading bots
  */
@@ -72,7 +76,7 @@ class BotRunner
             
             // Clearing all orders when stopping
             if (isset($this->bot)) {
-                $this->bot->clearAllOrders();
+                await($this->bot->clearAllOrders());
             }
             
             // Removing the PID file
@@ -83,8 +87,6 @@ class BotRunner
         }
         
         $this->terminate = true;
-        
-        exit(0);
     }
 
     /**
@@ -101,7 +103,7 @@ class BotRunner
             
             // Clearing all orders when stopping
             if (isset($this->bot)) {
-                $this->bot->clearAllOrders();
+                await($this->bot->clearAllOrders());
             }
             
             // Removing the PID file
@@ -164,7 +166,7 @@ class BotRunner
             
             // Initializing the bot
             $this->logger->log("!!!!! BotRunner: Початок ініціалізації бота для пари {$this->pair}");
-            $this->bot->initialize();
+            await($this->bot->initialize());
             $this->logger->log("!!!!! BotRunner: Ініціалізацію бота для пари {$this->pair} завершено");
             
             // Main bot loop
@@ -212,7 +214,7 @@ class BotRunner
                         
                         // Очищаємо всі ордери перед оновленням конфігурації
                         $this->logger->log("!!!!! BotRunner: Очищення всіх ордерів перед оновленням конфігурації");
-                        $this->bot->clearAllOrders();
+                        await($this->bot->clearAllOrders());
                         
                         // Оновлюємо конфігурацію бота
                         $this->logger->log("!!!!! BotRunner: Застосування нової конфігурації до бота");
@@ -220,7 +222,7 @@ class BotRunner
                         
                         // Ініціалізуємо бота з новою конфігурацією
                         $this->logger->log("!!!!! BotRunner: Повторна ініціалізація бота з оновленою конфігурацією");
-                        $this->bot->initialize();
+                        await($this->bot->initialize());
                         $this->logger->log("!!!!! BotRunner: Ініціалізацію бота з оновленою конфігурацією завершено");
                         
                         // Оновлюємо хеш конфігурації
@@ -249,44 +251,44 @@ class BotRunner
                     $frequency_to = $pairConfig['settings']['frequency_to'];
                     
                     // If both frequencies are 0, skip the delay
-                    if ($frequency_from === 0 && $frequency_to === 0) {
-                        $delay = 0;
-                    } else {
+                    $delaySeconds = 0.0; // Use float for asyncSleep
+                    if (!($frequency_from === 0 && $frequency_to === 0)) {
                         $minDelay = max(0, (int)$frequency_from);
                         $maxDelay = max($minDelay, (int)$frequency_to);
-                        $delay = mt_rand($minDelay, $maxDelay);
+                        // Use microseconds for random calculation then convert to float seconds
+                        $delayMicroseconds = mt_rand($minDelay * 1000000, $maxDelay * 1000000);
+                        $delaySeconds = $delayMicroseconds / 1000000.0;
                     }
                     
-                    $this->logger->log("!!!!! BotRunner: Бот для пари {$this->pair} очікує {$delay} секунд до наступного циклу");
+                    $this->logger->log(sprintf("!!!!! BotRunner: Бот для пари {$this->pair} очікує %.6f секунд до наступного циклу", $delaySeconds));
                     
                     // Splitting the delay into short intervals to react faster to changes
-                    $shortInterval = 1; // 1 секунда
-                    $remainingDelay = $delay;
+                    $shortInterval = 1.0; // Use float for asyncSleep
+                    $remainingDelay = $delaySeconds;
                     
                     while ($remainingDelay > 0 && !$this->terminate) {
-                        $sleepTime = min($shortInterval, $remainingDelay);
-                        sleep($sleepTime);
+                        // Use float comparison and asyncSleep
+                        $sleepTime = min($shortInterval, $remainingDelay); 
+                        await (\React\Promise\Timer\sleep($sleepTime));
                         $remainingDelay -= $sleepTime;
                         
-                        // Forcibly reloading the configuration
-                        $this->logger->log("!!!!! BotRunner: Перевірка змін конфігурації під час затримки, залишилось {$remainingDelay} сек.");
+                        // Configuration check logic remains the same
+                        $this->logger->log(sprintf("!!!!! BotRunner: Перевірка змін конфігурації під час затримки, залишилось %.6f сек.", $remainingDelay));
                         Config::reloadConfig();
                         
-                        // Checking if the pair is still active
                         $enabledPairs = Config::getEnabledPairs();
                         if (!in_array($this->pair, $enabledPairs)) {
                             $this->logger->log("!!!!! BotRunner: Пара {$this->pair} деактивована під час очікування, зупиняємо бота");
-                            break 2; // Exiting both loops
+                            break 2; 
                         }
                         
-                        // Перевіряємо, чи змінилася конфігурація пари
-                        $pairConfig = Config::getPairConfig($this->pair);
-                        if ($pairConfig !== null) {
-                            $newPairConfigHash = md5(json_encode($pairConfig));
+                        $currentPairConfig = Config::getPairConfig($this->pair);
+                        if ($currentPairConfig !== null) {
+                            $newPairConfigHash = md5(json_encode($currentPairConfig));
                             if ($newPairConfigHash !== $this->lastPairConfigHash) {
                                 $this->logger->log("!!!!! BotRunner: Виявлено зміни конфігурації пари під час очікування, перериваємо очікування");
                                 $this->logger->log("!!!!! BotRunner: Новий хеш: {$newPairConfigHash}, старий: {$this->lastPairConfigHash}");
-                                $remainingDelay = 0; // Exiting the inner loop
+                                break; // Exit the inner delay loop only
                             }
                         }
                     }
@@ -294,25 +296,35 @@ class BotRunner
                     // Process any pending signals
                     pcntl_signal_dispatch();
 
-                } catch (Exception $e) {
+                } catch (\Throwable $e) { // Catch Throwable for broader error handling
                     $this->logger->error("!!!!! BotRunner: Помилка під час виконання циклу бота для пари {$this->pair}: " . $e->getMessage());
-                    $this->logger->error("!!!!! BotRunner: Stack trace: " . $e->getTraceAsString());
+                    $this->logger->logStackTrace("!!!!! BotRunner: Stack trace помилки циклу: "); // Use logStackTrace helper if available
                     
-                    // Sleeping for a short period before the next cycle in case of an error
-                    sleep(5);
+                    // Sleeping for a short period before the next cycle in case of an error - Use asyncSleep
+                    $this->logger->log("!!!!! BotRunner: Затримка 5 секунд після помилки в циклі");
+                    await (\React\Promise\Timer\sleep(5.0));
+                }
+                 // Check for termination signal again after potential sleep/error handling
+                pcntl_signal_dispatch();
+                if ($this->terminate) {
+                     $this->logger->log("!!!!! BotRunner: Отримано сигнал завершення в кінці циклу while для {$this->pair}");
+                     break;
                 }
             }
             
-            $this->logger->log("!!!!! BotRunner: Бот для пари {$this->pair} завершив роботу");
+            $this->logger->log("!!!!! BotRunner: Бот для пари {$this->pair} завершив основний цикл роботи");
             
-        } catch (Exception $e) {
-            $this->logger->error("!!!!! BotRunner: Критична помилка при запуску бота для пари {$this->pair}: " . $e->getMessage());
-            $this->logger->error("!!!!! BotRunner: Stack trace: " . $e->getTraceAsString());
-            exit(1);
+        } catch (\Throwable $e) { // Catch Throwable
+            $this->logger->error("!!!!! BotRunner: Критична помилка при запуску/ініціалізації бота для пари {$this->pair}: " . $e->getMessage());
+             $this->logger->logStackTrace("!!!!! BotRunner: Stack trace критичної помилки: "); // Use logStackTrace
+            // Ensure loop stops and cleanup happens if possible
+             $this->terminate = true; 
+           // exit(1); // Avoid abrupt exit if inside async context, let shutdownGracefully handle it.
+        } finally {
+            // Shutdown gracefully regardless of how the loop ended (normal exit or exception)
+             $this->logger->log("!!!!! BotRunner: Виконання блоку finally, виклик shutdownGracefully для {$this->pair}");
+             $this->shutdownGracefully();
         }
-        
-        // Shutdown gracefully
-        $this->shutdownGracefully();
     }
 
     /**
@@ -360,14 +372,14 @@ class BotRunner
                 }
                 
                 // Short sleep to prevent CPU overload
-                sleep(1);
+                await (\React\Promise\Timer\sleep(1.0));
                 
             } catch (Exception $e) {
                 $this->logger->error("Менеджер процесів: помилка - " . $e->getMessage());
                 $this->logger->error("Менеджер процесів: stack trace - " . $e->getTraceAsString());
                 
                 // Short sleep in case of an error
-                sleep(5);
+                await (\React\Promise\Timer\sleep(5.0));
             }
         }
         

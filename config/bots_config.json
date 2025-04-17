@@ -14,14 +14,14 @@
             "price_factor": 10,
             "market_gap": 1,
             "min_orders": 14,
-            "market_maker_order_probability": 100
+            "market_maker_order_probability": 0
         }
     },
     "BTC_USDC": {
         "id": 18,
         "market": "BTC_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-04-10 14:59:41",
         "settings": {

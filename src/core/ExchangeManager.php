@@ -5,6 +5,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/ApiClient.php';
 require_once __DIR__ . '/Logger.php';
 
+// Додаємо use для ReactPHP класів
+use React\Http\Browser;
+use React\Promise\PromiseInterface;
+use Psr\Http\Message\ResponseInterface;
+
 /**
  * Class for managing interactions with different exchanges
  */
@@ -14,6 +19,8 @@ class ExchangeManager
     private Logger $logger;
     private static ?ExchangeManager $instance = null;
     private array $cachedPairs = [];
+    private Browser $browser; // Додаємо властивість для асинхронного браузера
+    private string $tradeServerUrl; // Declare tradeServerUrl property
 
     /**
      * Constructor
@@ -22,6 +29,9 @@ class ExchangeManager
     {
         $this->apiClient = new ApiClient();
         $this->logger = Logger::getInstance();
+        // Ініціалізуємо Browser. Можна передати Loop, якщо потрібно
+        $this->browser = new Browser(); 
+        $this->tradeServerUrl = Config::getTradeServerUrl(); // Initialize tradeServerUrl
     }
 
     /**
@@ -485,9 +495,10 @@ class ExchangeManager
         }
     }
 
-    public function cancelOrder(int $orderId, string $pair): array
+    // Замінюємо реалізацію cancelOrder на асинхронну
+    public function cancelOrder(int $orderId, string $pair): PromiseInterface
     {
-        $this->logger->log("[{$pair}] Cancelling order {$orderId}");
+        $this->logger->log("[{$pair}] Queuing async cancellation for order {$orderId}");
         
         $body = [
             'method' => 'order.cancel',
@@ -495,25 +506,130 @@ class ExchangeManager
             'id' => 1,
         ];
         
-        try {
-            // Використовуємо метод getTradeServerUrl замість константи
-            $url = Config::getTradeServerUrl();
-            
-            $json = json_encode($body);
-            
-            // Додаємо відстеження часу виконання
-            $startTime = microtime(true);
-            $response = $this->apiClient->post($url, $json);
-            $endTime = microtime(true);
-            $execTime = round(($endTime - $startTime) * 1000);
-            
-            // $this->logger->log("[{$pair}] Cancel request execution time: {$execTime}ms");
-            
-            $data = json_decode($response, true);
-            return $data;
-        } catch (Exception $e) {
-            $this->logger->error("[{$pair}] Exception when cancelling order: " . $e->getMessage());
-            return ['error' => ['message' => $e->getMessage()]];
-        }
+        $url = Config::getTradeServerUrl();
+        $jsonBody = json_encode($body);
+
+        return $this->browser->post(
+            $url,
+            ['Content-Type' => 'application/json'],
+            $jsonBody
+        )->then(
+            function (ResponseInterface $response) use ($orderId, $pair) {
+                // Успішна відповідь від сервера (не обов'язково успішне скасування)
+                $data = json_decode((string) $response->getBody(), true);
+                $this->logger->log("[{$pair}] Received API response for cancelling order {$orderId}");
+                // Перевіряємо наявність помилки в самій відповіді API
+                if (isset($data['error']) && $data['error'] !== null) {
+                    $errorJson = json_encode($data['error']);
+                    $this->logger->error("[{$pair}] API error cancelling order {$orderId}: {$errorJson}");
+                    // Відхиляємо проміс з помилкою API
+                    throw new \RuntimeException("API Error: " . $errorJson);
+                }
+                // Якщо помилки API немає, вважаємо операцію (на рівні HTTP) успішною
+                 $this->logger->log("[{$pair}] Successfully processed cancellation request for order {$orderId} (check result field for details)");
+                return $data; // Вирішуємо проміс з повними даними відповіді
+            },
+            function (\Exception $exception) use ($orderId, $pair) {
+                // Помилка на рівні HTTP-запиту (немає з'єднання, таймаут тощо)
+                $this->logger->error("[{$pair}] HTTP Exception when cancelling order {$orderId}: " . $exception->getMessage());
+                // Відхиляємо проміс з винятком
+                throw $exception;
+            }
+        );
     }
+
+    /**
+     * Asynchronously places a limit order.
+     *
+     * @param string $pair Trading pair
+     * @param int $side Side (1 for ask, 2 for bid)
+     * @param string $amount Amount
+     * @param string $price Price
+     * @return PromiseInterface Resolves with the API result array or rejects on failure.
+     */
+    public function placeLimitOrder(string $pair, int $side, string $amount, string $price): PromiseInterface
+    {
+        $this->logger->log("[{$pair}] ExchangeManager: Preparing async limit order placement request...");
+        $body = [
+            'method' => 'order.put_limit',
+            'params' => [
+                Config::BOT_USER_ID,
+                $pair,
+                $side,
+                $amount,
+                $price,
+                Config::TAKER_FEE, // Assuming these are still relevant
+                Config::MAKER_FEE,
+                Config::ORDER_SOURCE,
+            ],
+            'id' => 1, // Consider using unique IDs if needed
+        ];
+
+        return $this->browser
+            ->post(
+                $this->tradeServerUrl, 
+                ['Content-Type' => 'application/json'], 
+                json_encode($body)
+            )
+            ->then(
+                function (ResponseInterface $response) use ($pair, $side, $price, $amount) {
+                    $result = json_decode((string) $response->getBody(), true);
+                    $this->logger->log("[{$pair}] ExchangeManager: Received API response for placing limit order (side={$side}, price={$price}, amount={$amount})");
+                    // Basic check for presence of result or error key
+                    if (!isset($result['result']) && !isset($result['error'])) {
+                         $this->logger->error("[{$pair}] ExchangeManager: Invalid API response structure for placeLimitOrder: " . (string)$response->getBody());
+                         throw new \RuntimeException("Invalid API response structure received from server for placeLimitOrder.");
+                    }
+                    return $result; // Resolve with the full result array
+                },
+                function (\Exception $e) use ($pair, $side, $price, $amount) {
+                    $this->logger->error("[{$pair}] ExchangeManager: HTTP Exception placing limit order (side={$side}, price={$price}, amount={$amount}): " . $e->getMessage());
+                     $this->logger->logStackTrace("[{$pair}] ExchangeManager: Stack trace for placeLimitOrder HTTP exception:");
+                    throw $e; // Reject with the original exception
+                }
+            );
+    }
+    
+    // TODO: Implement placeMarketOrder asynchronously
+    /*
+    public function placeMarketOrder(string $pair, int $side, string $amount): PromiseInterface
+    {
+        $this->logger->log("[{$pair}] ExchangeManager: Preparing async market order placement request...");
+        $body = [
+            'method' => 'order.put_market',
+            'params' => [
+                Config::BOT_USER_ID,
+                $pair,
+                $side,
+                $amount,
+                Config::TAKER_FEE,
+                Config::MARKET_TRADE_SOURCE,
+            ],
+            'id' => 1, 
+        ];
+
+        return $this->browser
+            ->post(
+                $this->tradeServerUrl, 
+                ['Content-Type' => 'application/json'], 
+                json_encode($body)
+            )
+            ->then(
+                function (ResponseInterface $response) use ($pair, $side, $amount) {
+                    $result = json_decode((string) $response->getBody(), true);
+                    $this->logger->log("[{$pair}] ExchangeManager: Received API response for placing market order (side={$side}, amount={$amount})");
+                    if (!isset($result['result']) && !isset($result['error'])) {
+                         $this->logger->error("[{$pair}] ExchangeManager: Invalid API response structure for placeMarketOrder: " . (string)$response->getBody());
+                         throw new \RuntimeException("Invalid API response structure received from server for placeMarketOrder.");
+                    }
+                    return $result;
+                },
+                function (\Exception $e) use ($pair, $side, $amount) {
+                    $this->logger->error("[{$pair}] ExchangeManager: HTTP Exception placing market order (side={$side}, amount={$amount}): " . $e->getMessage());
+                    $this->logger->logStackTrace("[{$pair}] ExchangeManager: Stack trace for placeMarketOrder HTTP exception:");
+                    throw $e;
+                }
+            );
+    }
+    */
 } 

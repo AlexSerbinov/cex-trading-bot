@@ -30,14 +30,8 @@ class Config
     // Delay constants (in milliseconds)
     public const DELAY_RUN_MIN = 100; // 0.1 second
     public const DELAY_RUN_MAX = 500; // 0.5 seconds
-    public const DELAY_ORDER_MIN = 200; // 0.025 seconds
-    public const DELAY_ORDER_MAX = 500; // 0.05 seconds
-    public const DELAY_CLEAR_MIN = 10; // 10 ms
-    public const DELAY_CLEAR_MAX = 25; // 25 ms
-    public const DELAY_INIT_MIN = 15; // 15 ms
-    public const DELAY_INIT_MAX = 50; // 50 ms
-    public const DELAY_MAINTAIN_MIN = 100; // 100 ms
-    public const DELAY_MAINTAIN_MAX = 200; // 200 ms
+    public const DELAY_MAINTAIN_MIN = 50; // 50 ms
+    public const DELAY_MAINTAIN_MAX = 55; // 55 ms
 
     // Supported exchanges
     public const SUPPORTED_EXCHANGES = ['binance', 'kraken'];

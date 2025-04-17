@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use function React\Async\async;
+use function React\Async\await;
+use React\Promise\PromiseInterface;
+
 /**
  * Market Maker Actions for TradingBot
  * 
@@ -153,54 +157,74 @@ class MarketMakerActions
      */
     private function updateAskOrder(array $asks, float $marketPrice, float $deviationPercent, float $gapAdjustment): void
     {
-        $this->logger->log("[{$this->pair}] Updating an ask order");
+        async(function () use ($asks, $marketPrice, $deviationPercent, $gapAdjustment) {
+            $this->logger->log("[{$this->pair}] Updating an ask order (async)");
 
-        // Сортуємо аски за ціною (від низької до високої)
-        usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
-        
-        // Вибираємо випадковий аск для оновлення
-        // $orderIndex = mt_rand(0, count($asks) - 1);
-        // $orderToUpdate = $asks[$orderIndex];
+            // Сортуємо аски за ціною (від низької до високої)
+            usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
+            
+            // Select an ask order using weighted random selection based on distance from best ask
+            $bestAskPrice = $marketPrice + $gapAdjustment;
+            $orderToUpdate = $this->selectOrderWeightedByDistance($asks, $bestAskPrice, false);
 
-        // Select an ask order using weighted random selection based on distance from best ask
-        $bestAskPrice = $marketPrice + $gapAdjustment;
-        $orderToUpdate = $this->selectOrderWeightedByDistance($asks, $bestAskPrice, false);
+            if ($orderToUpdate === null) {
+                $this->logger->log("[{$this->pair}] No ask order selected for update (list might be empty).");
+                return; // Exit async function
+            }
+            
+            $orderId = $orderToUpdate['id'];
+            $oldPrice = $orderToUpdate['price'];
+            $askAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
 
-        if ($orderToUpdate === null) {
-            $this->logger->log("[{$this->pair}] No ask order selected for update (list might be empty).");
-            return;
-        }
-        
-        // Скасовуємо ордер
-        $this->bot->cancelOrder($orderToUpdate['id']);
-        $this->logger->log(sprintf(
-            '[%s] Cancelled ask for update: %d @ %s',
-            $this->pair,
-            $orderToUpdate['id'],
-            $orderToUpdate['price']
-        ));
-        
-        // Створюємо новий аск з оновленою ціною
-        $randBase = 0.05 + (mt_rand(0, 900) / 1000);
-        $randomFactor = pow($randBase, 1/3);
-        
-        $askPrice = number_format(
-            $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
-            12,
-            '.',
-            ''
-        );
-        $askAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
-        $this->bot->placeLimitOrder(1, $askAmount, $askPrice);
-        $this->logger->log(sprintf(
-            '[%s] Placed updated ask: %s @ %s (was @ %s, factor: %.4f, gap: %.6f)',
-            $this->pair,
-            $askAmount,
-            $askPrice,
-            $orderToUpdate['price'],
-            $randomFactor,
-            $gapAdjustment
-        ));
+            try {
+                // Скасовуємо ордер асинхронно
+                $this->logger->log("[{$this->pair}] Attempting to cancel ask {$orderId} @ {$oldPrice} for update...");
+                await($this->bot->getExchangeManager()->cancelOrder($orderId, $this->pair));
+                $this->logger->log(sprintf(
+                    '[%s] Successfully cancelled ask for update: %d @ %s',
+                    $this->pair,
+                    $orderId,
+                    $oldPrice
+                ));
+                
+                // Створюємо новий аск з оновленою ціною асинхронно
+                $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+                $randomFactor = pow($randBase, 1/3);
+                
+                $askPrice = number_format(
+                    $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
+                    12,
+                    '.',
+                    ''
+                );
+                
+                 // Ensure amount is valid before placing
+                 if ((float)$askAmount <= 0) {
+                     $this->logger->error("[{$this->pair}] Invalid ask amount for update: {$askAmount}");
+                     // Decide how to handle: skip placement, use minimum, etc.
+                     // For now, let's skip placement if amount is invalid
+                     return; 
+                 }
+                 
+                $this->logger->log("[{$this->pair}] Attempting to place updated ask {$askAmount} @ {$askPrice}...");
+                await($this->bot->placeLimitOrder(1, $askAmount, $askPrice)); 
+                $this->logger->log(sprintf(
+                    '[%s] Successfully placed updated ask: %s @ %s (was @ %s, factor: %.4f, gap: %.6f)',
+                    $this->pair,
+                    $askAmount,
+                    $askPrice,
+                    $oldPrice,
+                    $randomFactor,
+                    $gapAdjustment
+                ));
+
+            } catch (\Throwable $e) {
+                // Catch errors from either cancelOrder or placeLimitOrder promises
+                $this->logger->error("[{$this->pair}] Error updating ask order {$orderId}: " . $e->getMessage());
+                $this->logger->logStackTrace("[{$this->pair}] Stack trace for updateAskOrder error:");
+                // Decide if any cleanup or different action is needed on error
+            }
+        })(); // Immediately invoke the async function
     }
 
     /**
@@ -213,54 +237,74 @@ class MarketMakerActions
      */
     private function updateBidOrder(array $bids, float $marketPrice, float $deviationPercent, float $gapAdjustment): void
     {
-        $this->logger->log("[{$this->pair}] Updating a bid order");
+        async(function () use ($bids, $marketPrice, $deviationPercent, $gapAdjustment) {
+            $this->logger->log("[{$this->pair}] Updating a bid order (async)");
 
-        // Сортуємо біди за ціною (від високої до низької)
-        usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']);
-        
-        // Вибираємо випадковий бід для оновлення
-        // $orderIndex = mt_rand(0, count($bids) - 1);
-        // $orderToUpdate = $bids[$orderIndex];
+            // Сортуємо біди за ціною (від високої до низької)
+            usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']);
+            
+            // Select a bid order using weighted random selection based on distance from best bid
+            $bestBidPrice = $marketPrice - $gapAdjustment;
+            $orderToUpdate = $this->selectOrderWeightedByDistance($bids, $bestBidPrice, true);
 
-        // Select a bid order using weighted random selection based on distance from best bid
-        $bestBidPrice = $marketPrice - $gapAdjustment;
-        $orderToUpdate = $this->selectOrderWeightedByDistance($bids, $bestBidPrice, true);
+            if ($orderToUpdate === null) {
+                $this->logger->log("[{$this->pair}] No bid order selected for update (list might be empty).");
+                return; // Exit async function
+            }
+            
+            $orderId = $orderToUpdate['id'];
+            $oldPrice = $orderToUpdate['price'];
+            $bidAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
 
-        if ($orderToUpdate === null) {
-            $this->logger->log("[{$this->pair}] No bid order selected for update (list might be empty).");
-            return;
-        }
-        
-        // Скасовуємо ордер
-        $this->bot->cancelOrder($orderToUpdate['id']);
-        $this->logger->log(sprintf(
-            '[%s] Cancelled bid for update: %d @ %s',
-            $this->pair,
-            $orderToUpdate['id'],
-            $orderToUpdate['price']
-        ));
-        
-        // Створюємо новий бід з оновленою ціною
-        $randBase = 0.05 + (mt_rand(0, 900) / 1000);
-        $randomFactor = pow($randBase, 1/3);
-        
-        $bidPrice = number_format(
-            $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
-            12,
-            '.',
-            ''
-        );
-        $bidAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
-        $this->bot->placeLimitOrder(2, $bidAmount, $bidPrice);
-        $this->logger->log(sprintf(
-            '[%s] Placed updated bid: %s @ %s (was @ %s, factor: %.4f, gap: %.6f)',
-            $this->pair,
-            $bidAmount,
-            $bidPrice,
-            $orderToUpdate['price'],
-            $randomFactor,
-            $gapAdjustment
-        ));
+            try {
+                // Скасовуємо ордер асинхронно
+                $this->logger->log("[{$this->pair}] Attempting to cancel bid {$orderId} @ {$oldPrice} for update...");
+                await($this->bot->getExchangeManager()->cancelOrder($orderId, $this->pair));
+                $this->logger->log(sprintf(
+                    '[%s] Successfully cancelled bid for update: %d @ %s',
+                    $this->pair,
+                    $orderId,
+                    $oldPrice
+                ));
+                
+                // Створюємо новий бід з оновленою ціною асинхронно
+                $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+                $randomFactor = pow($randBase, 1/3);
+                
+                $bidPrice = number_format(
+                    $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
+                    12,
+                    '.',
+                    ''
+                );
+                
+                 // Ensure amount is valid before placing
+                 if ((float)$bidAmount <= 0) {
+                     $this->logger->error("[{$this->pair}] Invalid bid amount for update: {$bidAmount}");
+                     // Decide how to handle: skip placement, use minimum, etc.
+                     // For now, let's skip placement if amount is invalid
+                     return; 
+                 }
+                 
+                $this->logger->log("[{$this->pair}] Attempting to place updated bid {$bidAmount} @ {$bidPrice}...");
+                await($this->bot->placeLimitOrder(2, $bidAmount, $bidPrice)); 
+                $this->logger->log(sprintf(
+                    '[%s] Successfully placed updated bid: %s @ %s (was @ %s, factor: %.4f, gap: %.6f)',
+                    $this->pair,
+                    $bidAmount,
+                    $bidPrice,
+                    $oldPrice,
+                    $randomFactor,
+                    $gapAdjustment
+                ));
+
+            } catch (\Throwable $e) {
+                // Catch errors from either cancelOrder or placeLimitOrder promises
+                $this->logger->error("[{$this->pair}] Error updating bid order {$orderId}: " . $e->getMessage());
+                $this->logger->logStackTrace("[{$this->pair}] Stack trace for updateBidOrder error:");
+                // Decide if any cleanup or different action is needed on error
+            }
+        })(); // Immediately invoke the async function
     }
 
     /**

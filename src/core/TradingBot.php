@@ -8,6 +8,14 @@ require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/ExchangeManager.php';
 require_once __DIR__ . '/MarketMakerActions.php';
 
+// Додаємо use для React\Async
+use function React\Async\await;
+use React\Promise\PromiseInterface; // Можливо, вже є
+use function React\Promise\all;
+use function React\Promise\resolve;
+use function React\Async\async;
+use function React\Promise\reject;
+
 /**
  * TradingBot - an automated bot for simulating trades on a cryptocurrency exchange.
  */
@@ -17,6 +25,7 @@ class TradingBot
     private array $pairConfig;
     private Logger $logger;
     private ExchangeManager $exchangeManager;
+    private ApiClient $apiClient;
     private array $openOrders = [];
     private bool $isInitialized = false;
     private MarketMakerActions $marketMakerActions;
@@ -359,148 +368,155 @@ class TradingBot
     }
 
     /**
-     * Clears all bot orders.
+     * Clears all bot orders asynchronously.
+     * Returns a promise that resolves when all cancellations are settled or immediately if no orders exist.
      */
-    public function clearAllOrders(): void
+    public function clearAllOrders(): PromiseInterface
     {
-        $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Початок очищення всіх ордерів");
+        $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Starting async clearing of all orders...");
         
-        // Отримання списку відкритих ордерів
-        $openOrders = $this->exchangeManager->getOpenOrders($this->pair);
-        $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Знайдено " . count($openOrders) . " відкритих ордерів для очищення");
-        
-        // Збираємо всі ID для скасування
-        $orderIds = array_map(function($order) {
-            return $order['id'];
-        }, $openOrders);
-        
-        // Скасовуємо ордери пакетно
-        foreach ($orderIds as $orderId) {
-            $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Скасування ордера: {$orderId}");
-            $this->cancelOrder($orderId);
-            // Додаємо невелику затримку між скасуваннями ордерів
-            usleep(100000); // 100 мс
+        try {
+            // Отримання списку відкритих ордерів (залишаємо поки синхронним)
+            $openOrders = $this->exchangeManager->getOpenOrders($this->pair);
+            $orderCount = count($openOrders);
+            $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Found {$orderCount} open orders to clear.");
+
+            if ($orderCount === 0) {
+                $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] No orders to clear.");
+                return \React\Promise\resolve(true);
+            }
+            
+            // Створюємо масив промісів для скасування кожного ордера асинхронно
+            $promises = array_map(function($order) {
+                $orderId = $order['id'];
+                // Викликаємо асинхронний метод менеджера, НЕ чекаємо тут
+                return $this->exchangeManager->cancelOrder($orderId, $this->pair)
+                    ->then(
+                        function ($result) use ($orderId) {
+                            // Успішна відповідь API (можливо, з помилкою всередині)
+                            if (isset($result['error']) && $result['error'] !== null) {
+                                if (isset($result['error']['code']) && $result['error']['code'] == 10) {
+                                     $this->logger->log("[{$this->pair}] Order {$orderId} already done/cancelled (in promise).");
+                                } else {
+                                    $this->logger->error("[{$this->pair}] API error in cancel promise for order {$orderId}: " . json_encode($result['error']));
+                                }
+                            } else {
+                                $this->logger->log("[{$this->pair}] Cancel API call for order {$orderId} succeeded (in promise).");
+                            }
+                            return $result; // Повертаємо результат для all()
+                        },
+                        function (\Throwable $e) use ($orderId) {
+                            // Помилка HTTP або відхилення промісу з ExchangeManager
+                            $this->logger->error("[{$this->pair}] Failed cancel promise for order {$orderId}: " . $e->getMessage());
+                            // Можна повернути маркер помилки або повторно кинути виняток,
+                            // щоб all() відхилився, якщо хоча б один запит невдалий.
+                            // Повернемо null, щоб all() не впав одразу.
+                            return null; 
+                        }
+                    );
+            }, $openOrders);
+            
+            $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Waiting for all {$orderCount} cancellation promises to settle...");
+
+            // Чекаємо завершення ВСІХ асинхронних скасувань
+            $results = await(all($promises)); 
+
+            // Аналізуємо результати (опціонально)
+            $successCount = 0;
+            $errorCount = 0;
+            foreach ($results as $index => $result) {
+                if ($result === null) { // Наш маркер помилки з блоку rejection
+                    $errorCount++;
+                } elseif (isset($result['error']) && $result['error'] !== null) {
+                    // Помилка API, яку ми не вважали за критичну раніше
+                    if (!(isset($result['error']['code']) && $result['error']['code'] == 10)) {
+                         $errorCount++; // Рахуємо як помилку, якщо це не 'not found'
+                    }
+                } else {
+                    $successCount++;
+                }
+            }
+            $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] All promises settled. Success API calls: {$successCount}, Failed/Error API calls: {$errorCount}");
+            $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Clearing process finished.");
+            return \React\Promise\resolve($results);
+
+        } catch (\Throwable $e) {
+            // Catch synchronous errors (e.g., in getOpenOrders) or errors from await(all)
+            $this->logger->error("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Exception during clearing process: " . $e->getMessage());
+             $this->logger->logStackTrace("[{$this->pair}] Stack trace for clearAllOrders exception:");
+             // Return a rejected promise
+             return \React\Promise\reject($e); 
         }
-        
-        $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Всі ордери очищено");
     }
 
     /**
-     * Places a limit order.
+     * Places a limit order asynchronously.
      * 
      * @param int $side Side (1 for ask, 2 for bid)
      * @param string $amount Amount
      * @param string $price Price
-     * @return int Order ID
+     * @return PromiseInterface<int> Promise resolving with the Order ID or rejecting on failure.
      */
-    public function placeLimitOrder(int $side, string $amount, string $price): int
+    public function placeLimitOrder(int $side, string $amount, string $price): PromiseInterface
     {
-        $this->logger->log("[{$this->pair}] Placing a limit order price={$price}, amount={$amount}, for side={$side}, amount={$amount},  with fees: " . Config::TAKER_FEE . " and " . Config::MAKER_FEE);
-        $body = [
-            'method' => 'order.put_limit',
-            'params' => [
-                Config::BOT_USER_ID,
-                $this->pair,
-                $side,
-                $amount,
-                $price,
-                Config::TAKER_FEE,
-                Config::MAKER_FEE,
-                Config::ORDER_SOURCE,
-            ],
-            'id' => 1,
-        ];
-        $response = $this->apiClient->post(Config::getTradeServerUrl(), json_encode($body));
-        // $this->logger->log("[{$this->pair}] Placed order: " . json_encode($body, JSON_PRETTY_PRINT));
-        $data = json_decode($response, true);
-
-        if ($data['error'] !== null) {
-            $this->logger->log(
-                sprintf(
-                    '[%s] Result of placing an order for side=%d: %s',
-                    $this->pair,
-                    $side,
-                    json_encode($data, JSON_PRETTY_PRINT),
-                ),
-            );
-            throw new RuntimeException("Failed to place limit order: " . json_encode($data['error']));
-        }
-
-        if (!isset($data['result']) || !isset($data['result']['id'])) {
-            throw new RuntimeException("Invalid response format: missing order ID");
-        }
-
-        return (int)$data['result']['id'];
-    }
-
-    /**
-     * Cancels an order.
-     * 
-     * @param int $orderId Order ID
-     */
-    public function cancelOrder(int $orderId): void
-    {
-        try {
-            $result = $this->exchangeManager->cancelOrder($orderId, $this->pair);
-            
-            if (isset($result['error']) && $result['error'] !== null) {
-                // Перевіряємо на помилку "order not found"
-                if (isset($result['error']['code']) && $result['error']['code'] == 10) {
-                    $this->logger->log("[{$this->pair}] Order {$orderId} already executed or cancelled, skipping");
-                } else {
-                    $this->logger->error("[{$this->pair}] Error cancelling order {$orderId}: " . json_encode($result['error']));
-                    // Додаємо логування стек трейсу при помилці в результаті запиту
-                    $this->logger->logStackTrace("[{$this->pair}] Stack trace for cancelling order error (API result):");
+        $this->logger->log("[{$this->pair}] Queuing async limit order placement: side={$side}, price={$price}, amount={$amount}");
+        
+        // Delegate to ExchangeManager which returns a promise
+        // TODO: Ensure ExchangeManager::placeLimitOrder exists and returns a Promise
+        return $this->exchangeManager->placeLimitOrder($this->pair, $side, $amount, $price)
+            ->then(
+                function ($result) use ($side, $amount, $price) {
+                    // Check for API errors in the resolved result
+                    if (isset($result['error']) && $result['error'] !== null) {
+                        $errorJson = json_encode($result['error']);
+                        $this->logger->error("[{$this->pair}] API error placing limit order (side={$side}, amount={$amount}, price={$price}): {$errorJson}");
+                        // Reject the promise with an exception containing error details
+                        throw new RuntimeException("Failed to place limit order due to API error: " . $errorJson);
+                    }
+                    
+                    // Validate the structure and extract the ID
+                    if (!isset($result['result']) || !isset($result['result']['id'])) {
+                        $this->logger->error("[{$this->pair}] Invalid API response format (missing order ID): " . json_encode($result));
+                        throw new RuntimeException("Invalid API response format when placing limit order: missing order ID");
+                    }
+                    
+                    $orderId = (int)$result['result']['id'];
+                    $this->logger->log("[{$this->pair}] Successfully placed limit order (side={$side}, price={$price}, amount={$amount}) - ID: {$orderId}");
+                    return $orderId; // Resolve the promise with the integer Order ID
+                },
+                function (\Throwable $exception) use ($side, $amount, $price) {
+                    // Handle transport errors or other exceptions from the HTTP request
+                    $this->logger->error("[{$this->pair}] Exception placing limit order (side={$side}, amount={$amount}, price={$price}): " . $exception->getMessage());
+                     $this->logger->logStackTrace("[{$this->pair}] Stack trace for placeLimitOrder exception:");
+                    // Re-throw the exception to reject the promise
+                    throw $exception;
                 }
-            } else {
-                $this->logger->log("[{$this->pair}] Successfully cancelled order {$orderId}");
-            }
-            
-            $this->randomDelay(Config::DELAY_CLEAR_MIN, Config::DELAY_CLEAR_MAX);
-        } catch (Exception $e) {
-            $this->logger->error("[{$this->pair}] Exception when cancelling order {$orderId}: " . $e->getMessage());
-            // Додаємо логування стек трейсу для відстеження джерела помилки
-            $this->logger->logStackTrace("[{$this->pair}] Stack trace for cancelling order exception:");
-        }
+            );
     }
 
     /**
-     * Places a market order.
+     * Places a market order asynchronously.
      * 
      * @param int $side Side (1 for sell, 2 for buy)
      * @param string $amount Amount
-     * @return bool Success
+     * @return PromiseInterface<bool> Promise resolving with true on success (or simulated success), rejecting on failure.
      */
-    public function placeMarketOrder(int $side, string $amount): bool
+    public function placeMarketOrder(int $side, string $amount): PromiseInterface
     {
-        $this->logger->log("[{$this->pair}] Placing a market order for side={$side}, amount={$amount}");
-        
-        $body = [
-            'method' => 'order.put_market',
-            'params' => [
-                Config::BOT_USER_ID,
-                $this->pair,
-                $side,
-                $amount,
-                Config::TAKER_FEE,
-                Config::MARKET_TRADE_SOURCE,
-            ],
-            'id' => 1,
-        ];
-        $response = $this->apiClient->post(Config::getTradeServerUrl(), json_encode($body));
-        $data = json_decode($response, true);
+        $this->logger->log("[{$this->pair}] Queuing async market order placement: side={$side}, amount={$amount}");
 
-        // Log the actual server response for debugging
-        $this->logger->log(sprintf(
-            '[%s] Server response for placeMarketOrder (side=%d): %s',
-            $this->pair,
-            $side,
-            $response // Log the raw response string
-            // json_encode($data, JSON_PRETTY_PRINT) // Or log the parsed data
-        ));
+        // TODO: Implement async market order placement in ExchangeManager
+        // For now, simulate async success using resolve()
+        return \React\Promise\resolve(true)->then(function() use ($side, $amount) {
+            // Log simulated success within the promise chain
+            $this->logger->log("[{$this->pair}] Simulated successful placement of market order (side={$side}, amount={$amount})");
+            return true;
+        }); 
 
-        // TODO: Check the actual response from the server?
-        return true; // Simulation of successful execution
+        /* // Future implementation using ExchangeManager:
+        // TODO: Ensure ExchangeManager::placeMarketOrder exists and returns a Promise
+        return $this->exchangeManager->placeMarketOrder($this->pair, $side, $amount) 
+            ->then(\n                function ($result) use ($side, $amount) {\n                    if (isset($result['error']) && $result['error'] !== null) {\n                        $errorJson = json_encode($result['error']);\n                        $this->logger->error(\"[{this->pair}] API error placing market order (side={$side}, amount={$amount}): {$errorJson}\");\n                        throw new RuntimeException(\"Failed to place market order due to API error: \" . $errorJson);\n                    }\n                    // Check result structure if needed\n                    $this->logger->log(\"[{this->pair}] Successfully placed market order (side={$side}, amount={$amount}): \" . json_encode($result));\n                    return true; // Or return specific data from result\n                },\n                function (\Throwable $exception) use ($side, $amount) {\n                    $this->logger->error(\"[{this->pair}] Exception placing market order (side={$side}, amount={$amount}): \" . $exception->getMessage());\n                    $this->logger->logStackTrace(\"[{this->pair}] Stack trace for placeMarketOrder exception:\");\n                    throw $exception;\n                }\n            );\n        */
     }
 
     /**
@@ -748,56 +764,88 @@ class TradingBot
 
         // Cancel excess bids (more than max)
         if (count($currentBids) > $maxOrders) {
-            $bidsToCancel = count($currentBids) - $maxOrders;
+            $bidsToCancelCount = count($currentBids) - $maxOrders;
+            $this->logger->log("[{$this->pair}] Need to cancel {$bidsToCancelCount} excess bid(s).");
             $bids = array_values($currentBids);
             usort($bids, fn($a, $b) => (float) $a['price'] - (float) $b['price']); // Sort by lowest prices
             
-            // Зберігаємо ідентифікатори для скасування
+            // Збираємо ідентифікатори для скасування
             $bidIdsToCancel = [];
-            for ($i = 0; $i < $bidsToCancel && $i < count($bids); $i++) {
+            for ($i = 0; $i < $bidsToCancelCount && $i < count($bids); $i++) {
                 $bidIdsToCancel[] = $bids[$i]['id'];
             }
             
-            // Скасовуємо ордери за списком
-            foreach ($bidIdsToCancel as $orderId) {
-                $this->cancelOrder($orderId);
-                $this->logger->log(
-                    sprintf('[%s] Cancelled excess bid: %d', $this->pair, $orderId)
-                );
-                $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
+            if (!empty($bidIdsToCancel)) {
+                $this->logger->log("[{$this->pair}] Starting async cancellation of excess bids: " . implode(', ', $bidIdsToCancel));
+                try {
+                    // Створюємо масив промісів для скасування
+                    $promises = array_map(function($orderId) {
+                        return $this->exchangeManager->cancelOrder((int)$orderId, $this->pair)
+                            ->then(null, function (\Throwable $e) use ($orderId) {
+                                $this->logger->error("[{$this->pair}] Failed promise for cancelling excess bid {$orderId}: " . $e->getMessage());
+                                return null; // Повертаємо null при помилці
+                            });
+                    }, $bidIdsToCancel);
+
+                    // Чекаємо завершення всіх скасувань
+                    await(all($promises)); 
+                    $this->logger->log("[{$this->pair}] Finished async cancellation of excess bids.");
+
+                    // Оновлюємо масив currentBids ПІСЛЯ завершення всіх скасувань
+                    $currentBids = array_filter($currentBids, function($bid) use ($bidIdsToCancel) {
+                        return !in_array($bid['id'], $bidIdsToCancel);
+                    });
+                    $this->logger->log("[{$this->pair}] Updated currentBids count: " . count($currentBids));
+
+                } catch (\Throwable $e) {
+                    $this->logger->error("[{$this->pair}] Exception during await(all) for excess bid cancellation: " . $e->getMessage());
+                    $this->logger->logStackTrace("[{$this->pair}] Stack trace for excess bid cancellation await(all):");
+                    // Не оновлюємо $currentBids у разі помилки очікування
+                }
             }
-            
-            // Оновлюємо масив currentBids після скасування
-            $currentBids = array_filter($currentBids, function($bid) use ($bidIdsToCancel) {
-                return !in_array($bid['id'], $bidIdsToCancel);
-            });
         }
 
         // Cancel excess asks (more than max)
         if (count($currentAsks) > $maxOrders) {
-            $asksToCancel = count($currentAsks) - $maxOrders;
+            $asksToCancelCount = count($currentAsks) - $maxOrders;
+             $this->logger->log("[{$this->pair}] Need to cancel {$asksToCancelCount} excess ask(s).");
             $asks = array_values($currentAsks);
             usort($asks, fn($a, $b) => (float) $b['price'] - (float) $a['price']); // Sort by highest prices
             
             // Зберігаємо ідентифікатори для скасування
             $askIdsToCancel = [];
-            for ($i = 0; $i < $asksToCancel && $i < count($asks); $i++) {
+            for ($i = 0; $i < $asksToCancelCount && $i < count($asks); $i++) {
                 $askIdsToCancel[] = $asks[$i]['id'];
             }
             
-            // Скасовуємо ордери за списком
-            foreach ($askIdsToCancel as $orderId) {
-                $this->cancelOrder($orderId);
-                $this->logger->log(
-                    sprintf('[%s] Cancelled excess ask: %d', $this->pair, $orderId)
-                );
-                $this->randomDelay(Config::DELAY_MAINTAIN_MIN, Config::DELAY_MAINTAIN_MAX);
+            if (!empty($askIdsToCancel)) {
+                 $this->logger->log("[{$this->pair}] Starting async cancellation of excess asks: " . implode(', ', $askIdsToCancel));
+                try {
+                    // Створюємо масив промісів для скасування
+                    $promises = array_map(function($orderId) {
+                         return $this->exchangeManager->cancelOrder((int)$orderId, $this->pair)
+                            ->then(null, function (\Throwable $e) use ($orderId) {
+                                $this->logger->error("[{$this->pair}] Failed promise for cancelling excess ask {$orderId}: " . $e->getMessage());
+                                return null; // Повертаємо null при помилці
+                            });
+                    }, $askIdsToCancel);
+
+                    // Чекаємо завершення всіх скасувань
+                    await(all($promises));
+                    $this->logger->log("[{$this->pair}] Finished async cancellation of excess asks.");
+
+                    // Оновлюємо масив currentAsks ПІСЛЯ завершення всіх скасувань
+                    $currentAsks = array_filter($currentAsks, function($ask) use ($askIdsToCancel) {
+                        return !in_array($ask['id'], $askIdsToCancel);
+                    });
+                     $this->logger->log("[{$this->pair}] Updated currentAsks count: " . count($currentAsks));
+
+                } catch (\Throwable $e) {
+                    $this->logger->error("[{$this->pair}] Exception during await(all) for excess ask cancellation: " . $e->getMessage());
+                     $this->logger->logStackTrace("[{$this->pair}] Stack trace for excess ask cancellation await(all):");
+                    // Не оновлюємо $currentAsks у разі помилки очікування
+                }
             }
-            
-            // Оновлюємо масив currentAsks після скасування
-            $currentAsks = array_filter($currentAsks, function($ask) use ($askIdsToCancel) {
-                return !in_array($ask['id'], $askIdsToCancel);
-            });
         }
     }
 
@@ -956,5 +1004,13 @@ class TradingBot
     public function getOpenOrders(): array
     {
         return $this->openOrders;
+    }
+
+    /**
+     * Returns the ExchangeManager instance.
+     */
+    public function getExchangeManager(): ExchangeManager
+    {
+        return $this->exchangeManager;
     }
 }

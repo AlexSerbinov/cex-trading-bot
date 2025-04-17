@@ -3,10 +3,12 @@
         "guzzlehttp/guzzle": "^7.9",
         "symfony/console": "^7.2",
         "react/event-loop": "^1.5",
-        "react/promise": "^3.1",
-        "react/http": "^1.9",
+        "react/promise": "^3.2",
+        "react/promise-timer": "^1.10",
+        "react/http": "^1.11",
         "react/socket": "^1.14",
-        "react/stream": "^1.4"
+        "react/stream": "^1.4",
+        "react/async": "^4.3"
     },
     "autoload": {
         "psr-4": {
