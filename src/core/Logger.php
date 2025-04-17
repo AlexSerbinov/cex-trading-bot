@@ -109,6 +109,16 @@ class Logger
     {
         if ($this->logLevel <= self::ERROR) {
             $this->log('[ERROR] ' . $message);
+            
+            // Додатково записуємо помилки в файл bots_error.log
+            $environment = getenv('ENVIRONMENT') ?: 'local';
+            $errorLogFile = __DIR__ . '/../../data/logs/' . $environment . '/bots_error.log';
+            
+            // Якщо поточний файл логу не є файлом помилок, записуємо також у файл помилок
+            if ($this->logFile !== $errorLogFile) {
+                $errorMessage = '[' . date('Y-m-d H:i:s') . '] [ERROR] ' . $message;
+                file_put_contents($errorLogFile, $errorMessage . PHP_EOL, FILE_APPEND);
+            }
         }
     }
     
@@ -119,6 +129,16 @@ class Logger
     {
         if ($this->logLevel <= self::CRITICAL) {
             $this->log('[CRITICAL] ' . $message);
+            
+            // Додатково записуємо критичні помилки в файл bots_error.log
+            $environment = getenv('ENVIRONMENT') ?: 'local';
+            $errorLogFile = __DIR__ . '/../../data/logs/' . $environment . '/bots_error.log';
+            
+            // Якщо поточний файл логу не є файлом помилок, записуємо також у файл помилок
+            if ($this->logFile !== $errorLogFile) {
+                $errorMessage = '[' . date('Y-m-d H:i:s') . '] [CRITICAL] ' . $message;
+                file_put_contents($errorLogFile, $errorMessage . PHP_EOL, FILE_APPEND);
+            }
         }
     }
     

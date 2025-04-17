@@ -5,10 +5,42 @@ declare(strict_types=1);
 class ErrorHandler
 {
     private static ?Logger $logger = null;
+    private static bool $initialized = false;
+    
+    /**
+     * Шлях до файлу логів за замовчуванням
+     */
+    public const DEFAULT_ERROR_LOG_PATH = '/../data/logs/%s/bots_error.log';
 
-    public static function initialize(): void
+    /**
+     * Перевіряє, чи обробник помилок вже ініціалізовано
+     */
+    public static function isInitialized(): bool
     {
-        self::$logger = Logger::getInstance();
+        return self::$initialized;
+    }
+
+    /**
+     * Ініціалізує обробник помилок
+     * 
+     * @param string|null $errorLogFile Шлях до файлу логів помилок
+     */
+    public static function initialize(?string $errorLogFile = null): void
+    {
+        // Якщо errorLogFile не вказано, генеруємо шлях за замовчуванням
+        if ($errorLogFile === null) {
+            $environment = getenv('ENVIRONMENT') ?: 'local';
+            $errorLogFile = __DIR__ . sprintf(self::DEFAULT_ERROR_LOG_PATH, $environment);
+        }
+        
+        // Переконуємося, що директорія для логів існує
+        $logDir = dirname($errorLogFile);
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+        
+        self::$logger = Logger::getInstance(true, $errorLogFile);
+        self::$initialized = true;
 
         // Встановлюємо обробник помилок
         set_error_handler([self::class, 'handleError']);
@@ -23,6 +55,11 @@ class ErrorHandler
         ini_set('display_errors', '1');
         ini_set('display_startup_errors', '1');
         error_reporting(E_ALL);
+        
+        // Зафіксуємо початок роботи обробника помилок
+        if (self::$logger) {
+            self::$logger->log("ErrorHandler initialized. Errors will be logged to: {$errorLogFile}");
+        }
     }
 
     public static function handleError(int $errno, string $errstr, string $errfile, int $errline): bool
@@ -62,7 +99,20 @@ class ErrorHandler
         if (self::$logger) {
             self::$logger->error($message);
         } else {
-            error_log($message);
+            // Якщо логгер не ініціалізовано, використовуємо error_log для запису на диск
+            $environment = getenv('ENVIRONMENT') ?: 'local';
+            $backupErrorLog = __DIR__ . sprintf(self::DEFAULT_ERROR_LOG_PATH, $environment);
+            
+            // Переконуємося, що директорія для логів існує
+            $logDir = dirname($backupErrorLog);
+            if (!is_dir($logDir)) {
+                mkdir($logDir, 0755, true);
+            }
+            
+            // Записуємо помилку в файл
+            $timestamp = date('Y-m-d H:i:s');
+            $formattedMessage = "[{$timestamp}] {$message}";
+            error_log($formattedMessage, 3, $backupErrorLog);
         }
 
         // Виводимо в консоль, якщо це CLI
@@ -88,12 +138,26 @@ class ErrorHandler
         if (self::$logger) {
             self::$logger->critical($message);
         } else {
-            error_log($message);
+            // Якщо логгер не ініціалізовано, використовуємо error_log для запису на диск
+            $environment = getenv('ENVIRONMENT') ?: 'local';
+            $backupErrorLog = __DIR__ . sprintf(self::DEFAULT_ERROR_LOG_PATH, $environment);
+            
+            // Переконуємося, що директорія для логів існує
+            $logDir = dirname($backupErrorLog);
+            if (!is_dir($logDir)) {
+                mkdir($logDir, 0755, true);
+            }
+            
+            // Записуємо помилку в файл
+            $timestamp = date('Y-m-d H:i:s');
+            $formattedMessage = "[{$timestamp}] [CRITICAL] {$message}";
+            error_log($formattedMessage, 3, $backupErrorLog);
         }
 
         // Виводимо в консоль, якщо це CLI
         if (php_sapi_name() === 'cli') {
             fwrite(STDERR, $message . "\n");
+            fwrite(STDERR, "--------------------------------\n");
         }
 
         exit(1);
@@ -114,7 +178,20 @@ class ErrorHandler
             if (self::$logger) {
                 self::$logger->critical($message);
             } else {
-                error_log($message);
+                // Якщо логгер не ініціалізовано, використовуємо error_log для запису на диск
+                $environment = getenv('ENVIRONMENT') ?: 'local';
+                $backupErrorLog = __DIR__ . sprintf(self::DEFAULT_ERROR_LOG_PATH, $environment);
+                
+                // Переконуємося, що директорія для логів існує
+                $logDir = dirname($backupErrorLog);
+                if (!is_dir($logDir)) {
+                    mkdir($logDir, 0755, true);
+                }
+                
+                // Записуємо помилку в файл
+                $timestamp = date('Y-m-d H:i:s');
+                $formattedMessage = "[{$timestamp}] [CRITICAL] {$message}";
+                error_log($formattedMessage, 3, $backupErrorLog);
             }
 
             // Виводимо в консоль, якщо це CLI

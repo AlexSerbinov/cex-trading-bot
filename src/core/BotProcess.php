@@ -24,7 +24,11 @@ class BotProcess
      */
     public function __construct()
     {
-        $this->logger = Logger::getInstance();
+        // Використовуємо шлях до звичайного файлу логів
+        $environment = getenv('ENVIRONMENT') ?: 'local';
+        $logFile = __DIR__ . '/../../data/logs/' . $environment . '/bot.log';
+        
+        $this->logger = Logger::getInstance(true, $logFile);
         $this->pidDir = __DIR__ . '/../../data/pids';
         $this->logger->log("BotProcess: Ініціалізація, шлях до PID-директорії: {$this->pidDir}");
         
@@ -135,7 +139,7 @@ class BotProcess
         }
         
         // Path to the script that will be executed in a separate process
-        $scriptPath = __DIR__ . '/BotRunner.php';
+        $scriptPath = __DIR__ . '/TradingBotRunner.php';
         
         // Format the pair for the PID file name
         $safePair = $this->formatPairForFileName($pair);
@@ -182,7 +186,8 @@ class BotProcess
         file_put_contents($lockHandleFile, "locked");
         
         try {
-            // Command to start the process
+            // Використовуємо стандартне перенаправлення в /dev/null
+            // для запуску процесу у фоновому режимі
             $command = sprintf(
                 'php %s %s > /dev/null 2>&1 & echo $!',
                 escapeshellarg($scriptPath),
@@ -194,33 +199,42 @@ class BotProcess
             // Execute the command and get the PID of the process
             $pid = exec($command);
             
-            if (empty($pid)) {
-                $this->logger->error("!!!!! BotProcess::startProcess(): Не вдалося запустити процес для пари {$pair}");
+            if (!$pid || !is_numeric($pid) || $pid <= 0) {
+                $this->logger->error("!!!!! BotProcess::startProcess(): Помилка при запуску процесу для пари {$pair}, неправильний PID: {$pid}");
+                flock($lockHandle, LOCK_UN);
+                fclose($lockHandle);
                 return false;
             }
             
-            $this->logger->log("!!!!! BotProcess::startProcess(): Отримано PID для пари {$pair}: {$pid}");
+            $this->logger->log("!!!!! BotProcess::startProcess(): Процес запущено для пари {$pair}, PID: {$pid}");
             
-            // Save the PID of the process
-            $this->savePid($safePair, (int) $pid);
+            // Saving the PID to a file
+            $this->savePid($safePair, (int)$pid);
             
-            // Зберігаємо інформацію про лок-файл разом з PID
-            file_put_contents($lockFile, $pid);
-            
-            // Додаємо невелику затримку після запуску процесу і збереження PID
-            // щоб гарантувати, що файл буде коректно створено і процес встигне розпочати роботу
-            // перш ніж буде викликана перевірка чи запущений процес
-            usleep(500000); // 500 мс = 0.5 секунди
-            
-            $this->logger->log("!!!!! BotProcess::startProcess(): Процес для пари {$pair} успішно запущено з PID: {$pid}");
-            return true;
-        } catch (Exception $e) {
-            $this->logger->error("!!!!! BotProcess::startProcess(): Помилка при запуску процесу для пари {$pair}: " . $e->getMessage());
-            // Release the lock if an error occurred
+            // Releasing the lock
             flock($lockHandle, LOCK_UN);
             fclose($lockHandle);
-            @unlink($lockFile);
-            @unlink($lockHandleFile);
+            
+            // Checking if the process is actually running
+            usleep(500000); // 0.5 second
+            if (file_exists("/proc/{$pid}")) {
+                $this->logger->log("!!!!! BotProcess::startProcess(): Перевірено, що процес {$pid} для пари {$pair} успішно запущений");
+                return true;
+            } else {
+                $this->logger->error("!!!!! BotProcess::startProcess(): Процес {$pid} для пари {$pair} не запустився або швидко завершився");
+                
+                $this->removePidFile($safePair);
+                return false;
+            }
+            
+        } catch (\Throwable $e) {
+            $this->logger->error("!!!!! BotProcess::startProcess(): Виняток при запуску процесу для пари {$pair}: " . $e->getMessage());
+            $this->logger->error("!!!!! BotProcess::startProcess(): Стек-трейс: " . $e->getTraceAsString());
+            
+            // Releasing the lock
+            flock($lockHandle, LOCK_UN);
+            fclose($lockHandle);
+            
             return false;
         }
     }
@@ -662,7 +676,7 @@ class BotProcess
         $this->logger->info("!!!!! Оновлення процесів на основі активних пар");
         
         // Отримуємо список активних пар
-        $pairs = Config::getActivePairs();
+        $pairs = Config::getEnabledPairs();
         $this->logger->info("!!!!! Активні пари: " . implode(", ", $pairs ?: []));
         
         // Отримуємо список запущених процесів

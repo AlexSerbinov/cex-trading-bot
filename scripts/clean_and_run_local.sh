@@ -93,12 +93,12 @@ if [ -f "$BOT_MANAGER_LOCK" ]; then
     else
         echo "Лок-файл існує, але процес не запущений або це не TradingBotManager. Видаляємо старий лок-файл."
         rm -f "$BOT_MANAGER_LOCK"
-        cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php 2>&1 | tee -a "$PROJECT_ROOT/data/logs/local/bots_error.log" &
+        cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php 2>&1 | tee -a "$PROJECT_ROOT/data/logs/local/bot.log" &
         BOTS_PID=$!
         echo "Боти запущені з новим PID: $BOTS_PID"
     fi
 else
-    cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php 2>&1 | tee -a "$PROJECT_ROOT/data/logs/local/bots_error.log" &
+    cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php 2>&1 | tee -a "$PROJECT_ROOT/data/logs/local/bot.log" &
     BOTS_PID=$!
     echo "Боти запущені з PID: $BOTS_PID"
 fi
@@ -120,10 +120,9 @@ echo "Показ логів..."
 echo "Для перегляду помилок дивіться файли:"
 echo "- $PROJECT_ROOT/data/logs/local/backend_error.log"
 echo "- $PROJECT_ROOT/data/logs/local/frontend_error.log"
-echo "- $PROJECT_ROOT/data/logs/local/bots_error.log"
+echo "- $PROJECT_ROOT/data/logs/local/bot.log"
 echo ""
 tail -f \
     "$PROJECT_ROOT/data/logs/local/bot.log" \
     "$PROJECT_ROOT/data/logs/local/backend_error.log" \
-    "$PROJECT_ROOT/data/logs/local/frontend_error.log" \
-    "$PROJECT_ROOT/data/logs/local/bots_error.log" 
+    "$PROJECT_ROOT/data/logs/local/frontend_error.log" 

@@ -13,8 +13,12 @@ error_reporting(E_ALL);
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 
-// Ініціалізуємо обробник помилок
-ErrorHandler::initialize();
+// Враховуємо оточення для визначення шляху до логів
+$environment = getenv('ENVIRONMENT') ?: 'local';
+$errorLogFile = __DIR__ . '/data/logs/' . $environment . '/bots_error.log';
+
+// Ініціалізуємо обробник помилок із вказанням шляху до файлу помилок
+ErrorHandler::initialize($errorLogFile);
 
 // Ініціалізуємо менеджер логів при запуску
 $logManager = App\helpers\LogManager::getInstance();

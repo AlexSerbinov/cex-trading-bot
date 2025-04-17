@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/BotProcess.php';
+require_once __DIR__ . '/ErrorHandler.php';
 
 /**
  * Class for managing multiple bots for different pairs
@@ -22,8 +23,23 @@ class TradingBotManager
      */
     public function __construct()
     {
-        // Use the same log file as used in clean_and_run_local.sh
-        $this->logger = Logger::getInstance(true, __DIR__ . '/../../data/logs/bots_error.log');
+        // Враховуємо оточення для визначення шляху до логів
+        $environment = getenv('ENVIRONMENT') ?: 'local';
+        
+        // Шлях до звичайних логів
+        $logFile = __DIR__ . '/../../data/logs/' . $environment . '/bot.log';
+        // Шлях до логів помилок
+        $errorLogFile = __DIR__ . '/../../data/logs/' . $environment . '/bots_error.log';
+        
+        // Ініціалізуємо логер для звичайних повідомлень
+        $this->logger = Logger::getInstance(true, $logFile);
+        
+        // Переконуємося, що ErrorHandler ініціалізовано
+        require_once __DIR__ . '/ErrorHandler.php';
+        if (!ErrorHandler::isInitialized()) {
+            ErrorHandler::initialize($errorLogFile);
+        }
+        
         $this->logger->log("Initialization of TradingBotManager, PID=" . getmypid());
         $this->botProcess = new BotProcess();
         $this->configFile = __DIR__ . '/../../config/bots_config.json';
@@ -176,7 +192,7 @@ class TradingBotManager
 
 // Running the bot manager if the file is called directly
 if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
-    $logger = Logger::getInstance(true, __DIR__ . '/../../data/logs/bots_error.log');
+    $logger = Logger::getInstance(true, __DIR__ . '/../../data/logs/bot.log');
     $logger->log("=== STARTING TRADING BOT MANAGER ===");
     
     // Check if TradingBotManager is already running
