@@ -27,7 +27,7 @@ The frontend, accessible at `http://164.68.117.90:5502/` (Development) or `http:
 
 **Frontend Structure**:
 - **Bot List Page**:
-  - Displays a table of all active bots with columns: `ID`, `Pair`, `Exchange`, `Status`, `Min/Max orders`, `Min/Max amount`, `Frequency (sec)`, `Deviation (%)`, `Market maker (%)`, and `Actions`.
+  - Displays a table of all active bots with columns: `ID`, `Pair`, `Exchange`, `Status`, `Min orders`, `Min/Max amount`, `Frequency (sec)`, `Deviation (%)`, `Market maker (%)`, and `Actions`.
   - **ID**: A unique identifier for each bot. Note that IDs are not significant for bot functionality and are primarily for frontend display purposes.
   - **Actions**:
     - **Watch (Blue Eye Icon)**: Opens a detailed view of the bot’s configuration, showing all parameters (as seen in the "Editing bot" screenshot).
@@ -90,13 +90,13 @@ Below is a detailed breakdown of each parameter in `bots_config.json`, its purpo
   - **Behavior**: If the exchange spread is narrow (e.g., BTC at $99,999 bid and $100,000 ask), a `market_gap` of `0.09%` adds a buffer, placing the bot’s orders slightly wider (e.g., $99,990 and $100,010).
   - **Recommendation**: Set to `0.03%` to `0.1%` depending on the pair’s volatility. Higher values are safer for volatile markets but may reduce order matching.
 
-- **`min_orders` / `max_orders`**:
-  - **Description**: Specifies the minimum and maximum number of orders the bot maintains in the order book.
+- **`min_orders`**:
+  - **Description**: Specifies the minimum number of orders the bot maintains on *each side* (buy and sell) of the order book.
   - **Behavior**:
-    - The bot ensures the order book has at least `min_orders` and up to `max_orders` for its admin account.
-    - If user orders exist (e.g., 5 user orders), and `min_orders` is 12, the total orders in the book will be 17 (5 user + 12 bot).
-  - **Note**: The order book UI displays up to 15 orders. Setting `min_orders`/`max_orders` to 12/14 allows visibility of order dynamics (orders appearing/disappearing). A value of 15 may make changes less noticeable.
-  - **Recommendation**: Keep these values close (e.g., 12/14) to maintain a consistent order book presence. A difference of 1-2 is ideal.
+    - The bot ensures the order book has at least `min_orders` buy orders and at least `min_orders` sell orders for its admin account. The effective maximum number of orders per side is automatically set to `min_orders + 1`.
+    - If user orders exist (e.g., 5 user buy orders), and `min_orders` is 12, the total buy orders in the book will be at least 17 (5 user + 12 bot).
+  - **Note**: The order book UI displays up to 15 orders. Setting `min_orders` to 12 or 13 allows visibility of order dynamics (orders appearing/disappearing). A value of 15 may make changes less noticeable.
+  - **Recommendation**: A value of 12 or 13 is generally recommended to maintain a consistent order book presence while allowing visual observation of order changes.
 
 - **`market_maker_order_probability`** (in percentage):
   - **Description**: Controls the likelihood of the bot executing market orders instead of limit orders.

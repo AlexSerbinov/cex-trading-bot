@@ -48,7 +48,8 @@ class MarketMakerActions
         array $pendingOrders,
         float $marketPrice,
     ): void {
-        $maxOrders = $this->pairConfig['settings']['max_orders'];
+        $minOrders = $this->pairConfig['settings']['min_orders'];
+        $maxOrders = $minOrders + 1; // Derive max_orders
         $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
         $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
         
@@ -58,8 +59,8 @@ class MarketMakerActions
         $this->logger->log("[{$this->pair}] marketMakerProbability: " . $marketMakerProbability);
     
         $this->logger->log(sprintf(
-            // '[%s] Performing random actions with max_orders=%d, deviation=%.4f%%, market_gap=%.4f%%, probability=%.2f', 
-            $this->pair, $maxOrders, $deviationPercent * 100, $marketGap * 100, $marketMakerProbability * 100
+            // '[%s] Performing random actions with target range %d-%d, deviation=%.4f%%, market_gap=%.4f%%, probability=%.2f', 
+            $this->pair, $minOrders, $maxOrders, $deviationPercent * 100, $marketGap * 100, $marketMakerProbability * 100
         ));
     
         // Генеруємо випадкове число від 0 до 1

@@ -10,11 +10,10 @@
             "trade_amount_min": 0.0121,
             "trade_amount_max": 0.201,
             "frequency_from": 0,
-            "frequency_to": 3,
-            "price_factor": 0.5,
-            "market_gap": 0,
-            "min_orders": 14,
-            "max_orders": 100,
+            "frequency_to": 1,
+            "price_factor": 10,
+            "market_gap": 1,
+            "min_orders": 4,
             "market_maker_order_probability": 0
         }
     },
@@ -32,8 +31,7 @@
             "frequency_to": 2,
             "price_factor": 0.01,
             "market_gap": 0,
-            "min_orders": 10,
-            "max_orders": 100,
+            "min_orders": 2,
             "market_maker_order_probability": 0
         }
     },
@@ -41,7 +39,7 @@
         "id": 7,
         "market": "ETH_BTC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -52,7 +50,6 @@
             "price_factor": 0.2,
             "market_gap": 1,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -60,7 +57,7 @@
         "id": 5,
         "market": "ETH_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-08 08:03:43",
         "updated_at": "2025-03-08 17:17:22",
         "settings": {
@@ -71,7 +68,6 @@
             "price_factor": 10,
             "market_gap": 10,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -79,7 +75,7 @@
         "id": 17,
         "market": "ETH_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-04-10 14:33:00",
         "settings": {
@@ -90,7 +86,6 @@
             "price_factor": 0.1,
             "market_gap": 0,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -98,7 +93,7 @@
         "id": 8,
         "market": "LTC_BTC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-04-10 14:33:47",
         "settings": {
@@ -109,7 +104,6 @@
             "price_factor": 3,
             "market_gap": 0,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -117,7 +111,7 @@
         "id": 6,
         "market": "LTC_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-08 08:28:37",
         "updated_at": "2025-03-08 08:29:10",
         "settings": {
@@ -128,7 +122,6 @@
             "price_factor": 1.03,
             "market_gap": 0.03,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -136,7 +129,7 @@
         "id": 16,
         "market": "LTC_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -147,7 +140,6 @@
             "price_factor": 0.03,
             "market_gap": 0.05,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -155,7 +147,7 @@
         "id": 19,
         "market": "DOGE_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -166,7 +158,6 @@
             "price_factor": 1,
             "market_gap": 0.03,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -174,7 +165,7 @@
         "id": 20,
         "market": "DOGE_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -185,7 +176,6 @@
             "price_factor": 1,
             "market_gap": 0.03,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -193,7 +183,7 @@
         "id": 14,
         "market": "BNB_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -204,7 +194,6 @@
             "price_factor": 1,
             "market_gap": 0.03,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -212,7 +201,7 @@
         "id": 15,
         "market": "BNB_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -223,7 +212,6 @@
             "price_factor": 1,
             "market_gap": 0.03,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -231,7 +219,7 @@
         "id": 21,
         "market": "SOL_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -242,7 +230,6 @@
             "price_factor": 2,
             "market_gap": 0,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -250,7 +237,7 @@
         "id": 22,
         "market": "SOL_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -261,7 +248,6 @@
             "price_factor": 2,
             "market_gap": 0,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -269,7 +255,7 @@
         "id": 23,
         "market": "TON_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -280,7 +266,6 @@
             "price_factor": 2,
             "market_gap": 0.04,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -288,7 +273,7 @@
         "id": 24,
         "market": "TON_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -299,7 +284,6 @@
             "price_factor": 0.2,
             "market_gap": 0.04,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -307,7 +291,7 @@
         "id": 25,
         "market": "XRP_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -318,7 +302,6 @@
             "price_factor": 2,
             "market_gap": 0.04,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -326,7 +309,7 @@
         "id": 26,
         "market": "XRP_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -337,7 +320,6 @@
             "price_factor": 2,
             "market_gap": 0.04,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -345,7 +327,7 @@
         "id": 27,
         "market": "XRP_BTC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -356,7 +338,6 @@
             "price_factor": 2,
             "market_gap": 0,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -364,7 +345,7 @@
         "id": 28,
         "market": "TRX_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -375,7 +356,6 @@
             "price_factor": 2,
             "market_gap": 0,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -383,7 +363,7 @@
         "id": 29,
         "market": "TRX_USDC",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -394,7 +374,6 @@
             "price_factor": 2,
             "market_gap": 0,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     },
@@ -402,7 +381,7 @@
         "id": 30,
         "market": "USDC_USDT",
         "exchange": "binance",
-        "isActive": true,
+        "isActive": false,
         "created_at": "2025-03-12 00:00:00",
         "updated_at": "2025-03-12 00:00:00",
         "settings": {
@@ -413,7 +392,6 @@
             "price_factor": 0.1,
             "market_gap": 0,
             "min_orders": 12,
-            "max_orders": 100,
             "market_maker_order_probability": 0
         }
     }

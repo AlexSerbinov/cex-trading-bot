@@ -112,7 +112,6 @@ class BotStorage
                 'price_factor' =>  ($bot['settings']['price_factor']),
                 'market_gap' =>  ($bot['settings']['market_gap']),
                 'min_orders' =>  ($bot['settings']['min_orders']),
-                'max_orders' =>  ($bot['settings']['max_orders']),
                 'market_maker_order_probability' =>  ($bot['settings']['market_maker_order_probability'])
             ];
         }
@@ -140,7 +139,6 @@ class BotStorage
             'price_factor' => ($bot['settings']['price_factor']),
             'market_gap' => ($bot['settings']['market_gap']),
             'min_orders' => ($bot['settings']['min_orders']),
-            'max_orders' => ($bot['settings']['max_orders']),
             'market_maker_order_probability' => ($bot['settings']['market_maker_order_probability'])
         ];
         return $bot;
@@ -193,7 +191,6 @@ class BotStorage
             
             $bot['settings'] = [
                 'min_orders' => $bot['min_orders'],
-                'max_orders' => $bot['max_orders'],
                 'trade_amount_min' => $bot['trade_amount_min'],
                 'trade_amount_max' => $bot['trade_amount_max'],
                 'frequency_from' => $bot['frequency_from'],
@@ -443,7 +440,6 @@ class BotStorage
             'price_deviation_percent' => $settings['price_factor'],
             'market_gap' => $settings['market_gap'],
             'min_orders' => $settings['min_orders'],
-            'max_orders' => $settings['max_orders'],
             'market_maker_order_probability' => $settings['market_maker_order_probability']
         ];
         
@@ -477,7 +473,6 @@ class BotStorage
             'updated_at' => $bot['updated_at'] ?? date('Y-m-d H:i:s'),
             'settings' => [
                 'min_orders' => $settings['min_orders'],
-                'max_orders' => $settings['max_orders'],
                 'trade_amount_min' => $settings['trade_amount_min'],
                 'trade_amount_max' => $settings['trade_amount_max'],
                 'frequency_from' => $settings['frequency_from'],
@@ -508,7 +503,6 @@ class BotStorage
             'exchange' => $bot['exchange'],
             'settings' => $bot['settings'] ?? [
                 'min_orders' => $bot['min_orders'],
-                'max_orders' => $bot['max_orders'],
                 'trade_amount_min' => $bot['trade_amount_min'],
                 'trade_amount_max' => $bot['trade_amount_max'],
                 'frequency_from' => $bot['frequency_from'],

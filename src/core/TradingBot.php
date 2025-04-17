@@ -557,7 +557,7 @@ class TradingBot
         
         // Отримання значень з settings
         $minOrders = $this->pairConfig['settings']['min_orders'];
-        $maxOrders = $this->pairConfig['settings']['max_orders'];
+        $maxOrders = $minOrders + 1; // Derive max_orders
         
         // Перетворення відсотків у десяткові дроби для розрахунків
         $priceFactorDecimal = $priceFactor / 100;
@@ -643,7 +643,7 @@ class TradingBot
         array $pendingOrders,
     ): void {
         $minOrders = $this->pairConfig['settings']['min_orders'];
-        $maxOrders = $this->pairConfig['settings']['max_orders'];
+        $maxOrders = $minOrders + 1; // Derive max_orders
         $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
         $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
         

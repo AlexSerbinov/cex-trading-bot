@@ -255,8 +255,6 @@ class Config
         self::$config[$pair] = [
             'id' => $newId,
             'exchange' => $botData['exchange'] ?? 'kraken',
-            // 'min_orders' => $botData['min_orders'] ?? 15,
-            // 'max_orders' => $botData['max_orders'] ?? 17,
             'price_deviation_percent' => $botData['price_deviation_percent'],
             'frequency_from' => $botData['settings']['frequency_from'],
             'frequency_to' => $botData['settings']['frequency_to'],
@@ -267,7 +265,6 @@ class Config
             'trade_amount_min' => $botData['settings']['trade_amount_min'],
             'trade_amount_max' => $botData['settings']['trade_amount_max'],
             'min_orders' => $botData['settings']['min_orders'],
-            'max_orders' => $botData['settings']['max_orders'],
             'market_gap' => $botData['settings']['market_gap'],
             'price_factor' => $botData['settings']['price_factor'],
             'market_maker_order_probability' => $botData['settings']['market_maker_order_probability'],
@@ -392,7 +389,7 @@ class Config
                         self::$config[$foundPair]['price_deviation_percent'] = $value;
                     } else if ($key === 'market_gap') {
                         self::$config[$foundPair]['market_gap'] = $value;
-                    } else if ($key === 'min_orders' || $key === 'max_orders') {
+                    } else if ($key === 'min_orders' /* Removed max_orders || $key === 'max_orders' */) {
                         self::$config[$foundPair][$key] = $value;
                     } else if ($key === 'market_maker_order_probability') {
                         self::$config[$foundPair]['market_maker_order_probability'] = $value;

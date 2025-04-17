@@ -37,7 +37,6 @@
                                         "updated_at": "2025-03-06 10:21:02",
                                         "settings": {
                                             "min_orders": 2,
-                                            "max_orders": 4,
                                             "trade_amount_min": 0.1,
                                             "trade_amount_max": 1,
                                             "frequency_from": 30,
@@ -56,7 +55,6 @@
                                         "updated_at": "2025-03-06 10:10:30",
                                         "settings": {
                                             "min_orders": 3,
-                                            "max_orders": 6,
                                             "trade_amount_min": 0.1,
                                             "trade_amount_max": 1,
                                             "frequency_from": 30,
@@ -133,7 +131,6 @@
                                 "market": "BTC_USDT",
                                 "exchange": "binance",
                                 "min_orders": 2,
-                                "max_orders": 4,
                                 "trade_amount_min": 0.1,
                                 "trade_amount_max": 1,
                                 "frequency_from": 30,
@@ -268,7 +265,6 @@
                             },
                             "example": {
                                 "min_orders": 3,
-                                "max_orders": 5,
                                 "trade_amount_min": 0.2,
                                 "trade_amount_max": 2,
                                 "frequency_from": 45,

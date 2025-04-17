@@ -120,7 +120,6 @@ class BotManager
             'updated_at' => date('Y-m-d H:i:s'),
             'settings' => [
                 'min_orders' => $data['settings']['min_orders'],
-                'max_orders' => $data['settings']['max_orders'],
                 'trade_amount_min' => $data['settings']['trade_amount_min'],
                 'trade_amount_max' => $data['settings']['trade_amount_max'],
                 'frequency_from' => $data['settings']['frequency_from'],
@@ -190,7 +189,7 @@ class BotManager
             // Якщо settings не передано, але є інші параметри налаштувань, 
             // створюємо об'єкт settings з цих параметрів
             $settingsFields = [
-                'min_orders', 'max_orders', 'trade_amount_min', 'trade_amount_max',
+                'min_orders', 'trade_amount_min', 'trade_amount_max',
                 'frequency_from', 'frequency_to', 'price_factor', 'market_gap',
                 'market_maker_order_probability'
             ];
@@ -369,7 +368,7 @@ class BotManager
         $requiredFields = [
             'market', 'trade_amount_min', 'trade_amount_max', 
             'frequency_from', 'frequency_to', 'price_factor', 'exchange',
-            'min_orders', 'max_orders'
+            'min_orders'
         ];
         
         if ($requireAllFields) {
@@ -411,13 +410,9 @@ class BotManager
             }
         }
 
-        if (isset($botData['settings']['min_orders']) && isset($botData['settings']['max_orders'])) {
-            if ($botData['settings']['min_orders'] <= 0 || $botData['settings']['max_orders'] <= 0) {
+        if (isset($botData['settings']['min_orders'])) {
+            if ($botData['settings']['min_orders'] <= 0) {
                 throw new InvalidArgumentException("Minimum orders must be greater than zero");
-            }
-
-            if ($botData['settings']['min_orders'] > $botData['settings']['max_orders']) {
-                throw new InvalidArgumentException("Minimum orders cannot be greater than maximum orders");
             }
         }   
 
@@ -467,7 +462,6 @@ class BotManager
             'updated_at' => $updatedAt,
             'settings' => [
                 'min_orders' => $settings['min_orders'],
-                'max_orders' => $settings['max_orders'],
                 'trade_amount_min' => $settings['trade_amount_min'],
                 'trade_amount_max' => $settings['trade_amount_max'],
                 'frequency_from' => $settings['frequency_from'],
