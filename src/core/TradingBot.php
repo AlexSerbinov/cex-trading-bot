@@ -167,12 +167,6 @@ class TradingBot
             $this->maintainOrders($orderBook, $pendingOrders);
             $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Підтримка ордерів завершена");
 
-            // Надсилання серцебиття до Dead Watcher, якщо увімкнено
-            if (Config::isDeadWatcherEnabled()) {
-                $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Надсилання серцебиття до Dead Watcher");
-                $this->sendHeartbeatToDeadWatcher();
-            }
-
             $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Торговий цикл успішно завершено");
         } catch (Exception $e) {
             $this->logger->error("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Помилка в торговому циклі: " . $e->getMessage());
@@ -430,7 +424,15 @@ class TradingBot
             throw new RuntimeException("Invalid response format: missing order ID");
         }
 
-        return (int)$data['result']['id'];
+        $orderId = (int)$data['result']['id'];
+
+        // ADD - Send heartbeat to Dead Watcher after successful limit order placement
+        if (Config::isDeadWatcherEnabled()) {
+            $this->logger->log("!!!!! TradingBot::placeLimitOrder(): [{$this->pair}] Sending heartbeat to Dead Watcher after placing limit order {$orderId}");
+            $this->sendHeartbeatToDeadWatcher();
+        }
+
+        return $orderId;
     }
 
     /**
@@ -499,8 +501,29 @@ class TradingBot
             // json_encode($data, JSON_PRETTY_PRINT) // Or log the parsed data
         ));
 
-        // TODO: Check the actual response from the server?
-        return true; // Simulation of successful execution
+        // ADD - Check the actual response from the server
+        if ($data['error'] !== null) {
+             $this->logger->error(
+                sprintf(
+                    '[%s] Failed to place market order for side=%d: %s',
+                    $this->pair,
+                    $side,
+                    json_encode($data['error'], JSON_PRETTY_PRINT),
+                ),
+            );
+            // Decide how to handle the error. Returning false might be appropriate.
+            // Or throw an exception if it's critical.
+            return false; 
+            // throw new RuntimeException("Failed to place market order: " . json_encode($data['error']));
+        }
+
+        // ADD - Send heartbeat to Dead Watcher after successful market order placement
+        if (Config::isDeadWatcherEnabled()) {
+            $this->logger->log("!!!!! TradingBot::placeMarketOrder(): [{$this->pair}] Sending heartbeat to Dead Watcher after placing market order");
+            $this->sendHeartbeatToDeadWatcher();
+        }
+        
+        return true; // Return true only on success
     }
 
     /**
