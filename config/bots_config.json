@@ -101,7 +101,7 @@
             "trade_amount_max": 1,
             "frequency_from": 0,
             "frequency_to": 5,
-            "price_factor": 2,
+            "price_factor": 4.5,
             "market_gap": 0,
             "min_orders": 12,
             "market_maker_order_probability": 0
