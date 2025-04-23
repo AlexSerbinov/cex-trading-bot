@@ -5,6 +5,7 @@ declare(strict_types=1);
 use function React\Async\async;
 use function React\Async\await;
 use React\Promise\PromiseInterface;
+use function React\Promise\all;
 
 /**
  * Market Maker Actions for TradingBot
@@ -51,65 +52,67 @@ class MarketMakerActions
         array &$currentAsks,
         array $pendingOrders,
         float $marketPrice,
-    ): void {
-        $minOrders = $this->pairConfig['settings']['min_orders'];
-        $maxOrders = $minOrders + 1; // Derive max_orders
-        $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
-        $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
+    ): PromiseInterface {
+        return async(function () use (&$currentBids, &$currentAsks, $pendingOrders, $marketPrice) {
+            $minOrders = $this->pairConfig['settings']['min_orders'];
+            $maxOrders = $minOrders + 1; // Derive max_orders
+            $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
+            $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
+            
+            // Ймовірність ВИКОНАННЯ РИНКОВОГО ОРДЕРА
+            $marketMakerProbability = $this->pairConfig['settings']['market_maker_order_probability'] / 100;
         
-        // Ймовірність ВИКОНАННЯ РИНКОВОГО ОРДЕРА
-        $marketMakerProbability = $this->pairConfig['settings']['market_maker_order_probability'] / 100;
-        
-        $this->logger->log(sprintf(
-            '[%s] Market Order Probability: %.2f%%', 
-            $this->pair, $marketMakerProbability * 100
-        ));
-    
-        // Генеруємо випадкове число від 0 до 1
-        $randomValue = mt_rand() / mt_getrandmax();
-        
-        // Застосовуємо market_gap до ціни (потрібно для createNewBid/Ask/updateExistingOrder)
-        $gapAdjustment = $marketPrice * $marketGap;
-
-        // Перевірка, чи виконувати ринковий ордер
-        if ($randomValue <= $marketMakerProbability && $marketMakerProbability > 0) {
             $this->logger->log(sprintf(
-                '[%s] Probability check PASSED (%.6f <= %.6f). Executing Market Trade.',
-                $this->pair,
-                $randomValue,
-                $marketMakerProbability
+                '[%s] Market Order Probability: %.2f%%', 
+                $this->pair, $marketMakerProbability * 100
             ));
-            $this->executeMarketTrade($pendingOrders);
-        } else {
-            // Якщо ринковий ордер не виконується, виконуємо одну з дій з лімітними ордерами
-            $this->logger->log(sprintf(
-                '[%s] Probability check FAILED (%.6f > %.6f). Performing Limit Order Action.',
-                $this->pair,
-                $randomValue,
-                $marketMakerProbability
-            ));
+        
+            // Генеруємо випадкове число від 0 до 1
+            $randomValue = mt_rand() / mt_getrandmax();
+            
+            // Застосовуємо market_gap до ціни (потрібно для createNewBid/Ask/updateExistingOrder)
+            $gapAdjustment = $marketPrice * $marketGap;
 
-            // Випадково вибираємо дію з лімітними ордерами
-            $limitActionValue = mt_rand() / mt_getrandmax();
-
-            if ($limitActionValue < 0.5) {
-                 // 50% шанс: Оновити існуючий ордер (скасувати + створити новий на тій же стороні)
-                 $this->logger->log("[{$this->pair}] Performing Limit Action: Update Existing Order");
-                 $this->updateExistingOrder($marketPrice, $deviationPercent, $marketGap);
-            } elseif ($limitActionValue < 0.75 && count($currentBids) < $maxOrders) {
-                // 25% шанс: Створити новий Bid (якщо є місце)
-                $this->logger->log("[{$this->pair}] Performing Limit Action: Create New Bid");
-                $this->createNewBid($marketPrice, $deviationPercent, $gapAdjustment);
-            } elseif (count($currentAsks) < $maxOrders) {
-                 // 25% шанс: Створити новий Ask (якщо є місце)
-                 $this->logger->log("[{$this->pair}] Performing Limit Action: Create New Ask");
-                 $this->createNewAsk($marketPrice, $deviationPercent, $gapAdjustment);
+            // Перевірка, чи виконувати ринковий ордер
+            if ($randomValue <= $marketMakerProbability && $marketMakerProbability > 0) {
+                $this->logger->log(sprintf(
+                    '[%s] Probability check PASSED (%.6f <= %.6f). Executing Market Trade.',
+                    $this->pair,
+                    $randomValue,
+                    $marketMakerProbability
+                ));
+                await($this->executeMarketTrade($pendingOrders));
             } else {
-                // Fallback: якщо не вдалося створити ні бід, ні аск (бо досягли максимуму), спробуємо оновити
-                 $this->logger->log("[{$this->pair}] Performing Limit Action (Fallback): Update Existing Order");
-                 $this->updateExistingOrder($marketPrice, $deviationPercent, $marketGap);
+                // Якщо ринковий ордер не виконується, виконуємо одну з дій з лімітними ордерами
+            $this->logger->log(sprintf(
+                    '[%s] Probability check FAILED (%.6f > %.6f). Performing Limit Order Action.',
+                $this->pair,
+                $randomValue,
+                $marketMakerProbability
+            ));
+        
+                // Випадково вибираємо дію з лімітними ордерами
+                $limitActionValue = mt_rand() / mt_getrandmax();
+
+                if ($limitActionValue < 0.5) {
+                     // 50% шанс: Оновити існуючий ордер (скасувати + створити новий на тій же стороні)
+                     $this->logger->log("[{$this->pair}] Performing Limit Action: Update Existing Order");
+                await($this->updateExistingOrder($marketPrice, $deviationPercent, $marketGap));
+                } elseif ($limitActionValue < 0.75 && count($currentBids) < $maxOrders) {
+                    // 25% шанс: Створити новий Bid (якщо є місце)
+                    $this->logger->log("[{$this->pair}] Performing Limit Action: Create New Bid");
+                    await($this->createNewBid($marketPrice, $deviationPercent, $gapAdjustment));
+                } elseif (count($currentAsks) < $maxOrders) {
+                     // 25% шанс: Створити новий Ask (якщо є місце)
+                     $this->logger->log("[{$this->pair}] Performing Limit Action: Create New Ask");
+                     await($this->createNewAsk($marketPrice, $deviationPercent, $gapAdjustment));
+                } else {
+                    // Fallback: якщо не вдалося створити ні бід, ні аск (бо досягли максимуму), спробуємо оновити
+                     $this->logger->log("[{$this->pair}] Performing Limit Action (Fallback): Update Existing Order");
+                     await($this->updateExistingOrder($marketPrice, $deviationPercent, $marketGap));
+                }
             }
-        }
+        });
     }
 
     /**
@@ -119,32 +122,34 @@ class MarketMakerActions
      * @param float $deviationPercent Price deviation percentage
      * @param float $marketGap Market gap
      */
-    private function updateExistingOrder(float $marketPrice, float $deviationPercent, float $marketGap): void
+    private function updateExistingOrder(float $marketPrice, float $deviationPercent, float $marketGap): PromiseInterface
     {
-        // Оновлюємо список відкритих ордерів
-        $this->bot->updateOpenOrders();
-        
-        // Отримуємо списки бідів та асків
-        $openOrders = $this->bot->getOpenOrders();
-        $bids = array_filter($openOrders, fn($o) => $o['side'] === 2);
-        $asks = array_filter($openOrders, fn($o) => $o['side'] === 1);
-        
-        if (empty($bids) && empty($asks)) {
-            $this->logger->log("[{$this->pair}] No orders to update");
-            return;
-        }
-        
-        // Вибираємо випадково біди або аски
-        $useAsks = (mt_rand(0, 1) === 1 && !empty($asks)) || empty($bids);
-        
-        // Застосовуємо market_gap до ціни
-        $gapAdjustment = $marketPrice * $marketGap;
-        
-        if ($useAsks) {
-            $this->updateAskOrder($asks, $marketPrice, $deviationPercent, $gapAdjustment);
-        } else {
-            $this->updateBidOrder($bids, $marketPrice, $deviationPercent, $gapAdjustment);
-        }
+        return async(function () use ($marketPrice, $deviationPercent, $marketGap) {
+            // Оновлюємо список відкритих ордерів асинхронно
+            await($this->bot->updateOpenOrders());
+            
+            // Отримуємо списки бідів та асків
+            $openOrders = $this->bot->getOpenOrders();
+            $bids = array_filter($openOrders, fn($o) => $o['side'] === 2);
+            $asks = array_filter($openOrders, fn($o) => $o['side'] === 1);
+            
+            if (empty($bids) && empty($asks)) {
+                $this->logger->log("[{$this->pair}] No orders to update");
+                return;
+            }
+            
+            // Вибираємо випадково біди або аски
+            $useAsks = (mt_rand(0, 1) === 1 && !empty($asks)) || empty($bids);
+            
+            // Застосовуємо market_gap до ціни
+            $gapAdjustment = $marketPrice * $marketGap;
+            
+            if ($useAsks) {
+                await($this->updateAskOrder($asks, $marketPrice, $deviationPercent, $gapAdjustment));
+            } else {
+                await($this->updateBidOrder($bids, $marketPrice, $deviationPercent, $gapAdjustment));
+            }
+        });
     }
 
     /**
@@ -155,14 +160,14 @@ class MarketMakerActions
      * @param float $deviationPercent Price deviation percentage
      * @param float $gapAdjustment Gap adjustment
      */
-    private function updateAskOrder(array $asks, float $marketPrice, float $deviationPercent, float $gapAdjustment): void
+    private function updateAskOrder(array $asks, float $marketPrice, float $deviationPercent, float $gapAdjustment): PromiseInterface
     {
-        async(function () use ($asks, $marketPrice, $deviationPercent, $gapAdjustment) {
+        return async(function () use ($asks, $marketPrice, $deviationPercent, $gapAdjustment) {
             $this->logger->log("[{$this->pair}] Updating an ask order (async)");
 
-            // Сортуємо аски за ціною (від низької до високої)
-            usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
-            
+        // Сортуємо аски за ціною (від низької до високої)
+        usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
+        
             // Select an ask order using weighted random selection based on distance from best ask
             $bestAskPrice = $marketPrice + $gapAdjustment;
             $orderToUpdate = $this->selectOrderWeightedByDistance($asks, $bestAskPrice, false);
@@ -180,23 +185,23 @@ class MarketMakerActions
                 // Скасовуємо ордер асинхронно
                 $this->logger->log("[{$this->pair}] Attempting to cancel ask {$orderId} @ {$oldPrice} for update...");
                 await($this->bot->getExchangeManager()->cancelOrder($orderId, $this->pair));
-                $this->logger->log(sprintf(
+        $this->logger->log(sprintf(
                     '[%s] Successfully cancelled ask for update: %d @ %s',
-                    $this->pair,
+            $this->pair,
                     $orderId,
                     $oldPrice
-                ));
-                
+        ));
+        
                 // Створюємо новий аск з оновленою ціною асинхронно
-                $randBase = 0.05 + (mt_rand(0, 900) / 1000);
-                $randomFactor = pow($randBase, 1/3);
-                
-                $askPrice = number_format(
-                    $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
-                    12,
-                    '.',
-                    ''
-                );
+        $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+        $randomFactor = pow($randBase, 1/3);
+        
+        $askPrice = number_format(
+            $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
+            12,
+            '.',
+            ''
+        );
                 
                  // Ensure amount is valid before placing
                  if ((float)$askAmount <= 0) {
@@ -208,15 +213,15 @@ class MarketMakerActions
                  
                 $this->logger->log("[{$this->pair}] Attempting to place updated ask {$askAmount} @ {$askPrice}...");
                 await($this->bot->placeLimitOrder(1, $askAmount, $askPrice)); 
-                $this->logger->log(sprintf(
+        $this->logger->log(sprintf(
                     '[%s] Successfully placed updated ask: %s @ %s (was @ %s, factor: %.4f, gap: %.6f)',
-                    $this->pair,
-                    $askAmount,
-                    $askPrice,
+            $this->pair,
+            $askAmount,
+            $askPrice,
                     $oldPrice,
-                    $randomFactor,
-                    $gapAdjustment
-                ));
+            $randomFactor,
+            $gapAdjustment
+        ));
 
             } catch (\Throwable $e) {
                 // Catch errors from either cancelOrder or placeLimitOrder promises
@@ -224,7 +229,7 @@ class MarketMakerActions
                 $this->logger->logStackTrace("[{$this->pair}] Stack trace for updateAskOrder error:");
                 // Decide if any cleanup or different action is needed on error
             }
-        })(); // Immediately invoke the async function
+        });
     }
 
     /**
@@ -235,14 +240,14 @@ class MarketMakerActions
      * @param float $deviationPercent Price deviation percentage
      * @param float $gapAdjustment Gap adjustment
      */
-    private function updateBidOrder(array $bids, float $marketPrice, float $deviationPercent, float $gapAdjustment): void
+    private function updateBidOrder(array $bids, float $marketPrice, float $deviationPercent, float $gapAdjustment): PromiseInterface
     {
-        async(function () use ($bids, $marketPrice, $deviationPercent, $gapAdjustment) {
+        return async(function () use ($bids, $marketPrice, $deviationPercent, $gapAdjustment) {
             $this->logger->log("[{$this->pair}] Updating a bid order (async)");
 
-            // Сортуємо біди за ціною (від високої до низької)
-            usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']);
-            
+        // Сортуємо біди за ціною (від високої до низької)
+        usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']);
+        
             // Select a bid order using weighted random selection based on distance from best bid
             $bestBidPrice = $marketPrice - $gapAdjustment;
             $orderToUpdate = $this->selectOrderWeightedByDistance($bids, $bestBidPrice, true);
@@ -260,23 +265,23 @@ class MarketMakerActions
                 // Скасовуємо ордер асинхронно
                 $this->logger->log("[{$this->pair}] Attempting to cancel bid {$orderId} @ {$oldPrice} for update...");
                 await($this->bot->getExchangeManager()->cancelOrder($orderId, $this->pair));
-                $this->logger->log(sprintf(
+        $this->logger->log(sprintf(
                     '[%s] Successfully cancelled bid for update: %d @ %s',
-                    $this->pair,
+            $this->pair,
                     $orderId,
                     $oldPrice
-                ));
-                
+        ));
+        
                 // Створюємо новий бід з оновленою ціною асинхронно
-                $randBase = 0.05 + (mt_rand(0, 900) / 1000);
-                $randomFactor = pow($randBase, 1/3);
-                
-                $bidPrice = number_format(
-                    $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
-                    12,
-                    '.',
-                    ''
-                );
+        $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+        $randomFactor = pow($randBase, 1/3);
+        
+        $bidPrice = number_format(
+            $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
+            12,
+            '.',
+            ''
+        );
                 
                  // Ensure amount is valid before placing
                  if ((float)$bidAmount <= 0) {
@@ -288,15 +293,15 @@ class MarketMakerActions
                  
                 $this->logger->log("[{$this->pair}] Attempting to place updated bid {$bidAmount} @ {$bidPrice}...");
                 await($this->bot->placeLimitOrder(2, $bidAmount, $bidPrice)); 
-                $this->logger->log(sprintf(
+        $this->logger->log(sprintf(
                     '[%s] Successfully placed updated bid: %s @ %s (was @ %s, factor: %.4f, gap: %.6f)',
-                    $this->pair,
-                    $bidAmount,
-                    $bidPrice,
+            $this->pair,
+            $bidAmount,
+            $bidPrice,
                     $oldPrice,
-                    $randomFactor,
-                    $gapAdjustment
-                ));
+            $randomFactor,
+            $gapAdjustment
+        ));
 
             } catch (\Throwable $e) {
                 // Catch errors from either cancelOrder or placeLimitOrder promises
@@ -304,7 +309,7 @@ class MarketMakerActions
                 $this->logger->logStackTrace("[{$this->pair}] Stack trace for updateBidOrder error:");
                 // Decide if any cleanup or different action is needed on error
             }
-        })(); // Immediately invoke the async function
+        });
     }
 
     /**
@@ -314,29 +319,31 @@ class MarketMakerActions
      * @param float $deviationPercent Price deviation percentage
      * @param float $gapAdjustment Gap adjustment
      */
-    private function createNewBid(float $marketPrice, float $deviationPercent, float $gapAdjustment): void
+    private function createNewBid(float $marketPrice, float $deviationPercent, float $gapAdjustment): PromiseInterface
     {
-        $this->logger->log("[{$this->pair}] Placing a new bid");
+        return async(function() use ($marketPrice, $deviationPercent, $gapAdjustment) {
+            $this->logger->log("[{$this->pair}] Placing a new bid");
 
-        $randBase = 0.05 + (mt_rand(0, 900) / 1000);
-        $randomFactor = pow($randBase, 1/3);
-        
-        $bidPrice = number_format(
-            $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
-            12,
-            '.',
-            ''
-        );
-        $bidAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', '');
-        $this->bot->placeLimitOrder(2, $bidAmount, $bidPrice);
-        $this->logger->log(sprintf(
-            '[%s] Placed bid: %s @ %s (factor: %.4f, gap: %.6f)',
-            $this->pair, 
-            $bidAmount, 
-            $bidPrice,
-            $randomFactor,
-            $gapAdjustment
-        ));
+            $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+            $randomFactor = pow($randBase, 1/3);
+            
+            $bidPrice = number_format(
+                $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
+                12,
+                '.',
+                ''
+            );
+            $bidAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', '');
+            await($this->bot->placeLimitOrder(2, $bidAmount, $bidPrice));
+            $this->logger->log(sprintf(
+                '[%s] Placed bid: %s @ %s (factor: %.4f, gap: %.6f)',
+                $this->pair, 
+                $bidAmount, 
+                $bidPrice,
+                $randomFactor,
+                $gapAdjustment
+            ));
+        });
     }
 
     /**
@@ -346,29 +353,31 @@ class MarketMakerActions
      * @param float $deviationPercent Price deviation percentage
      * @param float $gapAdjustment Gap adjustment
      */
-    private function createNewAsk(float $marketPrice, float $deviationPercent, float $gapAdjustment): void
+    private function createNewAsk(float $marketPrice, float $deviationPercent, float $gapAdjustment): PromiseInterface
     {
-        $this->logger->log("[{$this->pair}] Placing a new ask");
+        return async(function() use ($marketPrice, $deviationPercent, $gapAdjustment) {
+            $this->logger->log("[{$this->pair}] Placing a new ask");
 
-        $randBase = 0.05 + (mt_rand(0, 900) / 1000);
-        $randomFactor = pow($randBase, 1/3);
-        
-        $askPrice = number_format(
-            $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
-            12,
-            '.',
-            ''
-        );
-        $askAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', '');
-        $this->bot->placeLimitOrder(1, $askAmount, $askPrice);
-        $this->logger->log(sprintf(
-            '[%s] Placed ask: %s @ %s (factor: %.4f, gap: %.6f)',
-            $this->pair, 
-            $askAmount, 
-            $askPrice,
-            $randomFactor,
-            $gapAdjustment
-        ));
+            $randBase = 0.05 + (mt_rand(0, 900) / 1000);
+            $randomFactor = pow($randBase, 1/3);
+            
+            $askPrice = number_format(
+                $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
+                12,
+                '.',
+                ''
+            );
+            $askAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', '');
+            await($this->bot->placeLimitOrder(1, $askAmount, $askPrice));
+            $this->logger->log(sprintf(
+                '[%s] Placed ask: %s @ %s (factor: %.4f, gap: %.6f)',
+                $this->pair, 
+                $askAmount, 
+                $askPrice,
+                $randomFactor,
+                $gapAdjustment
+            ));
+        });
     }
 
     /**
@@ -378,67 +387,69 @@ class MarketMakerActions
      * @param float|null $marketPrice Optional market price for weighted cancellation
      * @param float|null $marketGap Optional market gap percentage for weighted cancellation
      */
-    private function cancelOrder(array $pendingOrders, ?float $marketPrice = null, ?float $marketGap = null): void
+    private function cancelOrder(array $pendingOrders, ?float $marketPrice = null, ?float $marketGap = null): PromiseInterface
     {
-        if (empty($pendingOrders)) {
-            $this->logger->log("[{$this->pair}] No orders to cancel.");
-            return;
-        }
-
-        $orderToCancel = null;
-
-        // Use weighted selection if market price and gap are provided
-        if ($marketPrice !== null && $marketGap !== null) {
-            $this->logger->log("[{$this->pair}] Attempting weighted cancellation...");
-            $bids = array_filter($pendingOrders, fn($o) => $o['side'] === 2);
-            $asks = array_filter($pendingOrders, fn($o) => $o['side'] === 1);
-
-            // Decide which side to target randomly, proportional to the number of orders on each side
-            $totalBids = count($bids);
-            $totalAsks = count($asks);
-            $totalOrders = $totalBids + $totalAsks;
-
-            if ($totalOrders === 0) {
-                $this->logger->log("[{$this->pair}] No bids or asks found in pending orders for weighted cancellation.");
-                return; // Should not happen if pendingOrders is not empty, but safe check
+        return async(function() use ($pendingOrders, $marketPrice, $marketGap) {
+            if (empty($pendingOrders)) {
+                $this->logger->log("[{$this->pair}] No orders to cancel.");
+                return;
             }
+            
+            $orderToCancel = null;
 
-            $targetBids = ($totalBids > 0) && (($totalAsks === 0) || (mt_rand(1, $totalOrders) <= $totalBids));
+            // Use weighted selection if market price and gap are provided
+            if ($marketPrice !== null && $marketGap !== null) {
+                $this->logger->log("[{$this->pair}] Attempting weighted cancellation...");
+                $bids = array_filter($pendingOrders, fn($o) => $o['side'] === 2);
+                $asks = array_filter($pendingOrders, fn($o) => $o['side'] === 1);
 
-            if ($targetBids) {
-                $this->logger->log("[{$this->pair}] Weighted cancellation targeting Bids.");
-                $bestBidPrice = $marketPrice * (1 - $marketGap);
-                $orderToCancel = $this->selectOrderWeightedByDistance($bids, $bestBidPrice, true);
-            } else { // Target Asks
-                $this->logger->log("[{$this->pair}] Weighted cancellation targeting Asks.");
-                $bestAskPrice = $marketPrice * (1 + $marketGap);
-                $orderToCancel = $this->selectOrderWeightedByDistance($asks, $bestAskPrice, false);
+                // Decide which side to target randomly, proportional to the number of orders on each side
+                $totalBids = count($bids);
+                $totalAsks = count($asks);
+                $totalOrders = $totalBids + $totalAsks;
+
+                if ($totalOrders === 0) {
+                    $this->logger->log("[{$this->pair}] No bids or asks found in pending orders for weighted cancellation.");
+                    return; // Should not happen if pendingOrders is not empty, but safe check
+                }
+
+                $targetBids = ($totalBids > 0) && (($totalAsks === 0) || (mt_rand(1, $totalOrders) <= $totalBids));
+
+                if ($targetBids) {
+                    $this->logger->log("[{$this->pair}] Weighted cancellation targeting Bids.");
+                    $bestBidPrice = $marketPrice * (1 - $marketGap);
+                    $orderToCancel = $this->selectOrderWeightedByDistance($bids, $bestBidPrice, true);
+                } else { // Target Asks
+                    $this->logger->log("[{$this->pair}] Weighted cancellation targeting Asks.");
+                    $bestAskPrice = $marketPrice * (1 + $marketGap);
+                    $orderToCancel = $this->selectOrderWeightedByDistance($asks, $bestAskPrice, false);
+                }
+
+                if ($orderToCancel === null) {
+                     $this->logger->log("[{$this->pair}] Weighted selection did not yield an order, falling back to random.");
+                }
             }
-
+            
+            // Fallback to random selection if weighted selection was not possible or failed
             if ($orderToCancel === null) {
-                 $this->logger->log("[{$this->pair}] Weighted selection did not yield an order, falling back to random.");
+                $this->logger->log("[{$this->pair}] Falling back to random cancellation.");
+                $orderIndex = mt_rand(0, count($pendingOrders) - 1);
+                $orderToCancel = $pendingOrders[$orderIndex];
             }
-        }
-        
-        // Fallback to random selection if weighted selection was not possible or failed
-        if ($orderToCancel === null) {
-            $this->logger->log("[{$this->pair}] Falling back to random cancellation.");
-            $orderIndex = mt_rand(0, count($pendingOrders) - 1);
-            $orderToCancel = $pendingOrders[$orderIndex];
-        }
 
-        if ($orderToCancel) {
-            $this->logger->log(sprintf(
-                '[%s] Selected order to cancel: %d @ %s (Side: %d)',
-                $this->pair, 
-                $orderToCancel['id'], 
-                $orderToCancel['price'],
-                $orderToCancel['side']
-            ));
-            $this->bot->cancelOrder($orderToCancel['id']);
-        } else {
-            $this->logger->log("[{$this->pair}] Could not select any order to cancel.");
-        }
+            if ($orderToCancel) {
+                $this->logger->log(sprintf(
+                    '[%s] Selected order to cancel: %d @ %s (Side: %d)',
+                            $this->pair,
+                            $orderToCancel['id'],
+                            $orderToCancel['price'],
+                    $orderToCancel['side']
+                ));
+                await($this->bot->getExchangeManager()->cancelOrder($orderToCancel['id'], $this->pair));
+            } else {
+                $this->logger->log("[{$this->pair}] Could not select any order to cancel.");
+            }
+        });
     }
 
     /**
@@ -446,111 +457,113 @@ class MarketMakerActions
      * 
      * @param array $pendingOrders List of pending orders
      */
-    private function executeMarketTrade(array $pendingOrders): void
+    private function executeMarketTrade(array $pendingOrders): PromiseInterface
     {
-        $this->logger->log("[{$this->pair}] Performing a market trade");
+        return async(function () use ($pendingOrders) {
+            $this->logger->log("[{$this->pair}] Performing a market trade");
 
-        // Get fresh orders
-        $this->bot->updateOpenOrders(); 
-        $openOrders = $this->bot->getOpenOrders(); 
-        $bids = array_filter($openOrders, fn($o) => $o['side'] === 2);
-        $asks = array_filter($openOrders, fn($o) => $o['side'] === 1);
-        usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']); // Highest price first
-        usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']); // Lowest price first
-        
-        $bidCount = count($bids);
-        $askCount = count($asks);
-        $this->logger->log(sprintf("[{$this->pair}] Found %d bids and %d asks for market trade.", $bidCount, $askCount));
+            // Get fresh orders asynchronously
+            await($this->bot->updateOpenOrders()); 
+            $openOrders = $this->bot->getOpenOrders();
+            $bids = array_filter($openOrders, fn($o) => $o['side'] === 2);
+            $asks = array_filter($openOrders, fn($o) => $o['side'] === 1);
+            usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']); // Highest price first
+            usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']); // Lowest price first
+            
+            $bidCount = count($bids);
+            $askCount = count($asks);
+            $this->logger->log(sprintf("[{$this->pair}] Found %d bids and %d asks for market trade.", $bidCount, $askCount));
 
-        // Log state BEFORE decision
-        $lastActionWasSell_before = $this->bot->lastActionWasSell;
-        $this->logger->log(sprintf("[{$this->pair}] State before trade decision: lastActionWasSell = %s", $lastActionWasSell_before ? 'true' : 'false'));
+            // Log state BEFORE decision
+            $lastActionWasSell_before = $this->bot->lastActionWasSell;
+            $this->logger->log(sprintf("[{$this->pair}] State before trade decision: lastActionWasSell = %s", $lastActionWasSell_before ? 'true' : 'false'));
 
-        if ($bidCount > 0 && $askCount > 0) {
-            // Main logic branch
-            if ($lastActionWasSell_before) { // If last action was SELL, now we BUY
-                $this->logger->log("[{$this->pair}] Decided to BUY (hit ASK)");
-                if (isset($asks[0])) { 
+            if ($bidCount > 0 && $askCount > 0) {
+                // Main logic branch
+                if ($lastActionWasSell_before) { // If last action was SELL, now we BUY
+                    $this->logger->log("[{$this->pair}] Decided to BUY (hit ASK)");
+                    if (isset($asks[0])) { 
+                        $targetOrder = $asks[0];
+                        $price = (float)$targetOrder['price'];
+                        $btc_amount = (float)$targetOrder['amount'];
+                        // Calculate the USDT amount needed to buy the target BTC amount at the target price
+                        $usdt_amount_to_spend = $btc_amount * $price;
+                        // Format USDT amount appropriately (e.g., 8 decimal places)
+                        $formatted_usdt_amount = number_format($usdt_amount_to_spend, 8, '.', '');
+
+                        $this->logger->log(sprintf(
+                            "[%s] Targeting ASK ID: %d, Price: %s, BTC Amount: %s. Calculated USDT to spend: %s", 
+                            $this->pair, 
+                            $targetOrder['id'], 
+                            $targetOrder['price'], 
+                            $targetOrder['amount'],
+                            $formatted_usdt_amount
+                        ));
+                        // Send USDT amount for side=2
+                        await($this->bot->placeMarketOrder(2, $formatted_usdt_amount)); 
+                        $this->logger->log(sprintf('[%s] Market trade executed: Placed order to BUY by spending ~%s USDT @ ~%s', $this->pair, $formatted_usdt_amount, $targetOrder['price']));
+                        $this->bot->lastActionWasSell = false; // Next action should be SELL
+                    } else {
+                         $this->logger->log("[{$this->pair}] Error: No asks found despite askCount > 0. Skipping.");
+                    }
+                } else { // If last action was BUY (or initial state), now we SELL
+                    $this->logger->log("[{$this->pair}] Decided to SELL (hit BID)");
+                    if (isset($bids[0])) {
+                        $targetOrder = $bids[0];
+                        $this->logger->log(sprintf("[{$this->pair}] Targeting BID ID: %d, Price: %s, Amount: %s", $targetOrder['id'], $targetOrder['price'], $targetOrder['amount']));
+                        // Send BTC amount for side=1
+                        await($this->bot->placeMarketOrder(1, $targetOrder['amount'])); 
+                        $this->logger->log(sprintf('[%s] Market trade executed: Sold %s @ %s', $this->pair, $targetOrder['amount'], $targetOrder['price']));
+                        $this->bot->lastActionWasSell = true; // Next action should be BUY
+                    } else {
+                         $this->logger->log("[{$this->pair}] Error: No bids found despite bidCount > 0. Skipping.");
+                    }
+                }
+            } elseif ($bidCount > 0) { // Only bids exist
+                $this->logger->log("[{$this->pair}] Decided to SELL (hit BID - only bids available)");
+                 if (isset($bids[0])) {
+                    $targetOrder = $bids[0];
+                     $this->logger->log(sprintf("[{$this->pair}] Targeting BID ID: %d, Price: %s, Amount: %s", $targetOrder['id'], $targetOrder['price'], $targetOrder['amount']));
+                    // Send BTC amount for side=1
+                    await($this->bot->placeMarketOrder(1, $targetOrder['amount'])); 
+                    $this->logger->log(sprintf('[%s] Market trade executed: Sold %s @ %s', $this->pair, $targetOrder['amount'], $targetOrder['price']));
+                     $this->bot->lastActionWasSell = true; // Set flag even in one-sided market
+                 } else {
+                     $this->logger->log("[{$this->pair}] Error: No bids found despite bidCount > 0. Skipping.");
+                 }
+            } elseif ($askCount > 0) { // Only asks exist
+                $this->logger->log("[{$this->pair}] Decided to BUY (hit ASK - only asks available)");
+                 if (isset($asks[0])) {
                     $targetOrder = $asks[0];
                     $price = (float)$targetOrder['price'];
                     $btc_amount = (float)$targetOrder['amount'];
-                    // Calculate the USDT amount needed to buy the target BTC amount at the target price
+                    // Calculate the USDT amount needed
                     $usdt_amount_to_spend = $btc_amount * $price;
-                    // Format USDT amount appropriately (e.g., 8 decimal places)
                     $formatted_usdt_amount = number_format($usdt_amount_to_spend, 8, '.', '');
 
                     $this->logger->log(sprintf(
                         "[%s] Targeting ASK ID: %d, Price: %s, BTC Amount: %s. Calculated USDT to spend: %s", 
-                        $this->pair, 
+                            $this->pair,
                         $targetOrder['id'], 
                         $targetOrder['price'], 
                         $targetOrder['amount'],
                         $formatted_usdt_amount
                     ));
                     // Send USDT amount for side=2
-                    $this->bot->placeMarketOrder(2, $formatted_usdt_amount); 
+                    await($this->bot->placeMarketOrder(2, $formatted_usdt_amount)); 
                     $this->logger->log(sprintf('[%s] Market trade executed: Placed order to BUY by spending ~%s USDT @ ~%s', $this->pair, $formatted_usdt_amount, $targetOrder['price']));
-                    $this->bot->lastActionWasSell = false; // Next action should be SELL
-                } else {
+                     $this->bot->lastActionWasSell = false; // Set flag even in one-sided market
+                 } else {
                      $this->logger->log("[{$this->pair}] Error: No asks found despite askCount > 0. Skipping.");
-                }
-            } else { // If last action was BUY (or initial state), now we SELL
-                $this->logger->log("[{$this->pair}] Decided to SELL (hit BID)");
-                if (isset($bids[0])) {
-                    $targetOrder = $bids[0];
-                    $this->logger->log(sprintf("[{$this->pair}] Targeting BID ID: %d, Price: %s, Amount: %s", $targetOrder['id'], $targetOrder['price'], $targetOrder['amount']));
-                    // Send BTC amount for side=1
-                    $this->bot->placeMarketOrder(1, $targetOrder['amount']); 
-                    $this->logger->log(sprintf('[%s] Market trade executed: Sold %s @ %s', $this->pair, $targetOrder['amount'], $targetOrder['price']));
-                    $this->bot->lastActionWasSell = true; // Next action should be BUY
+                 }
                 } else {
-                     $this->logger->log("[{$this->pair}] Error: No bids found despite bidCount > 0. Skipping.");
-                }
+                 $this->logger->log("[{$this->pair}] No bids or asks available to execute market trade against. Skipping.");
             }
-        } elseif ($bidCount > 0) { // Only bids exist
-            $this->logger->log("[{$this->pair}] Decided to SELL (hit BID - only bids available)");
-             if (isset($bids[0])) {
-                $targetOrder = $bids[0];
-                 $this->logger->log(sprintf("[{$this->pair}] Targeting BID ID: %d, Price: %s, Amount: %s", $targetOrder['id'], $targetOrder['price'], $targetOrder['amount']));
-                // Send BTC amount for side=1
-                $this->bot->placeMarketOrder(1, $targetOrder['amount']); 
-                $this->logger->log(sprintf('[%s] Market trade executed: Sold %s @ %s', $this->pair, $targetOrder['amount'], $targetOrder['price']));
-                 $this->bot->lastActionWasSell = true; // Set flag even in one-sided market
-             } else {
-                 $this->logger->log("[{$this->pair}] Error: No bids found despite bidCount > 0. Skipping.");
-             }
-        } elseif ($askCount > 0) { // Only asks exist
-            $this->logger->log("[{$this->pair}] Decided to BUY (hit ASK - only asks available)");
-             if (isset($asks[0])) {
-                $targetOrder = $asks[0];
-                $price = (float)$targetOrder['price'];
-                $btc_amount = (float)$targetOrder['amount'];
-                // Calculate the USDT amount needed
-                $usdt_amount_to_spend = $btc_amount * $price;
-                $formatted_usdt_amount = number_format($usdt_amount_to_spend, 8, '.', '');
-
-                $this->logger->log(sprintf(
-                    "[%s] Targeting ASK ID: %d, Price: %s, BTC Amount: %s. Calculated USDT to spend: %s", 
-                    $this->pair, 
-                    $targetOrder['id'], 
-                    $targetOrder['price'], 
-                    $targetOrder['amount'],
-                    $formatted_usdt_amount
-                ));
-                // Send USDT amount for side=2
-                $this->bot->placeMarketOrder(2, $formatted_usdt_amount); 
-                $this->logger->log(sprintf('[%s] Market trade executed: Placed order to BUY by spending ~%s USDT @ ~%s', $this->pair, $formatted_usdt_amount, $targetOrder['price']));
-                 $this->bot->lastActionWasSell = false; // Set flag even in one-sided market
-             } else {
-                 $this->logger->log("[{$this->pair}] Error: No asks found despite askCount > 0. Skipping.");
-             }
-        } else {
-             $this->logger->log("[{$this->pair}] No bids or asks available to execute market trade against. Skipping.");
-        }
-        
-        // Log state AFTER decision/update
-        $lastActionWasSell_after = $this->bot->lastActionWasSell;
-        $this->logger->log(sprintf("[{$this->pair}] State after trade decision: lastActionWasSell = %s", $lastActionWasSell_after ? 'true' : 'false'));
+            
+            // Log state AFTER decision/update
+            $lastActionWasSell_after = $this->bot->lastActionWasSell;
+            $this->logger->log(sprintf("[{$this->pair}] State after trade decision: lastActionWasSell = %s", $lastActionWasSell_after ? 'true' : 'false'));
+        });
     }
 
     /**
@@ -611,7 +624,7 @@ class MarketMakerActions
                  $selectedOrder = $weightedOrder['order'];
                  $this->logger->log(sprintf(
                     '[%s] Weighted selection: chose order %d (price: %s) with weight %.6f (distance: %.6f)', 
-                    $this->pair, 
+                        $this->pair,
                     $selectedOrder['id'], 
                     $selectedOrder['price'], 
                     $weightedOrder['weight'],
@@ -626,5 +639,18 @@ class MarketMakerActions
              '[%s] Warning: Weighted selection did not pick an order. Falling back to last order.', $this->pair
          ));
         return end($weightedOrders)['order'] ?? null;
+    }
+
+    /**
+     * Оновлює конфігурацію пари, яка використовується цим класом.
+     *
+     * @param array $newConfig Нова конфігурація.
+     */
+    public function updateConfig(array $newConfig): void
+    {
+        $this->pairConfig = $newConfig;
+        $this->logger->log("[{$this->pair}] MarketMakerActions configuration updated.");
+        // Тут можна додати логіку, якщо зміна конфігурації вимагає
+        // скидання стану або перебудови внутрішніх даних MarketMakerActions.
     }
 } 

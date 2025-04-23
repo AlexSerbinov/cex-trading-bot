@@ -7,7 +7,7 @@ const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // 90 dev
 const REFRESH_INTERVAL = 500; // Оновлення кожні 500 мс
 
 // Отримуємо торгову пару з аргументів командного рядка
-const PAIR = process.argv[2]?.startsWith('-') ? process.argv[2].substring(1) : 'BTC_USDC';
+const PAIR = process.argv[2]?.startsWith('-') ? process.argv[2].substring(1) : 'BTC_USDT';
 
 // Функція для отримання ордер буку (bids або asks)
 async function getOrderBook(side: number) {
@@ -47,7 +47,7 @@ function formatOrderBook(bids: any[], asks: any[]) {
 
     // Формуємо рядки для виведення
     let output = chalk.bold(`Order Book (${PAIR})\n`);
-    output += chalk.bold('№\tPrice (USDT)\t\tAmount (SOL)\tTotal\n');
+    output += chalk.bold('№\tPrice (USDT)\t\tAmount (BTC)\tTotal\n');
 
     // Виводимо asks (червоні) з нумерацією
     displayAsks.forEach((ask, index) => {

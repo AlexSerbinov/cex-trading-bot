@@ -116,15 +116,17 @@ class TradingBot
     }
 
     /**
-     * Initializes the bot by clearing orders and setting up initial order book
+     * Initializes the bot asynchronously by clearing orders and setting up initial order book.
+     * Returns a Promise that resolves when initialization is complete.
      */
-    public function initialize(): void
+    public function initialize(): PromiseInterface
     {
         $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Початок ініціалізації бота...");
         
+        return async(function () {
         if ($this->isInitialized) {
             $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Бот вже ініціалізований, пропускаємо ініціалізацію");
-            return;
+                return \React\Promise\resolve(true);
         }
         
         $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Бот не ініціалізований, виконуємо ініціалізацію...");
@@ -145,7 +147,16 @@ class TradingBot
         $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Ордербук ініціалізовано");
         
         $this->isInitialized = true;
-        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Ініціалізацію бота успішно завершено");
+            $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Ініціалізацію бота успішно завершено (async)");
+            return true;
+        })()->catch(function (\Throwable $e) {
+            // Catch errors specifically from the async initialization process
+            $this->logger->error("!!!!! TradingBot::initialize(): [{$this->pair}] Async Initialization failed: " . $e->getMessage());
+            // Додаємо логування стек трейсу для відстеження джерела помилки
+            $this->logger->logStackTrace("[{$this->pair}] Stack trace for initialize exception:");
+            // Return a rejected promise
+            return \React\Promise\reject($e);
+        });
     }
 
     /**
@@ -377,7 +388,7 @@ class TradingBot
         
         try {
             // Отримання списку відкритих ордерів (залишаємо поки синхронним)
-            $openOrders = $this->exchangeManager->getOpenOrders($this->pair);
+        $openOrders = $this->exchangeManager->getOpenOrders($this->pair);
             $orderCount = count($openOrders);
             $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Found {$orderCount} open orders to clear.");
 
@@ -467,7 +478,7 @@ class TradingBot
             ->then(
                 function ($result) use ($side, $amount, $price) {
                     // Check for API errors in the resolved result
-                    if (isset($result['error']) && $result['error'] !== null) {
+            if (isset($result['error']) && $result['error'] !== null) {
                         $errorJson = json_encode($result['error']);
                         $this->logger->error("[{$this->pair}] API error placing limit order (side={$side}, amount={$amount}, price={$price}): {$errorJson}");
                         // Reject the promise with an exception containing error details
@@ -792,9 +803,9 @@ class TradingBot
                     $this->logger->log("[{$this->pair}] Finished async cancellation of excess bids.");
 
                     // Оновлюємо масив currentBids ПІСЛЯ завершення всіх скасувань
-                    $currentBids = array_filter($currentBids, function($bid) use ($bidIdsToCancel) {
-                        return !in_array($bid['id'], $bidIdsToCancel);
-                    });
+            $currentBids = array_filter($currentBids, function($bid) use ($bidIdsToCancel) {
+                return !in_array($bid['id'], $bidIdsToCancel);
+            });
                     $this->logger->log("[{$this->pair}] Updated currentBids count: " . count($currentBids));
 
                 } catch (\Throwable $e) {
@@ -835,9 +846,9 @@ class TradingBot
                     $this->logger->log("[{$this->pair}] Finished async cancellation of excess asks.");
 
                     // Оновлюємо масив currentAsks ПІСЛЯ завершення всіх скасувань
-                    $currentAsks = array_filter($currentAsks, function($ask) use ($askIdsToCancel) {
-                        return !in_array($ask['id'], $askIdsToCancel);
-                    });
+            $currentAsks = array_filter($currentAsks, function($ask) use ($askIdsToCancel) {
+                return !in_array($ask['id'], $askIdsToCancel);
+            });
                      $this->logger->log("[{$this->pair}] Updated currentAsks count: " . count($currentAsks));
 
                 } catch (\Throwable $e) {

@@ -58,7 +58,7 @@ class ApiClient
         
         // Set the timeout
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 0);
         
         $response = curl_exec($ch);
         $error = curl_error($ch);

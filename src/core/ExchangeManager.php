@@ -454,45 +454,50 @@ class ExchangeManager
         }
     }
 
-    public function getOpenOrders(string $pair): array
+    /**
+     * Get open orders asynchronously.
+     *
+     * @param string $pair Trading pair
+     * @return PromiseInterface<array> Promise resolving with the list of open orders or rejecting on failure.
+     */
+    public function getOpenOrders(string $pair): PromiseInterface
     {
-        $this->logger->log("[{$pair}] Getting open orders");
-        
+        $this->logger->log("[{$pair}] ExchangeManager: Preparing async getOpenOrders request...");
         $body = [
             'method' => 'order.pending',
             'params' => [Config::BOT_USER_ID, $pair, 0, 100],
             'id' => 1,
         ];
-        
-        try {
-            // Використовуємо метод getTradeServerUrl замість константи
-            $url = Config::getTradeServerUrl();
-            // $this->logger->log("[{$pair}] Sending request to: {$url}");
-            
-            $json = json_encode($body);
-            
-            // Додаємо більш короткий таймаут для швидшого виявлення проблем
-            $startTime = microtime(true);
-            $response = $this->apiClient->post($url, $json);
-            $endTime = microtime(true);
-            $execTime = round(($endTime - $startTime) * 1000);
-            
-            $this->logger->log("[{$pair}] Request execution time: {$execTime}ms");
-            
-            $data = json_decode($response, true);
-            
-            // $this->logger->log("[{$pair}] Open orders response: " . json_encode($data));
-            
-            if (isset($data['result']['records']) && is_array($data['result']['records'])) {
-                return $data['result']['records'];
-            }
-            
-            $this->logger->error("[{$pair}] Failed to get open orders: " . json_encode($data));
-            return [];
-        } catch (Exception $e) {
-            $this->logger->error("[{$pair}] Exception when getting open orders: " . $e->getMessage());
-            return [];
-        }
+
+        return $this->browser // Використовуємо асинхронний Browser
+            ->post(
+                $this->tradeServerUrl,
+                ['Content-Type' => 'application/json'],
+                json_encode($body)
+            )
+            ->then(
+                function (ResponseInterface $response) use ($pair) {
+                    $data = json_decode((string) $response->getBody(), true);
+                    $this->logger->log("[{$pair}] ExchangeManager: Received API response for getOpenOrders.");
+                    // Validate response structure
+                    if (isset($data['result']['records']) && is_array($data['result']['records'])) {
+                        $this->logger->log("[{$pair}] ExchangeManager: Successfully retrieved " . count($data['result']['records']) . " open orders.");
+                        return $data['result']['records']; // Resolve with the orders array
+                    } elseif (isset($data['error']) && $data['error'] !== null) {
+                        $errorJson = json_encode($data['error']);
+                        $this->logger->error("[{$pair}] ExchangeManager: API error getting open orders: {$errorJson}");
+                        throw new \RuntimeException("API Error getting open orders: " . $errorJson);
+                    } else {
+                        $this->logger->error("[{$pair}] ExchangeManager: Invalid API response structure for getOpenOrders: " . (string)$response->getBody());
+                        throw new \RuntimeException("Invalid API response structure received from server for getOpenOrders.");
+                    }
+                },
+                function (\Exception $e) use ($pair) {
+                    $this->logger->error("[{$pair}] ExchangeManager: HTTP Exception getting open orders: " . $e->getMessage());
+                    $this->logger->logStackTrace("[{$pair}] ExchangeManager: Stack trace for getOpenOrders HTTP exception:");
+                    throw $e; // Reject with the original exception
+                }
+            );
     }
 
     // Замінюємо реалізацію cancelOrder на асинхронну
@@ -506,7 +511,7 @@ class ExchangeManager
             'id' => 1,
         ];
         
-        $url = Config::getTradeServerUrl();
+            $url = Config::getTradeServerUrl();
         $jsonBody = json_encode($body);
 
         return $this->browser->post(
@@ -576,6 +581,7 @@ class ExchangeManager
                     $result = json_decode((string) $response->getBody(), true);
                     $this->logger->log("[{$pair}] ExchangeManager: Received API response for placing limit order (side={$side}, price={$price}, amount={$amount})");
                     // Basic check for presence of result or error key
+                    $this->logger->log("[{$pair}] ExchangeManager: Result: " . json_encode($result));
                     if (!isset($result['result']) && !isset($result['error'])) {
                          $this->logger->error("[{$pair}] ExchangeManager: Invalid API response structure for placeLimitOrder: " . (string)$response->getBody());
                          throw new \RuntimeException("Invalid API response structure received from server for placeLimitOrder.");

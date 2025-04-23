@@ -228,12 +228,21 @@ class BotRunner
                         // Оновлюємо хеш конфігурації
                         $this->lastPairConfigHash = $currentPairConfigHash;
                     } else {
-                        $this->logger->log("!!!!! BotRunner: Конфігурація для пари {$this->pair} не змінилася");
+                        $this->logger->info("!!!!! BotRunner: Конфігурація для пари {$this->pair} не змінилася");
                     }
                     
-                    // Running a single cycle of the bot
-                    $this->logger->log("!!!!! BotRunner: Запуск одного циклу бота для пари {$this->pair}");
-                    $this->bot->runSingleCycle();
+                    $this->logger->info("!!!!! BotRunner: Запуск одного циклу бота для пари {$this->pair}");
+                    try {
+                        // Correctly call runSingleCycle and await its promise
+                        $cyclePromise = $this->bot->runSingleCycle();
+                        await($cyclePromise);
+                        $this->logger->info("[{$this->pair}] Cycle completed successfully.");
+                    } catch (\Throwable $e) {
+                        $this->logger->error("[{$this->pair}] Error during trading cycle: " . $e->getMessage() . "\nStack trace:\n" . $e->getTraceAsString());
+                        // Optionally return a rejected promise here or handle the error differently
+                        // For now, just log and continue to the next iteration
+                    }
+                    
                     $this->logger->log("!!!!! BotRunner: Цикл бота для пари {$this->pair} завершено");
                     
                     // Forcibly getting the latest configuration before the delay

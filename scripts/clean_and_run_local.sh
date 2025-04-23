@@ -60,7 +60,10 @@ rm -f "$PROJECT_ROOT/data/pids"/*.pid
 
 # Очищаємо системний кеш
 echo "Очищення системного кешу..."
-php "$PROJECT_ROOT/tools/clean_system.php"
+# Спроба очистити системний кеш через PHP CLI
+php -r 'opcache_reset();'
+# Наступний рядок закоментовано, оскільки файл не існує
+# php "$PROJECT_ROOT/tools/clean_system.php"
 
 # Налаштовуємо конфігурацію фронтенду - використовуємо створений нами скрипт
 "$SCRIPT_DIR/configure_frontend.sh" "local" "localhost" "8080"
