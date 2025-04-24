@@ -1,3 +1,4 @@
+// CEX Trading Bot - Frontend Configuration
 window.CONFIG = { 
     apiUrl: 'http://localhost:8080/api',
     swaggerUrl: 'http://localhost:8080/swagger-ui',
