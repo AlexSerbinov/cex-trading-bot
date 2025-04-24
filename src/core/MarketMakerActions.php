@@ -283,7 +283,29 @@ class MarketMakerActions
             '.',
             ''
         );
-        $bidAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', '');
+        // $bidAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', ''); // REMOVE THIS LINE
+        
+        // Read min/max trade amounts from config
+        $tradeAmountMin = (float) $this->pairConfig['settings']['trade_amount_min'];
+        $tradeAmountMax = (float) $this->pairConfig['settings']['trade_amount_max'];
+        
+        // Ensure min is not greater than max
+        if ($tradeAmountMin > $tradeAmountMax) {
+            $this->logger->warning("[{$this->pair}] trade_amount_min > trade_amount_max in createNewBid, swapping.");
+            [$tradeAmountMin, $tradeAmountMax] = [$tradeAmountMax, $tradeAmountMin];
+        }
+        
+        // Calculate random amount within the configured range
+        $randomAmountFactor = mt_rand() / mt_getrandmax(); // 0.0 to 1.0
+        $amount = $tradeAmountMin + $randomAmountFactor * ($tradeAmountMax - $tradeAmountMin);
+        $bidAmount = number_format($amount, 8, '.', '');
+
+        // Ensure amount is not zero after formatting
+        if ((float)$bidAmount <= 0) {
+            $this->logger->error("[{$this->pair}] Generated zero bid amount in createNewBid: original={$amount}, using minimum: {$tradeAmountMin}");
+            $bidAmount = number_format($tradeAmountMin, 8, '.', '');
+        }
+
         $this->bot->placeLimitOrder(2, $bidAmount, $bidPrice);
         $this->logger->log(sprintf(
             '[%s] Placed bid: %s @ %s (factor: %.4f, gap: %.6f)',
@@ -315,7 +337,29 @@ class MarketMakerActions
             '.',
             ''
         );
-        $askAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', '');
+        // $askAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', ''); // REMOVE THIS LINE
+        
+        // Read min/max trade amounts from config
+        $tradeAmountMin = (float) $this->pairConfig['settings']['trade_amount_min'];
+        $tradeAmountMax = (float) $this->pairConfig['settings']['trade_amount_max'];
+        
+        // Ensure min is not greater than max
+        if ($tradeAmountMin > $tradeAmountMax) {
+             $this->logger->warning("[{$this->pair}] trade_amount_min > trade_amount_max in createNewAsk, swapping.");
+             [$tradeAmountMin, $tradeAmountMax] = [$tradeAmountMax, $tradeAmountMin];
+        }
+        
+        // Calculate random amount within the configured range
+        $randomAmountFactor = mt_rand() / mt_getrandmax(); // 0.0 to 1.0
+        $amount = $tradeAmountMin + $randomAmountFactor * ($tradeAmountMax - $tradeAmountMin);
+        $askAmount = number_format($amount, 8, '.', '');
+
+        // Ensure amount is not zero after formatting
+        if ((float)$askAmount <= 0) {
+             $this->logger->error("[{$this->pair}] Generated zero ask amount in createNewAsk: original={$amount}, using minimum: {$tradeAmountMin}");
+             $askAmount = number_format($tradeAmountMin, 8, '.', '');
+        }
+
         $this->bot->placeLimitOrder(1, $askAmount, $askPrice);
         $this->logger->log(sprintf(
             '[%s] Placed ask: %s @ %s (factor: %.4f, gap: %.6f)',
