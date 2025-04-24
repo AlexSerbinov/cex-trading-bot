@@ -101,7 +101,7 @@ const BotList = {
                 </td>
                 <td>${bot.settings.min_orders || 2}
                     <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
-                       title="Бажана кількість ордерів, яку бот буде підтримувати. На високоволатильному ринку ордерів може бути менше. Для зменшення впливу волатильності рекомендується виставляти більше market gap."></i>
+                       title="Desired number of orders the bot will maintain. On a volatile market, there may be fewer orders. For reducing volatility, it is recommended to set a higher market gap."></i>
                 </td>
                 <td>${bot.settings.trade_amount_min} / ${bot.settings.trade_amount_max}</td>
                 <td>${bot.settings.frequency_from} / ${bot.settings.frequency_to}</td>
