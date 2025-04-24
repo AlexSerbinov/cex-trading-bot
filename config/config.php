@@ -1,4 +1,5 @@
 <?php
+// CEX Trading Bot - Main Configuration File
 
 declare(strict_types=1);
 
