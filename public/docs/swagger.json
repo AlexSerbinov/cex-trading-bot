@@ -1,7 +1,7 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Trading Bot API",
+        "title": "CEX Trading Bot API - Portfolio Project",
         "description": "API for managing trading bots",
         "version": "1.0.0"
     },
