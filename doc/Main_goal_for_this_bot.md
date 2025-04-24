@@ -1,5 +1,3 @@
-
-
 # Depth-Bot Project Documentation
 
 ## Overview

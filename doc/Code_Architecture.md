@@ -1,7 +1,3 @@
-Let’s dive into creating a detailed **Architecture** section for the Trading Bot project documentation. I’ve re-analyzed the entire codebase you provided, including the folder structure, Docker configurations, Nginx and Apache setups, scripts, and source files. Below, I’ll describe the architecture, technologies used, Docker packaging, file purposes, Swagger integration, and how everything is mounted and served—down to ports, domains, and endpoints. This will be written in a clear, documentary style in English, fitting seamlessly into your existing documentation.
-
----
-
 # Trading Bot Project Documentation
 
 ## Architecture
@@ -130,6 +126,3 @@ The project includes Swagger for API documentation and testing:
 
 The Trading Bot’s architecture is a modular, containerized system built on PHP, Apache, and Nginx, packaged with Docker for easy deployment. It separates backend logic (bot management and API) from frontend serving, with Swagger enhancing developer interaction. The use of distinct Development and Demo environments, combined with a flexible file structure, supports both testing and production-like scenarios, all while maintaining a populated order book for the exchange.
 
----
-
-This completes the **Architecture** section with a detailed breakdown of technologies, Docker setup, file purposes, Swagger, and deployment specifics. Let me know if you’d like to refine any part or add more details!

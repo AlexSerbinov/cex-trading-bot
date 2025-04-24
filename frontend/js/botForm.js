@@ -62,7 +62,7 @@ const BotForm = {
             this.form.frequency_to.value = bot.settings.frequency_to;
             this.form.price_factor.value = bot.settings.price_factor;
             this.form.market_gap.value = bot.settings.market_gap;
-            this.form.market_maker_order_probability.value = bot.settings.market_maker_order_probability;
+            // this.form.market_maker_order_probability.value = bot.settings.market_maker_order_probability;
             
             // Change the form title
             this.formTitle.textContent = `Editing bot ${bot.market}`;
@@ -113,14 +113,14 @@ const BotForm = {
                 exchange: this.form.exchange.value,
                 settings: {
                     min_orders: parseInt(this.form.min_orders.value),
-                    // Для max_orders використовуємо те ж саме значення, оскільки в UI тепер є тільки одне поле "Orders"
+                    // We use the same value for max_orders as there is only one "Orders" field in the UI now
                     trade_amount_min: parseFloat(this.form.trade_amount_min.value),
                     trade_amount_max: parseFloat(this.form.trade_amount_max.value),
                     frequency_from: parseInt(this.form.frequency_from.value),
                     frequency_to: parseInt(this.form.frequency_to.value),
                     price_factor: parseFloat(this.form.price_factor.value),
                     market_gap: parseFloat(this.form.market_gap.value),
-                    market_maker_order_probability: parseInt(this.form.market_maker_order_probability.value)
+                    // market_maker_order_probability: parseInt(this.form.market_maker_order_probability.value)
                 }
             };
             

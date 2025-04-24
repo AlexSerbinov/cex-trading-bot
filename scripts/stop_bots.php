@@ -1,32 +1,32 @@
 <?php
-// Скрипт для зупинки ботів
+// Script for stopping bots
 declare(strict_types=1);
 
 require_once __DIR__ . '/../src/core/Logger.php';
 require_once __DIR__ . '/../src/core/BotProcess.php';
 
 $logger = Logger::getInstance();
-$logger->log("Зупинка всіх ботів...");
+$logger->log("Stopping all bots...");
 
-// Створюємо об'єкт для управління процесами
+// Create an object for process management
 $botProcess = new BotProcess();
 
-// Зупиняємо всі процеси
+// Stop all processes
 $botProcess->stopAllProcesses();
 
-// Знаходимо процес TradingBotManager
+// Find the TradingBotManager process
 $command = "ps aux | grep 'php src/core/TradingBotManager.php' | grep -v grep";
 exec($command, $output);
 
 if (!empty($output)) {
-    // Отримуємо PID процесу
+    // Get the process PID
     $parts = preg_split('/\s+/', trim($output[0]));
     $pid = $parts[1];
     
-    // Зупиняємо процес
-    $logger->log("Зупинка TradingBotManager (PID: {$pid})");
+    // Stop the process
+    $logger->log("Stopping TradingBotManager (PID: {$pid})");
     exec("kill {$pid}");
-    sleep(1); // Чекаємо завершення процесу
+    sleep(1); // Wait for process to finish
 }
 
-$logger->log("Всі боти зупинено"); 
+$logger->log("All bots stopped"); 

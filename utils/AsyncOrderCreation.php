@@ -23,7 +23,7 @@ class AsyncOrderCreation
     }
 
     /**
-     * Асинхронне створення лімітного ордера
+     * Asynchronously create a limit order
      */
     private function createLimitOrder(string $pair, int $side, string $amount, string $price): Promise
     {
@@ -48,19 +48,19 @@ class AsyncOrderCreation
         ->then(
             function (ResponseInterface $response) use ($price, $amount, $side) {
                 $result = json_decode((string) $response->getBody(), true);
-                $sideStr = $side === 1 ? "продажу" : "купівлі";
-                echo "✅ Створено ордер на {$sideStr}: {$amount} @ {$price}\n";
+                $sideStr = $side === 1 ? "sell" : "buy";
+                echo "✅ Order created for {$sideStr}: {$amount} @ {$price}\n";
                 return $result;
             },
             function (\Exception $e) use ($price, $amount) {
-                echo "❌ Помилка створення ордера {$amount} @ {$price}: " . $e->getMessage() . "\n";
+                echo "❌ Error creating order {$amount} @ {$price}: " . $e->getMessage() . "\n";
                 throw $e;
             }
         );
     }
 
     /**
-     * Генерація випадкової ціни навколо базової ціни
+     * Generating a random price around the base price
      */
     private function generateRandomPrice(float $basePrice, float $deviation): string
     {
@@ -69,7 +69,7 @@ class AsyncOrderCreation
     }
 
     /**
-     * Генерація випадкового об'єму
+     * Generating a random volume
      */
     private function generateRandomAmount(float $minAmount, float $maxAmount): string
     {
@@ -77,7 +77,7 @@ class AsyncOrderCreation
     }
 
     /**
-     * Асинхронне створення групи ордерів
+     * Asynchronously create a group of orders
      */
     public function createBulkOrders(
         string $pair,
@@ -87,12 +87,12 @@ class AsyncOrderCreation
         float $minAmount,
         float $maxAmount
     ): void {
-        echo "🔄 Починаю створення {$numOrders} ордерів для пари {$pair}...\n";
+        echo "🔄 Starting creation of {$numOrders} orders for pair {$pair}...\n";
         
         $promises = [];
         
         for ($i = 0; $i < $numOrders; $i++) {
-            $side = mt_rand(0, 1) === 0 ? 1 : 2; // Випадковий вибір сторони (1 - продаж, 2 - купівля)
+            $side = mt_rand(0, 1) === 0 ? 1 : 2; // Randomly choose side (1 - sell, 2 - buy)
             $price = $this->generateRandomPrice($basePrice, $priceDeviation);
             $amount = $this->generateRandomAmount($minAmount, $maxAmount);
             
@@ -101,11 +101,11 @@ class AsyncOrderCreation
         
         \React\Promise\all($promises)->then(
             function () use ($numOrders) {
-                echo "✨ Успішно створено {$numOrders} ордерів\n";
+                echo "✨ Successfully created {$numOrders} orders\n";
                 Loop::stop();
             },
             function (\Exception $e) {
-                echo "❌ Помилка під час створення ордерів: " . $e->getMessage() . "\n";
+                echo "❌ Error during order creation: " . $e->getMessage() . "\n";
                 Loop::stop();
             }
         );
@@ -114,10 +114,10 @@ class AsyncOrderCreation
     }
 }
 
-// Використання
+// Usage
 if (count($argv) < 7) {
-    echo "Використання: php AsyncOrderCreation.php PAIR NUM_ORDERS BASE_PRICE PRICE_DEVIATION MIN_AMOUNT MAX_AMOUNT\n";
-    echo "Приклад: php AsyncOrderCreation.php LTC_USDT 10 65.5 0.02 0.1 0.5\n";
+    echo "Usage: php AsyncOrderCreation.php PAIR NUM_ORDERS BASE_PRICE PRICE_DEVIATION MIN_AMOUNT MAX_AMOUNT\n";
+    echo "Example: php AsyncOrderCreation.php LTC_USDT 10 65.5 0.02 0.1 0.5\n";
     exit(1);
 }
 

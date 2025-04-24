@@ -23,7 +23,7 @@ const BotList = {
             }
         } catch (error) {
             console.error('Error loading config:', error);
-            // Не показуємо помилку користувачу, просто логуємо
+            // We do not show the error to the user, just log it
         }
     },
     
@@ -101,15 +101,17 @@ const BotList = {
                 </td>
                 <td>${bot.settings.min_orders || 2}
                     <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
-                       title="Бажана кількість ордерів, яку бот буде підтримувати. На високоволатильному ринку ордерів може бути менше. Для зменшення впливу волатильності рекомендується виставляти більше market gap."></i>
+                       title="Desired number of orders the bot will maintain. On a volatile market, there may be fewer orders. For reducing volatility, it is recommended to set a higher market gap."></i>
                 </td>
                 <td>${bot.settings.trade_amount_min} / ${bot.settings.trade_amount_max}</td>
                 <td>${bot.settings.frequency_from} / ${bot.settings.frequency_to}</td>
                 <td>${bot.settings.price_factor}% / ${bot.settings.market_gap}%</td>
+                <!-- 
                 <td>${bot.settings.market_maker_order_probability || 0}%
                     <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
                        title="Probability of creating market maker orders"></i>
                 </td>
+                -->
                 <td>
                     <div class="btn-group" role="group">
                         <button type="button" class="btn btn-sm btn-primary view-bot" data-id="${bot.id}">

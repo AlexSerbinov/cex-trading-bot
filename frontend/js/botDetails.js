@@ -224,11 +224,19 @@ const BotDetails = {
             </div>
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Trading pair:</div>
-                <div class="bot-detail-value">${bot.market}</div>
+                <div class="bot-detail-value">
+                    ${bot.market}
+                    <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
+                       title="The market pair this bot trades (e.g., BTC_USDT)."></i>
+                </div>
             </div>
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Exchange:</div>
-                <div class="bot-detail-value">${bot.exchange}</div>
+                <div class="bot-detail-value">
+                    ${bot.exchange}
+                    <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
+                       title="The exchange where this bot operates."></i>
+                </div>
             </div>
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Status:</div>
@@ -243,29 +251,51 @@ const BotDetails = {
                 <div class="bot-detail-value">
                     ${bot.settings.min_orders || 2}
                     <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
-                       title="Бажана кількість ордерів, яку бот буде підтримувати. На високоволатильному ринку ордерів може бути менше. Для зменшення впливу волатильності рекомендується виставляти більше market gap."></i>
+                       title="Desired number of orders the bot will maintain. On a volatile market, there may be fewer orders. For reducing volatility, it is recommended to set a higher market gap."></i>
                 </div>
             </div>
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Trade amount (min/max):</div>
-                <div class="bot-detail-value">${bot.settings.trade_amount_min} / ${bot.settings.trade_amount_max}</div>
+                <div class="bot-detail-value">
+                    ${bot.settings.trade_amount_min} / ${bot.settings.trade_amount_max}
+                    <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
+                       title="The minimum and maximum amount for a single trade."></i>
+                </div>
             </div>
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Frequency (min/max):</div>
-                <div class="bot-detail-value">${bot.settings.frequency_from} / ${bot.settings.frequency_to} seconds</div>
+                <div class="bot-detail-value">
+                    ${bot.settings.frequency_from} / ${bot.settings.frequency_to} seconds
+                    <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
+                       title="The minimum and maximum time delay (in seconds) between placing orders."></i>
+                </div>
             </div>
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Price deviation:</div>
-                <div class="bot-detail-value">${bot.settings.price_factor}%</div>
+                <div class="bot-detail-value">
+                    ${bot.settings.price_factor}%
+                    <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
+                       title="The percentage difference from the current price used to place orders."></i>
+                </div>
             </div>
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Market gap:</div>
-                <div class="bot-detail-value">${bot.settings.market_gap}%</div>
+                <div class="bot-detail-value">
+                    ${bot.settings.market_gap}%
+                    <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
+                       title="The minimum percentage gap between buy and sell orders."></i>
+                </div>
             </div>
+            <!--
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Market maker order probability:</div>
-                <div class="bot-detail-value">${bot.settings.market_maker_order_probability}%</div>
+                <div class="bot-detail-value">
+                    ${bot.settings.market_maker_order_probability}%
+                    <i class="bi bi-info-circle text-primary info-icon" data-bs-toggle="tooltip" 
+                       title="The probability (0-100%) that the bot will place a market maker order instead of a taker order."></i>
+                </div>
             </div>
+            -->
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Created at:</div>
                 <div class="bot-detail-value">${createdAt}</div>

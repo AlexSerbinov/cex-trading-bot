@@ -4,7 +4,7 @@ import chalk from 'chalk';
 // const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 demo
 const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // 90 dev
 const USER_ID = 5;
-const REFRESH_INTERVAL = 1000; // 1 секунда
+const REFRESH_INTERVAL = 1000; // 1 second
 
 interface Balance {
     available: string;
@@ -28,9 +28,12 @@ async function getBalances(): Promise<Balances> {
         }
 
         return response.data.result;
-    } catch (error) {
-        console.error('Error fetching balances:', error);
-        return {};
+    } catch (error: any) {
+        console.error(chalk.red('Error fetching balances:'), error.message);
+        if (error.response && error.response.data) {
+            console.error(chalk.red('Server Response Error:'), JSON.stringify(error.response.data, null, 2));
+        }
+        throw error;
     }
 }
 
@@ -45,8 +48,9 @@ function formatNumber(num: number): string {
 }
 
 function formatBalances(balances: Balances): string {
-    let output = '\n' + chalk.bold.yellow(`╔══════════════════════ Balances for User ID: ${USER_ID} ══════════════════════╗\n`);
-    output += chalk.bold.cyan('║ Currency      Available              Frozen                 Total                ║\n');
+    let output = '\n' + chalk.bold.yellow(`╔══════════════════════ Balances for User ID: ${USER_ID} ══════════════════════════════════╗\n`);
+    output += chalk.bold.cyan('                    Trade server url: ' + TRADE_SERVER_URL + '\n');
+    output += chalk.bold.cyan('║ Currency      Available              Frozen                 Total               ║\n');
     output += chalk.bold.yellow('╠═════════════════════════════════════════════════════════════════════════════════╣\n');
 
     Object.entries(balances)
@@ -90,5 +94,5 @@ async function runBalanceDisplay() {
     }
 }
 
-// Запуск
+// Start
 runBalanceDisplay(); 

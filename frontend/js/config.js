@@ -4,9 +4,9 @@ window.CONFIG = {
     environment: 'local'
 };
 
-// Функція для динамічного оновлення URL API з заголовків
+// Function for dynamic update of API URL from headers
 window.addEventListener('DOMContentLoaded', function() {
-    // Перевіряємо, чи є заголовки X-API-URL і X-SWAGGER-URL
+    // Check if X-API-URL and X-SWAGGER-URL headers are present
     fetch('/')
         .then(response => {
             const apiUrl = response.headers.get('X-API-URL');
@@ -14,15 +14,15 @@ window.addEventListener('DOMContentLoaded', function() {
             
             if (apiUrl) {
                 window.CONFIG.apiUrl = apiUrl;
-                console.log('API URL оновлено з заголовка:', apiUrl);
+                console.log('API URL updated from header:', apiUrl);
             }
             
             if (swaggerUrl) {
                 window.CONFIG.swaggerUrl = swaggerUrl;
-                console.log('Swagger URL оновлено з заголовка:', swaggerUrl);
+                console.log('Swagger URL updated from header:', swaggerUrl);
             }
         })
         .catch(error => {
-            console.error('Помилка при отриманні заголовків:', error);
+            console.error('Error getting headers:', error);
         });
 });

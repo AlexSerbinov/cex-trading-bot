@@ -6,11 +6,11 @@ require_once __DIR__ . '/BotRunner.php';
 require_once __DIR__ . '/ErrorHandler.php';
 require_once __DIR__ . '/Logger.php';
 
-// Ініціалізація Logger та ErrorHandler
+// Initialization of Logger and ErrorHandler
 $environment = getenv('ENVIRONMENT') ?: 'local';
 $logDir = __DIR__ . '/../../data/logs/' . $environment;
 
-// Створюємо директорії для логів, якщо вони не існують
+// Create directories for logs if they do not exist
 if (!is_dir($logDir)) {
     mkdir($logDir, 0755, true);
 }
@@ -18,31 +18,31 @@ if (!is_dir($logDir)) {
 $logFile = $logDir . '/bot.log';
 $errorLogFile = $logDir . '/bots_error.log';
 
-// Ініціалізуємо логер та обробник помилок
+// Initialize logger and error handler
 Logger::getInstance(true, $logFile);
 ErrorHandler::initialize($errorLogFile);
 
-// Перевірка переданих аргументів
+// Checking passed arguments
 if ($argc < 2) {
-    echo "Використання: php TradingBotRunner.php <пара>\n";
-    echo "Приклад: php TradingBotRunner.php DOGE_BTC\n";
+    echo "Usage: php TradingBotRunner.php <pair>\n";
+    echo "Example: php TradingBotRunner.php DOGE_BTC\n";
     exit(1);
 }
 
-// Отримання пари з аргументів
+// Getting pair from arguments
 $pair = $argv[1];
 
-// Логуємо початок роботи бота
+// Log the start of the bot
 $logger = Logger::getInstance();
-$logger->log("Запуск бота для пари {$pair} (PID: " . getmypid() . ")");
+$logger->log("Starting bot for pair {$pair} (PID: " . getmypid() . ")");
 
 try {
-    // Створення та запуск бота
+    // Creating and starting the bot
     $runner = new BotRunner($pair);
     $runner->run();
 } catch (\Throwable $e) {
-    // Обробка будь-яких помилок, які не були перехоплені раніше
-    $logger->error("Критична помилка при запуску бота для пари {$pair}: " . $e->getMessage());
+    // Handling any errors that were not caught earlier
+    $logger->error("Critical error when starting bot for pair {$pair}: " . $e->getMessage());
     $logger->error("Stack trace: " . $e->getTraceAsString());
     exit(1);
 } 

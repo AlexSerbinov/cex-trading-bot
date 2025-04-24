@@ -23,7 +23,7 @@ php "$PROJECT_ROOT/tools/clean_system.php"
 echo "Starting the system..."
 "$SCRIPT_DIR/run_local.sh" all
 
-# Ми більше не використовуємо tail -f для перегляду логів,
-# оскільки тепер логи будуть автоматично виводитись у консоль
-# при роботі системи. Скрипт run_local.sh буде виконуватись 
-# в інтерактивному режимі і показувати логи напряму. 
+# We no longer use tail -f to view logs,
+# as logs will now be automatically printed to the console
+# when the system is running. The run_local.sh script will execute
+# in interactive mode and display logs directly. 

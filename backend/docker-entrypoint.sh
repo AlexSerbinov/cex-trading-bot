@@ -1,36 +1,36 @@
 #!/bin/bash
 set -e
 
-# Створення необхідних директорій
+# Create necessary directories
 mkdir -p /app/data/logs
 mkdir -p /app/data/pids
 mkdir -p /app/data/storage
 
-# Встановлення прав на запис
+# Set write permissions
 chmod -R 777 /app/data
 
-# Виведення інформації про середовище
-echo "Бекенд запущено в середовищі: ${ENVIRONMENT}"
+# Output environment information
+echo "Backend started in environment: ${ENVIRONMENT}"
 echo "Trade Server URL: ${TRADE_SERVER_URL}"
 
-# Запуск менеджера ботів у фоні, якщо це не режим API
+# Start bot manager in the background if it's not API mode
 if [ "$1" == "bot-manager" ] || [ "$1" == "both" ]; then
-    echo "Запуск менеджера ботів..."
+    echo "Starting bot manager..."
     php /app/src/core/TradingBotManager.php &
-    echo "Менеджер ботів запущено з PID: $!"
+    echo "Bot manager started with PID: $!"
 fi
 
-# Якщо потрібно запустити і сервер, і менеджера ботів
+# If both server and bot manager need to be started
 if [ "$1" == "both" ]; then
-    # Запускаємо PHP сервер
-    echo "Запуск API сервера..."
+    # Start PHP server
+    echo "Starting API server..."
     exec php -S 0.0.0.0:8080 router.php
 elif [ "$1" == "bot-manager" ]; then
-    # Створюємо метод для моніторингу логів
-    echo "Запуск моніторингу логів..."
+    # Create a method for monitoring logs
+    echo "Starting log monitoring..."
     exec tail -f /app/data/logs/bot.log
 else
-    # За замовчуванням - виконання команди, переданої в CMD
-    echo "Запуск з командою: $@"
+    # Default - execute the command passed in CMD
+    echo "Starting with command: $@"
     exec "$@"
 fi 

@@ -2,26 +2,26 @@ FROM php:8.1-apache
 
 WORKDIR /var/www/html
 
-# Встановлення залежностей
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
     libzip-dev \
     && docker-php-ext-install zip
 
-# Увімкнення mod_rewrite
+# Enable mod_rewrite
 RUN a2enmod rewrite
 
-# Додання ServerName для уникнення попередження
+# Add ServerName to avoid warning
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-# Копіювання коду
+# Copy code
 COPY . .
 
-# Встановлення прав на запис у data
+# Set write permissions for data directory
 RUN chmod -R 777 /var/www/html/data
 
-# Налаштування Apache для .htaccess
+# Configure Apache for .htaccess
 RUN echo '<Directory /var/www/html>\n\
     Options Indexes FollowSymLinks\n\
     AllowOverride All\n\
@@ -29,7 +29,7 @@ RUN echo '<Directory /var/www/html>\n\
 </Directory>' > /etc/apache2/conf-available/rewrite.conf \
     && a2enconf rewrite
 
-# Забезпечення доступу до Swagger UI
+# Ensure access to Swagger UI
 RUN mkdir -p /var/www/html/swagger-ui
 COPY ./docs/swagger/swagger-ui /var/www/html/swagger-ui
 

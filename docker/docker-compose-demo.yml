@@ -16,12 +16,12 @@ services:
             - ENVIRONMENT=demo
             - DEAD_WATCHER_URLS=http://164.68.117.90:6503/dead-watcher/heartbeat # if you have 2 or more instances of dead-watcher, you can add this via comma separated values
         ports:
-            - '6501:8080' # Порт 6501 для Demo-середовища
+            - '6501:8080' # Port 6501 for Demo environment
         networks:
             - app-demo-net
         restart: unless-stopped
         container_name: trading-bot-backend-demo
-        command: both # Запуск і сервера, і менеджера ботів
+        command: both # Start both server and bot manager
 
     frontend-demo:
         build:
@@ -35,7 +35,7 @@ services:
             - SWAGGER_URL=/swagger-ui
             - ENVIRONMENT=demo
         ports:
-            - '6502:80' # Порт 6502 для Demo-середовища
+            - '6502:80' # Port 6502 for Demo environment
         depends_on:
             - backend-demo
         networks:

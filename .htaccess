@@ -1,9 +1,0 @@
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /
-    
-    # Перенаправлення всіх запитів на src/api.php
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ src/api.php [QSA,L]
-</IfModule> 

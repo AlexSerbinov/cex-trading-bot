@@ -16,7 +16,7 @@ class BotProcess
     private $args;
     private $phpBinary;
     private $botScriptPath;
-    /** @var array Хеші конфігурацій для кожної пари */
+    /** @var array Hashes of configurations for each pair */
     private $configHashes = [];
     
     /**
@@ -24,50 +24,50 @@ class BotProcess
      */
     public function __construct()
     {
-        // Використовуємо шлях до звичайного файлу логів
+        // Use path to regular log file
         $environment = getenv('ENVIRONMENT') ?: 'local';
         $logFile = __DIR__ . '/../../data/logs/' . $environment . '/bot.log';
         
         $this->logger = Logger::getInstance(true, $logFile);
         $this->pidDir = __DIR__ . '/../../data/pids';
-        $this->logger->log("BotProcess: Ініціалізація, шлях до PID-директорії: {$this->pidDir}");
+        $this->logger->log("BotProcess: Initialization, path to PID directory: {$this->pidDir}");
         
         // Create the directory for PID files if it doesn't exist
         if (!is_dir($this->pidDir)) {
             mkdir($this->pidDir, 0755, true);
-            $this->logger->log("BotProcess: Створено директорію для PID-файлів: {$this->pidDir}");
+            $this->logger->log("BotProcess: Created directory for PID files: {$this->pidDir}");
         } else {
-            $this->logger->log("BotProcess: Директорія для PID-файлів існує");
+            $this->logger->log("BotProcess: Directory for PID files exists");
         }
         
-        // Створюємо директорію для лок-файлів
+        // Create the directory for lock files
         $lockDir = __DIR__ . '/../../data/locks';
         if (!is_dir($lockDir)) {
             mkdir($lockDir, 0755, true);
-            $this->logger->log("BotProcess: Створено директорію для лок-файлів: {$lockDir}");
+            $this->logger->log("BotProcess: Created directory for lock files: {$lockDir}");
         } else {
-            $this->logger->log("BotProcess: Директорія для лок-файлів існує");
+            $this->logger->log("BotProcess: Directory for lock files exists");
         }
         
-        // Ініціалізуємо хеші конфігурацій для всіх пар
+        // Initialize configuration hashes for all pairs
         $this->initPairConfigHashes();
     }
     
     /**
-     * Ініціалізація хешів конфігурацій для всіх пар
+     * Initialize configuration hashes for all pairs
      */
     private function initPairConfigHashes(): void
     {
-        $this->logger->log("!!!!! BotProcess::initPairConfigHashes(): Ініціалізація хешів конфігурацій");
+        $this->logger->log("!!!!! BotProcess::initPairConfigHashes(): Initializing configuration hashes");
         
-        // Отримуємо всі пари з конфігурації
+        // Get all pairs from configuration
         $allPairs = Config::getAllPairs();
         
         foreach ($allPairs as $pair) {
             $pairConfig = Config::getPairConfig($pair);
             if ($pairConfig) {
                 $this->pairConfigHashes[$pair] = md5(json_encode($pairConfig));
-                $this->logger->log("!!!!! BotProcess::initPairConfigHashes(): Ініціалізовано хеш для пари {$pair}");
+                $this->logger->log("!!!!! BotProcess::initPairConfigHashes(): Initialized hash for pair {$pair}");
             }
         }
     }
@@ -80,62 +80,62 @@ class BotProcess
      */
     public function startProcess(string $pair): bool
     {
-        // Перевірка на порожню пару
+        // Check for empty pair
         if (empty($pair)) {
             $this->logger->error("Cannot start process for empty pair");
             return false;
         }
         
-        $this->logger->log("!!!!! BotProcess::startProcess(): Запуск процесу для пари {$pair}");
+        $this->logger->log("!!!!! BotProcess::startProcess(): Starting process for pair {$pair}");
         
         // Check if the process is already running for this pair
         if ($this->isProcessRunning($pair)) {
-            $this->logger->log("!!!!! BotProcess::startProcess(): Процес для пари {$pair} вже запущений, пропускаємо запуск");
+            $this->logger->log("!!!!! BotProcess::startProcess(): Process for pair {$pair} is already running, skipping start");
             return true;
         }
         
-        // Додаткова перевірка запущених процесів для цієї пари
-        // Використовуємо більш надійний спосіб перевірки
+        // Additional check for running processes for this pair
+        // Using a more reliable check method
         $pidFile = $this->getPidFilePath($this->formatPairForFileName($pair));
-        $this->logger->log("!!!!! BotProcess::startProcess(): Перевірка PID файлу для пари {$pair}: {$pidFile}");
+        $this->logger->log("!!!!! BotProcess::startProcess(): Checking PID file for pair {$pair}: {$pidFile}");
         
         if (file_exists($pidFile)) {
             $pid = (int)file_get_contents($pidFile);
-            $this->logger->log("!!!!! BotProcess::startProcess(): Знайдено існуючий PID файл для пари {$pair} з PID: {$pid}");
+            $this->logger->log("!!!!! BotProcess::startProcess(): Found existing PID file for pair {$pair} with PID: {$pid}");
             
             if ($pid > 0 && file_exists("/proc/{$pid}")) {
-                $this->logger->log("!!!!! BotProcess::startProcess(): Процес {$pid} для пари {$pair} існує, зупиняємо його перед запуском нового");
+                $this->logger->log("!!!!! BotProcess::startProcess(): Process {$pid} for pair {$pair} exists, stopping it before starting a new one");
                 $this->stopProcess($pair);
-                $this->logger->log("!!!!! BotProcess::startProcess(): Очікуємо 1 секунду після зупинки процесу для пари {$pair}");
+                $this->logger->log("!!!!! BotProcess::startProcess(): Waiting 1 second after stopping process for pair {$pair}");
                 sleep(1);
             } else {
-                $this->logger->log("!!!!! BotProcess::startProcess(): PID файл для пари {$pair} існує, але процес {$pid} не запущений, видаляємо файл");
+                $this->logger->log("!!!!! BotProcess::startProcess(): PID file for pair {$pair} exists, but process {$pid} is not running, deleting the file");
                 unlink($pidFile);
             }
         } else {
-            $this->logger->log("!!!!! BotProcess::startProcess(): PID файл для пари {$pair} не існує");
+            $this->logger->log("!!!!! BotProcess::startProcess(): PID file for pair {$pair} does not exist");
         }
         
-        // Перевірка на запущені процеси BotRunner для цієї пари через proc
-        $this->logger->log("!!!!! BotProcess::startProcess(): Перевірка на запущені процеси BotRunner для пари {$pair}");
+        // Checking for running BotRunner processes for this pair via proc
+        $this->logger->log("!!!!! BotProcess::startProcess(): Checking for running BotRunner processes for pair {$pair}");
         $runningProcesses = $this->findRunningBotRunnerProcesses($pair);
         
         if (!empty($runningProcesses)) {
-            $this->logger->log("!!!!! BotProcess::startProcess(): Знайдено запущені процеси BotRunner для пари {$pair}: " . implode(", ", $runningProcesses));
+            $this->logger->log("!!!!! BotProcess::startProcess(): Found running BotRunner processes for pair {$pair}: " . implode(", ", $runningProcesses));
             foreach ($runningProcesses as $pid) {
-                $this->logger->log("!!!!! BotProcess::startProcess(): Зупиняємо процес {$pid} для пари {$pair}");
+                $this->logger->log("!!!!! BotProcess::startProcess(): Stopping process {$pid} for pair {$pair}");
                 if (function_exists('posix_kill')) {
                     $killResult = posix_kill($pid, SIGTERM);
-                    $this->logger->log("!!!!! BotProcess::startProcess(): Результат posix_kill для PID {$pid} пари {$pair}: " . ($killResult ? "успішно" : "невдало"));
+                    $this->logger->log("!!!!! BotProcess::startProcess(): posix_kill result for PID {$pid} pair {$pair}: " . ($killResult ? "success" : "failed"));
                 } else {
                     exec("kill -15 {$pid}");
-                    $this->logger->log("!!!!! BotProcess::startProcess(): Виконано команду kill -15 для PID {$pid} пари {$pair}");
+                    $this->logger->log("!!!!! BotProcess::startProcess(): Executed command kill -15 for PID {$pid} pair {$pair}");
                 }
             }
-            $this->logger->log("!!!!! BotProcess::startProcess(): Очікуємо 1 секунду після зупинки процесів для пари {$pair}");
+            $this->logger->log("!!!!! BotProcess::startProcess(): Waiting 1 second after stopping processes for pair {$pair}");
             sleep(1);
         } else {
-            $this->logger->log("!!!!! BotProcess::startProcess(): Не знайдено запущених процесів BotRunner для пари {$pair}");
+            $this->logger->log("!!!!! BotProcess::startProcess(): No running BotRunner processes found for pair {$pair}");
         }
         
         // Path to the script that will be executed in a separate process
@@ -146,9 +146,9 @@ class BotProcess
         
         // Acquire a lock to ensure no parallel process starts for this pair
         $lockFile = __DIR__ . "/../../data/locks/{$safePair}_process.lock";
-        $this->logger->log("!!!!! BotProcess::startProcess(): Спроба блокування для пари {$pair}, лок-файл: {$lockFile}");
+        $this->logger->log("!!!!! BotProcess::startProcess(): Attempting to lock for pair {$pair}, lock file: {$lockFile}");
         
-        // Перевіряємо, чи існує вже лок-файл і чи він заблокований
+        // Checking if the lock file already exists and if it is locked
         if (file_exists($lockFile)) {
             $existingLockHandle = @fopen($lockFile, 'r');
             if ($existingLockHandle) {
@@ -156,10 +156,10 @@ class BotProcess
                 fclose($existingLockHandle);
                 
                 if ($locked) {
-                    $this->logger->log("!!!!! BotProcess::startProcess(): Лок-файл для пари {$pair} вже заблокований. Інший процес вже запущений або запускається.");
+                    $this->logger->log("!!!!! BotProcess::startProcess(): Lock file for pair {$pair} is already locked. Another process is already running or starting.");
                     return false;
                 } else {
-                    $this->logger->log("!!!!! BotProcess::startProcess(): Лок-файл для пари {$pair} існує, але не заблокований. Видаляємо його.");
+                    $this->logger->log("!!!!! BotProcess::startProcess(): Lock file for pair {$pair} exists, but is not locked. Deleting it.");
                     unlink($lockFile);
                 }
             }
@@ -168,45 +168,45 @@ class BotProcess
         $lockHandle = fopen($lockFile, 'c');
         
         if (!$lockHandle) {
-            $this->logger->error("!!!!! BotProcess::startProcess(): Не вдалося створити лок-файл для пари {$pair}");
+            $this->logger->error("!!!!! BotProcess::startProcess(): Failed to create lock file for pair {$pair}");
             return false;
         }
         
         $locked = flock($lockHandle, LOCK_EX | LOCK_NB);
-        $this->logger->log("!!!!! BotProcess::startProcess(): Статус блокування для пари {$pair}: " . ($locked ? "успішно" : "заблоковано"));
+        $this->logger->log("!!!!! BotProcess::startProcess(): Lock status for pair {$pair}: " . ($locked ? "successfully" : "locked"));
         
         if (!$locked) {
-            $this->logger->log("!!!!! BotProcess::startProcess(): Не вдалося отримати блокування для пари {$pair}, можливо інший процес вже запускається");
+            $this->logger->log("!!!!! BotProcess::startProcess(): Failed to get lock for pair {$pair}, perhaps another process is already starting");
             fclose($lockHandle);
             return false;
         }
         
-        // Зберігаємо хендл лок-файлу в додатковому файлі для подальшого використання
+        // Save the lock file handle to an additional file for later use
         $lockHandleFile = $this->pidDir . "/{$safePair}_lock_handle.txt";
         file_put_contents($lockHandleFile, "locked");
         
         try {
-            // Використовуємо стандартне перенаправлення в /dev/null
-            // для запуску процесу у фоновому режимі
+            // Use standard redirection to /dev/null
+            // to run the process in the background
             $command = sprintf(
                 'php %s %s > /dev/null 2>&1 & echo $!',
                 escapeshellarg($scriptPath),
                 escapeshellarg($pair)
             );
             
-            $this->logger->log("!!!!! BotProcess::startProcess(): Виконуємо команду для запуску процесу для пари {$pair}: {$command}");
+            $this->logger->log("!!!!! BotProcess::startProcess(): Executing command to start process for pair {$pair}: {$command}");
             
             // Execute the command and get the PID of the process
             $pid = exec($command);
             
             if (!$pid || !is_numeric($pid) || $pid <= 0) {
-                $this->logger->error("!!!!! BotProcess::startProcess(): Помилка при запуску процесу для пари {$pair}, неправильний PID: {$pid}");
+                $this->logger->error("!!!!! BotProcess::startProcess(): Error starting process for pair {$pair}, invalid PID: {$pid}");
                 // flock($lockHandle, LOCK_UN); // REMOVED
                 // fclose($lockHandle); // REMOVED
                 return false;
             }
             
-            $this->logger->log("!!!!! BotProcess::startProcess(): Процес запущено для пари {$pair}, PID: {$pid}");
+            $this->logger->log("!!!!! BotProcess::startProcess(): Process started for pair {$pair}, PID: {$pid}");
             
             // Saving the PID to a file
             $this->savePid($safePair, (int)$pid);
@@ -217,24 +217,24 @@ class BotProcess
             
             // Checking if the process is actually running
             usleep(500000); // 0.5 second
-            $this->logger->log("????? BotProcess::startProcess(): Перевірка, чи процес {$pid} для пари {$pair} успішно запущений");
+            $this->logger->log("????? BotProcess::startProcess(): Checking if process {$pid} for pair {$pair} is successfully started");
 
             $processExists = false;
             if (function_exists('posix_kill')) {
                 $processExists = posix_kill((int)$pid, 0); // Use posix_kill to check if process exists
-                $this->logger->log("????? BotProcess::startProcess(): Результат перевірки posix_kill для PID {$pid}: " . ($processExists ? "існує" : "не існує"));
+                $this->logger->log("????? BotProcess::startProcess(): posix_kill check result for PID {$pid}: " . ($processExists ? "exists" : "does not exist"));
             } else {
-                $this->logger->error("!!!!! BotProcess::startProcess(): Функція posix_kill недоступна. Неможливо надійно перевірити стан процесу {$pid}.");
+                $this->logger->error("!!!!! BotProcess::startProcess(): posix_kill function is not available. Cannot reliably check status of process {$pid}.");
                 // Optionally, assume it started if posix is not available, 
                 // but this is less reliable.
                 // $processExists = true; 
             }
 
             if ($processExists) {
-                $this->logger->log("!!!!! BotProcess::startProcess(): Перевірено, що процес {$pid} для пари {$pair} успішно запущений (використовуючи posix_kill)");
+                $this->logger->log("!!!!! BotProcess::startProcess(): Checked that process {$pid} for pair {$pair} is successfully started (using posix_kill)");
                 return true;
             } else {
-                $this->logger->error("!!!!! BotProcess::startProcess(): Процес {$pid} для пари {$pair} не запустився або швидко завершився (перевірено через posix_kill)");
+                $this->logger->error("!!!!! BotProcess::startProcess(): Process {$pid} for pair {$pair} did not start or exited quickly (checked via posix_kill)");
                 $this->removePidFile($safePair);
                 return false;
             }
@@ -242,7 +242,7 @@ class BotProcess
         } finally {
             // Ensure the lock is always released and the handle closed
             if (is_resource($lockHandle)) {
-                 $this->logger->log("!!!!! BotProcess::startProcess(): Звільнення блокування та закриття лок-файлу для пари {$pair} в блоці finally");
+                 $this->logger->log("!!!!! BotProcess::startProcess(): Releasing lock and closing lock file for pair {$pair} in finally block");
                  flock($lockHandle, LOCK_UN);
                  fclose($lockHandle);
             }
@@ -257,7 +257,7 @@ class BotProcess
      */
     public function stopProcess(string $pair): bool
     {
-        $this->logger->log("!!!!! BotProcess::stopProcess(): Зупинка процесу для пари {$pair}");
+        $this->logger->log("!!!!! BotProcess::stopProcess(): Stopping process for pair {$pair}");
         
         // Format the pair for the PID file name
         $safePair = $this->formatPairForFileName($pair);
@@ -265,16 +265,16 @@ class BotProcess
         // Path to the PID file
         $pidFile = $this->getPidFilePath($safePair);
         
-        $this->logger->log("!!!!! BotProcess::stopProcess(): Шлях до PID файлу для пари {$pair}: {$pidFile}");
+        $this->logger->log("!!!!! BotProcess::stopProcess(): Getting PID file path for pair {$pair}: {$pidFile}");
         
         // If the PID file does not exist, the process is not running
         if (!file_exists($pidFile)) {
-            $this->logger->log("!!!!! BotProcess::stopProcess(): PID файл не існує для пари {$pair}, процес не запущений");
+            $this->logger->log("!!!!! BotProcess::stopProcess(): PID file for pair {$pair} not found");
             
-            // Перевіряємо, чи існує лок-файл і видаляємо його
+            // Check if the process is running
             $lockFile = __DIR__ . "/../../data/locks/{$safePair}_process.lock";
             if (file_exists($lockFile)) {
-                $this->logger->log("!!!!! BotProcess::stopProcess(): Видаляємо лок-файл для пари {$pair}: {$lockFile}");
+                $this->logger->log("!!!!! BotProcess::stopProcess(): Process for pair {$pair} is not running");
                 @unlink($lockFile);
             }
             
@@ -285,24 +285,24 @@ class BotProcess
         $pid = (int)file_get_contents($pidFile);
         
         if ($pid <= 0) {
-            $this->logger->log("!!!!! BotProcess::stopProcess(): Невірний PID ({$pid}) у файлі для пари {$pair}");
+            $this->logger->log("!!!!! BotProcess::stopProcess(): PID file {$pidFile} exists, but contains invalid PID: {$pid}");
             unlink($pidFile);
             
-            // Видаляємо лок-файл
+            // Remove lock file
             $lockFile = __DIR__ . "/../../data/locks/{$safePair}_process.lock";
             if (file_exists($lockFile)) {
-                $this->logger->log("!!!!! BotProcess::stopProcess(): Видаляємо лок-файл для пари {$pair}: {$lockFile}");
+                $this->logger->log("!!!!! BotProcess::stopProcess(): Removing lock file {$lockFile}");
                 @unlink($lockFile);
             }
             
             return true;
         }
         
-        $this->logger->log("!!!!! BotProcess::stopProcess(): Знайдено PID: {$pid} для зупинки пари {$pair}");
+        $this->logger->log("!!!!! BotProcess::stopProcess(): Found PID {$pid} for pair {$pair}. Sending SIGTERM.");
         
         // Waiting for the process to exit
-        $this->logger->log("!!!!! BotProcess::stopProcess(): Очікуємо завершення процесу {$pid} для пари {$pair}...");
-        $maxWait = 5; // максимальний час очікування у секундах
+        $this->logger->log("!!!!! BotProcess::stopProcess(): Waiting for process {$pid} for pair {$pair} to terminate...");
+        $maxWait = 5; // maximum wait time in seconds
         $waited = 0;
         $processExists = true; // Assume it exists initially
         while ($waited < $maxWait) {
@@ -313,13 +313,13 @@ class BotProcess
                 // We might break the loop earlier or just wait the full time.
                 // Let's break assuming the kill command worked after a short delay.
                 if ($waited > 1) { // Wait at least 1 second in this case
-                   $this->logger->warning("!!!!! BotProcess::stopProcess(): posix_kill недоступний, неможливо точно перевірити стан процесу {$pid}.");
+                   $this->logger->warning("!!!!! BotProcess::stopProcess(): posix_kill is not available. Cannot reliably check process status for PID {$pid}.");
                    $processExists = false; // Assume stopped
                 }
             }
             
             if (!$processExists) {
-                $this->logger->log("!!!!! BotProcess::stopProcess(): Процес {$pid} для пари {$pair} завершено за {$waited} секунд (перевірено через posix_kill)");
+                $this->logger->log("!!!!! BotProcess::stopProcess(): Process {$pid} for pair {$pair} did not terminate after SIGTERM. Sending SIGKILL.");
                 break;
             }
             sleep(1);
@@ -328,33 +328,33 @@ class BotProcess
         
         // If the process is still running, forcefully terminate it (SIGKILL)
         if ($processExists) { // Use the last known state from the loop
-            $this->logger->log("!!!!! BotProcess::stopProcess(): Процес {$pid} для пари {$pair} все ще працює після {$waited} секунд, надсилаємо SIGKILL");
+            $this->logger->log("!!!!! BotProcess::stopProcess(): Process {$pid} for pair {$pair} is still running after {$waited} seconds. Sending SIGKILL.");
             if (function_exists('posix_kill')) {
                 posix_kill($pid, SIGKILL);
             } else {
                 exec("kill -9 {$pid}");
             }
-            $this->logger->log("!!!!! BotProcess::stopProcess(): Надіслано SIGKILL до процесу {$pid} для пари {$pair}");
+            $this->logger->log("!!!!! BotProcess::stopProcess(): posix_kill result for SIGKILL for PID {$pid} pair {$pair}: " . ($processExists ? "success" : "failed"));
             sleep(1);
         }
         
         // Removing the PID file
         if (file_exists($pidFile)) {
-            $this->logger->log("!!!!! BotProcess::stopProcess(): Видаляємо PID файл {$pidFile} для пари {$pair}");
+            $this->logger->log("!!!!! BotProcess::stopProcess(): Removing PID file {$pidFile} for pair {$pair}");
             unlink($pidFile);
         }
         
-        // Видаляємо лок-файл
+        // Remove lock file
         $lockFile = __DIR__ . "/../../data/locks/{$safePair}_process.lock";
         if (file_exists($lockFile)) {
-            $this->logger->log("!!!!! BotProcess::stopProcess(): Видаляємо лок-файл для пари {$pair}: {$lockFile}");
+            $this->logger->log("!!!!! BotProcess::stopProcess(): Removing lock file {$lockFile}");
             @unlink($lockFile);
         }
         
-        // Видаляємо файл хендлера лок-файлу
+        // Remove lock file handle
         $lockHandleFile = $this->pidDir . "/{$safePair}_lock_handle.txt";
         if (file_exists($lockHandleFile)) {
-            $this->logger->log("!!!!! BotProcess::stopProcess(): Видаляємо файл хендлера лок-файлу для пари {$pair}: {$lockHandleFile}");
+            $this->logger->log("!!!!! BotProcess::stopProcess(): Removing lock file handle {$lockHandleFile}");
             @unlink($lockHandleFile);
         }
         
@@ -366,11 +366,11 @@ class BotProcess
         // If posix_kill is not available, we cannot perform a reliable final check.
         
         if ($finalCheckExists) {
-            $this->logger->log("!!!!! BotProcess::stopProcess(): УВАГА: Процес {$pid} для пари {$pair} все ще працює після всіх спроб зупинки (перевірено через posix_kill)");
+            $this->logger->log("!!!!! BotProcess::stopProcess(): Warning: Process {$pid} for pair {$pair} is still running after all attempts to stop it (checked via posix_kill)");
             return false;
         }
         
-        $this->logger->log("!!!!! BotProcess::stopProcess(): Процес для пари {$pair} успішно зупинено");
+        $this->logger->log("!!!!! BotProcess::stopProcess(): Process for pair {$pair} stopped successfully");
         return true;
     }
     
@@ -382,7 +382,7 @@ class BotProcess
      */
     public function isProcessRunning(string $pair): bool
     {
-        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Перевірка чи запущений процес для пари {$pair}");
+        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Checking if process for pair {$pair} is running");
         
         // Format the pair for the PID file name
         $safePair = $this->formatPairForFileName($pair);
@@ -390,46 +390,46 @@ class BotProcess
         // Path to the PID file
         $pidFile = $this->getPidFilePath($safePair);
         
-        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Шлях до PID файлу: {$pidFile}");
+        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Getting PID file path for pair {$pair}: {$pidFile}");
         
-        // Перевіряємо, чи існує лок-файл для цієї пари
+        // Check if the process is running
         $lockFile = __DIR__ . "/../../data/locks/{$safePair}_process.lock";
         if (file_exists($lockFile)) {
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Знайдено лок-файл для пари {$pair}: {$lockFile}");
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Found lock file for pair {$pair}: {$lockFile}");
             
-            // Перевіряємо, чи лок-файл заблокований
+            // Check if the lock file is locked
             $lockHandle = @fopen($lockFile, 'r');
             if ($lockHandle) {
                 $lockStatus = !flock($lockHandle, LOCK_EX | LOCK_NB);
                 fclose($lockHandle);
                 
                 if ($lockStatus) {
-                    $this->logger->log("!!!!! BotProcess::isProcessRunning(): Лок-файл для пари {$pair} заблокований, процес вважається запущеним");
+                    $this->logger->log("!!!!! BotProcess::isProcessRunning(): Lock file for pair {$pair} is locked, process is considered running");
                     
-                    // Якщо PID-файл існує, але лок-файл заблокований, це добре
-                    // Якщо PID-файл не існує, але лок-файл заблокований, щось не так
+                    // If the PID file exists, but the lock file is locked, this is good
+                    // If the PID file does not exist, but the lock file is locked, something is wrong
                     if (!file_exists($pidFile)) {
-                        $this->logger->log("!!!!! BotProcess::isProcessRunning(): УВАГА: Лок-файл для пари {$pair} заблокований, але PID-файл не існує");
-                        // Спробуємо відновити PID-файл з лок-файлу
+                        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Warning: Lock file for pair {$pair} is locked, but PID file does not exist");
+                        // Try to recover the PID file from the lock file
                         $pid = file_get_contents($lockFile);
                         if (is_numeric($pid) && $pid > 0) {
-                            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Відновлюємо PID-файл для пари {$pair} з лок-файлу, PID: {$pid}");
+                            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Recovering PID file for pair {$pair} from lock file, PID: {$pid}");
                             $this->savePid($safePair, (int) $pid);
                         }
                     }
                     
                     return true;
                 } else {
-                    $this->logger->log("!!!!! BotProcess::isProcessRunning(): Лок-файл для пари {$pair} не заблокований, перевіряємо PID-файл далі");
+                    $this->logger->log("!!!!! BotProcess::isProcessRunning(): Lock file for pair {$pair} is not locked, checking PID file further");
                 }
             }
         } else {
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Лок-файл для пари {$pair} не знайдено");
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Lock file for pair {$pair} not found");
         }
         
         // If the PID file does not exist, the process is not running
         if (!file_exists($pidFile)) {
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): PID файл не існує для пари {$pair}");
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): PID file for pair {$pair} not found");
             return false;
         }
         
@@ -437,21 +437,21 @@ class BotProcess
         $pid = (int)file_get_contents($pidFile);
         
         if ($pid <= 0) {
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Невірний PID ({$pid}) у файлі для пари {$pair}");
-            // Видаляємо невірний PID файл
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Invalid PID ({$pid}) in file for pair {$pair}");
+            // Remove invalid PID file
             unlink($pidFile);
             return false;
         }
         
-        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Знайдено PID: {$pid} для пари {$pair}");
+        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Found PID: {$pid} for pair {$pair}");
         
         // Checking if the process is running using posix_kill (cross-platform)
         $processExists = false;
         if (function_exists('posix_kill')) {
             $processExists = posix_kill($pid, 0);
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Перевірка процесу {$pid} через posix_kill: " . ($processExists ? "існує" : "не існує"));
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Checking process {$pid} via posix_kill: " . ($processExists ? "exists" : "does not exist"));
         } else {
-            $this->logger->error("!!!!! BotProcess::isProcessRunning(): Функція posix_kill недоступна. Неможливо надійно перевірити стан процесу {$pid}.");
+            $this->logger->error("!!!!! BotProcess::isProcessRunning(): posix_kill function is not available. Cannot reliably check process status for PID {$pid}.");
             // Cannot reliably check, maybe return true to avoid constant restarts? Or false?
             // Returning false is safer to avoid stale PID files if posix isn't available.
             unlink($pidFile);
@@ -459,21 +459,21 @@ class BotProcess
         }
 
         if ($processExists) {
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Процес з PID {$pid} для пари {$pair} запущений.");
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Process with PID {$pid} for pair {$pair} is running.");
             // Optional: Could add a check here if the lock file exists and is locked,
             // and try to relock/recreate PID if inconsistencies are found.
             return true;
         } else {
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Процес з PID {$pid} не існує (перевірено через posix_kill)");
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Process with PID {$pid} does not exist (checked via posix_kill)");
         }
         
         // If we got here, the PID file exists, but the process doesn't
-        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Видаляємо застарілий PID файл {$pidFile} для пари {$pair}");
+        $this->logger->log("!!!!! BotProcess::isProcessRunning(): Removing stale PID file {$pidFile} for pair {$pair}");
         unlink($pidFile);
         
         // Also remove the lock file if it exists
         if (file_exists($lockFile)) {
-            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Видаляємо лок-файл {$lockFile} для пари {$pair}");
+            $this->logger->log("!!!!! BotProcess::isProcessRunning(): Removing lock file {$lockFile} for pair {$pair}");
             @unlink($lockFile);
         }
         
@@ -589,40 +589,40 @@ class BotProcess
      */
     public function stopAllProcesses(): void
     {
-        $this->logger->log("Зупинка всіх процесів ботів...");
+        $this->logger->log("Stopping all bot processes...");
         $files = glob("{$this->pidDir}/*.pid");
         
-        $this->logger->log("Знайдено PID-файли для зупинки: " . implode(", ", $files));
+        $this->logger->log("Found PID files for stopping: " . implode(", ", $files));
         
         foreach ($files as $file) {
             $pairName = basename($file, '.pid');
             $pair = $this->restorePairFormat($pairName);
-            $this->logger->log("Зупинка процесу для пари {$pair}, PID-файл: {$file}");
+            $this->logger->log("Stopping process for pair {$pair}, PID file: {$file}");
             $pid = (int)file_get_contents($file);
-            $this->logger->log("PID для зупинки: {$pid}, пара: {$pair}");
+            $this->logger->log("PID for stopping: {$pid}, pair: {$pair}");
             
             if (posix_kill($pid, SIGTERM)) {
-                $this->logger->log("Надіслано сигнал SIGTERM до процесу {$pid} для пари {$pair}");
+                $this->logger->log("Sent SIGTERM signal to process {$pid} for pair {$pair}");
                 $startTime = time();
                 while (posix_kill($pid, 0) && (time() - $startTime) < 5) {
                     usleep(100000);
                 }
                 if (!posix_kill($pid, 0)) {
-                    $this->logger->log("Процес {$pid} для пари {$pair} завершено");
+                    $this->logger->log("Process {$pid} for pair {$pair} completed");
                 } else {
-                    $this->logger->log("Процес {$pid} для пари {$pair} не завершився, вбиваємо примусово");
+                    $this->logger->log("Process {$pid} for pair {$pair} did not complete, killing forcefully");
                     posix_kill($pid, SIGKILL);
                 }
             } else {
-                $this->logger->log("Не вдалося надіслати SIGTERM до процесу {$pid} для пари {$pair}, можливо він вже завершився");
+                $this->logger->log("Failed to send SIGTERM to process {$pid} for pair {$pair}, possibly already completed");
             }
             
             unlink($file);
-            @unlink("{$this->pidDir}/{$pairName}.lock"); // Видаляємо лок-файл
-            $this->logger->log("Процес для пари {$pair} зупинено, PID-файл і лок-файл видалено");
+            @unlink("{$this->pidDir}/{$pairName}.lock"); // Remove lock file
+            $this->logger->log("Process for pair {$pair} stopped, PID file and lock removed");
         }
         
-        $this->logger->log("Всі процеси ботів зупинено");
+        $this->logger->log("All bot processes stopped");
     }
     
     /**
@@ -631,48 +631,48 @@ class BotProcess
     public function startAllProcesses(): void
     {
         $enabledPairs = Config::getEnabledPairs();
-        $this->logger->log("Запуск процесів для всіх активних пар: " . implode(", ", $enabledPairs));
+        $this->logger->log("Starting processes for all active pairs: " . implode(", ", $enabledPairs));
         
         // First, clean invalid PID files
         $this->cleanupInvalidPidFiles();
-        $this->logger->log("Очищено недійсні PID-файли");
+        $this->logger->log("Cleaned invalid PID files");
         
         // Reloading the configuration
         Config::reloadConfig();
-        $this->logger->log("Перезавантажено конфігурацію");
+        $this->logger->log("Reloaded configuration");
         
         // Getting the list of active pairs
         $enabledPairs = Config::getEnabledPairs();
-        $this->logger->log("Активні пари після перезавантаження конфігурації: " . implode(", ", $enabledPairs));
+        $this->logger->log("Active pairs after reloading configuration: " . implode(", ", $enabledPairs));
         
         // Stopping processes for inactive pairs
         $pidFiles = glob($this->pidDir . '/*.pid');
-        $this->logger->log("Існуючі PID-файли: " . implode(", ", $pidFiles));
+        $this->logger->log("Existing PID files: " . implode(", ", $pidFiles));
         
         foreach ($pidFiles as $pidFile) {
             $pairName = basename($pidFile, '.pid');
             $pair = $this->restorePairFormat($pairName);
-            $this->logger->log("Перевірка пари з PID-файлу: {$pair}");
+            $this->logger->log("Checking pair from PID file: {$pair}");
             
             if (!in_array($pair, $enabledPairs)) {
-                $this->logger->log("Пара {$pair} вимкнена, зупиняємо процес");
+                $this->logger->log("Pair {$pair} disabled, stopping process");
                 $this->stopProcess($pair);
             } else {
-                $this->logger->log("Пара {$pair} активна, залишаємо процес");
+                $this->logger->log("Pair {$pair} active, leaving process");
             }
         }
         
         // Starting processes for active pairs
         foreach ($enabledPairs as $pair) {
             if (!$this->isProcessRunning($pair)) {
-                $this->logger->log("Пара {$pair} активна, але процес не запущений. Запускаємо процес.");
+                $this->logger->log("Pair {$pair} active, but process not running. Starting process.");
                 $this->startProcess($pair);
             } else {
-                $this->logger->log("Пара {$pair} активна, процес вже запущений.");
+                $this->logger->log("Pair {$pair} active, process already running.");
             }
         }
         
-        $this->logger->log("Всі процеси ботів для активних пар запущено");
+        $this->logger->log("All bot processes for active pairs started");
     }
     
     /**
@@ -680,66 +680,66 @@ class BotProcess
      */
     public function updateProcesses(): void
     {
-        $this->logger->info("!!!!! Оновлення процесів на основі активних пар");
+        $this->logger->info("!!!!! Updating processes based on active pairs");
         
-        // Отримуємо список активних пар
+        // Get a list of all configured pairs
         $pairs = Config::getEnabledPairs();
-        $this->logger->info("!!!!! Активні пари: " . implode(", ", $pairs ?: []));
+        $this->logger->info("!!!!! Active pairs: " . implode(", ", $pairs ?: []));
         
-        // Отримуємо список запущених процесів
+        // Get a list of currently running pairs from PID files
         $runningProcesses = $this->getRunningProcesses();
         
-        // Перевіряємо кожну активну пару
+        // Check each active pair
         foreach ($pairs as $pair) {
-            // Отримуємо поточний хеш конфігурації для пари
+            // Get current configuration hash for the pair
             $config = Config::getPairConfig($pair);
             
             if (empty($config)) {
-                $this->logger->error("!!!!! Відсутня конфігурація для пари $pair");
+                $this->logger->error("!!!!! Configuration missing for pair $pair");
                 continue;
             }
             
             $configHash = md5(json_encode($config));
             $oldConfigHash = $this->pairConfigHashes[$pair] ?? null;
             
-            $this->logger->info("!!!!! Пара: $pair, Старий хеш: " . ($oldConfigHash ?: 'відсутній') . ", Новий хеш: $configHash");
+            $this->logger->info("!!!!! Pair: $pair, Old hash: " . ($oldConfigHash ?: 'missing') . ", New hash: $configHash");
             
-            // Перевіряємо, чи змінилася конфігурація або чи не запущений процес
+            // Check if the configuration changed or if the process is not running
             if ($oldConfigHash !== $configHash || !in_array($pair, $runningProcesses)) {
-                // Якщо процес вже запущено, зупиняємо його перед перезапуском
+                // If the process is already running, stop it before restarting
                 if (in_array($pair, $runningProcesses)) {
-                    $this->logger->info("!!!!! Конфігурація для пари $pair змінилася. Зупиняємо процес для перезапуску.");
+                    $this->logger->info("!!!!! Configuration for pair $pair changed. Stopping process for restart.");
                     $this->stopProcess($pair);
                 } else {
-                    $this->logger->info("!!!!! Процес для пари $pair не запущений. Запускаємо новий процес.");
+                    $this->logger->info("!!!!! Process for pair $pair not running. Starting new process.");
                 }
                 
-                // Запускаємо процес з новою конфігурацією
+                // Start process with new configuration
                 $this->startProcess($pair);
                 
-                // Зберігаємо новий хеш конфігурації
+                // Save new configuration hash
                 $this->pairConfigHashes[$pair] = $configHash;
-                $this->logger->info("!!!!! Оновлено хеш конфігурації для пари $pair");
+                $this->logger->info("!!!!! Updated configuration hash for pair $pair");
             } else {
-                $this->logger->info("!!!!! Конфігурація для пари $pair не змінилася. Процес працює, перезапуск не потрібен.");
+                $this->logger->info("!!!!! Configuration for pair $pair did not change. Process is running, no restart needed.");
             }
         }
         
-        // Перевіряємо, чи є зайві процеси, які потрібно зупинити
+        // Check for processes that are no longer active or configured
         foreach ($runningProcesses as $runningPair) {
             if (!in_array($runningPair, $pairs)) {
-                $this->logger->info("!!!!! Пара $runningPair більше не активна. Зупиняємо процес.");
+                $this->logger->info("!!!!! Pair $runningPair is no longer active. Stopping process.");
                 $this->stopProcess($runningPair);
                 
-                // Видаляємо хеш конфігурації для неактивної пари
+                // Remove configuration hash for inactive pair
                 if (isset($this->pairConfigHashes[$runningPair])) {
                     unset($this->pairConfigHashes[$runningPair]);
-                    $this->logger->info("!!!!! Видалено хеш конфігурації для неактивної пари $runningPair");
+                    $this->logger->info("!!!!! Removed configuration hash for inactive pair $runningPair");
                 }
             }
         }
         
-        $this->logger->info("!!!!! Оновлення процесів завершено");
+        $this->logger->info("!!!!! Updating processes completed");
     }
     
     /**
@@ -747,59 +747,59 @@ class BotProcess
      */
     public function cleanupInvalidPidFiles(): void
     {
-        $this->logger->log("Очищення невірних PID файлів...");
+        $this->logger->log("Cleaning invalid PID files...");
         $pidFiles = glob("{$this->pidDir}/*.pid");
         
         if (empty($pidFiles)) {
-            $this->logger->log("PID файли не знайдено");
+            $this->logger->log("PID files not found");
         } else {
-            $this->logger->log("Знайдено PID файли: " . implode(", ", $pidFiles));
+            $this->logger->log("Found PID files: " . implode(", ", $pidFiles));
         }
         
         foreach ($pidFiles as $pidFile) {
             $pair = basename($pidFile, '.pid');
             $pid = (int)file_get_contents($pidFile);
-            $this->logger->log("Перевірка PID {$pid} для пари {$pair}");
+            $this->logger->log("Checking PID {$pid} for pair {$pair}");
             
             if ($pid <= 0) {
-                $this->logger->log("Видалення невірного PID файлу для пари {$pair} (некоректний PID: {$pid})");
+                $this->logger->log("Removing invalid PID file for pair {$pair} (invalid PID: {$pid})");
                 unlink($pidFile);
                 continue;
             }
             
-            // Пропускаємо нові файли (менше 10 секунд)
+            // Skip new files (less than 10 seconds old)
             $fileCreationTime = filemtime($pidFile);
             if ((time() - $fileCreationTime) < 10) {
-                $this->logger->log("PID-файл для пари {$pair} з PID {$pid} створено недавно, пропускаємо");
+                $this->logger->log("PID file for pair {$pair} with PID {$pid} created recently, skipping");
                 continue;
             }
             
-            // Перевірка через posix_kill і ps
+            // Check via posix_kill and ps
             if (!posix_kill($pid, 0)) {
                 exec("ps -p {$pid} -o pid=", $output);
                 if (empty($output)) {
-                    $this->logger->log("Видалення PID файлу для неіснуючого процесу {$pid} для пари {$pair}");
+                    $this->logger->log("Removing PID file for non-existing process {$pid} for pair {$pair}");
                     unlink($pidFile);
                 } else {
-                    $this->logger->log("Процес {$pid} для пари {$pair} ще живий (ps)");
+                    $this->logger->log("Process {$pid} for pair {$pair} is still alive (ps)");
                 }
             } else {
-                $this->logger->log("Процес {$pid} для пари {$pair} живий (posix_kill)");
+                $this->logger->log("Process {$pid} for pair {$pair} is alive (posix_kill)");
             }
         }
         
-        $this->logger->log("Очищення невірних PID файлів завершено");
+        $this->logger->log("Cleaning invalid PID files completed");
     }
     
     /**
-     * Знаходить запущені процеси BotRunner для вказаної пари
+     * Find running BotRunner processes for a specific pair
      */
     private function findRunningBotRunnerProcesses(string $pair): array
     {
-        $this->logger->log("Пошук запущених процесів BotRunner для пари {$pair}");
+        $this->logger->log("Finding running BotRunner processes for pair {$pair}");
         $result = [];
         
-        // Шукаємо всі процеси PHP
+        // Search for all PHP processes
         $processes = glob('/proc/*/cmdline');
         
         foreach ($processes as $procFile) {
@@ -818,14 +818,14 @@ class BotProcess
     }
     
     /**
-     * Знаходить "осиротілі" процеси BotRunner без відповідних PID-файлів
+     * Find orphaned BotRunner processes (running but no corresponding PID file)
      */
     private function findOrphanedBotRunnerProcesses(): array
     {
-        $this->logger->log("Пошук 'осиротілих' процесів BotRunner");
+        $this->logger->log("Finding 'orphaned' BotRunner processes");
         $result = [];
         
-        // Отримуємо список всіх PID з PID-файлів
+        // Get a list of all PIDs from PID files
         $pidFiles = glob($this->pidDir . '/*.pid');
         $knownPids = [];
         
@@ -835,7 +835,7 @@ class BotProcess
             }
         }
         
-        // Шукаємо всі процеси PHP
+        // Search for all PHP processes
         $processes = glob('/proc/*/cmdline');
         
         foreach ($processes as $procFile) {
@@ -857,38 +857,38 @@ class BotProcess
     }
     
     /**
-     * Підрахунок кількості запущених процесів для пари
+     * Count running processes for a pair
      */
     private function countRunningProcessesForPair(string $pair): int
     {
-        $this->logger->log("Підрахунок запущених процесів для пари {$pair}");
+        $this->logger->log("Counting running processes for pair {$pair}");
         
-        // Використовуємо метод пошуку процесів через /proc
+        // Use method to find processes via /proc
         $processes = $this->findRunningBotRunnerProcesses($pair);
         $count = count($processes);
         
-        $this->logger->log("Знайдено {$count} запущених процесів для пари {$pair}");
+        $this->logger->log("Found {$count} running processes for pair {$pair}");
         return $count;
     }
     
     /**
-     * Зупинка всіх процесів для пари
+     * Kill all processes for a pair
      */
     private function killAllProcessesForPair(string $pair): void
     {
-        $this->logger->log("Зупинка всіх процесів для пари {$pair}");
+        $this->logger->log("Stopping all processes for pair {$pair}");
         
         $processes = $this->findRunningBotRunnerProcesses($pair);
         
         if (empty($processes)) {
-            $this->logger->log("Не знайдено запущених процесів для пари {$pair}");
+            $this->logger->log("No running processes found for pair {$pair}");
             return;
         }
         
-        $this->logger->log("Знайдено процеси для зупинки: " . implode(", ", $processes));
+        $this->logger->log("Found processes for stopping: " . implode(", ", $processes));
         
         foreach ($processes as $pid) {
-            $this->logger->log("Зупиняємо процес {$pid}");
+            $this->logger->log("Stopping process {$pid}");
             if (function_exists('posix_kill')) {
                 posix_kill($pid, SIGTERM);
             } else {
@@ -896,13 +896,13 @@ class BotProcess
             }
         }
         
-        // Перевіряємо, чи процеси зупинені
+        // Check if processes are stopped
         sleep(1);
         $remaining = $this->findRunningBotRunnerProcesses($pair);
         
         if (!empty($remaining)) {
-            $this->logger->log("Процеси все ще працюють після SIGTERM: " . implode(", ", $remaining));
-            $this->logger->log("Застосовуємо SIGKILL для залишкових процесів");
+            $this->logger->log("Processes still running after SIGTERM: " . implode(", ", $remaining));
+            $this->logger->log("Applying SIGKILL to remaining processes");
             
             foreach ($remaining as $pid) {
                 if (function_exists('posix_kill')) {
@@ -913,21 +913,21 @@ class BotProcess
             }
         }
         
-        $this->logger->log("Всі процеси для пари {$pair} зупинено");
+        $this->logger->log("All processes for pair {$pair} stopped");
     }
     
     /**
-     * Отримання списку всіх запущених процесів (пар)
+     * Get a list of all running processes (pairs)
      *
-     * @return array Масив з назвами пар, для яких запущені процеси
+     * @return array Array of pair names for which processes are running
      */
     public function getRunningProcesses(): array
     {
-        $this->logger->info("!!!!! Отримання списку запущених процесів");
+        $this->logger->info("!!!!! Getting list of running processes");
         $runningProcesses = [];
         
         $pidFiles = glob($this->pidDir . '/*.pid');
-        $this->logger->info("!!!!! Знайдено PID-файли: " . implode(", ", $pidFiles ?: []));
+        $this->logger->info("!!!!! Found PID files: " . implode(", ", $pidFiles ?: []));
         
         foreach ($pidFiles as $pidFile) {
             $pairName = basename($pidFile, '.pid');
@@ -938,21 +938,21 @@ class BotProcess
                 if ($this->isProcessRunning($pair)) {
                     $runningProcesses[] = $pair;
                 } else {
-                    // Якщо PID-файл існує, але процес не запущений, видаляємо файл
-                    $this->logger->info("!!!!! PID-файл для пари $pair існує, але процес не запущений. Видаляємо файл.");
+                    // If the PID file exists, but the process is not running, remove the file
+                    $this->logger->info("!!!!! PID file for pair $pair exists, but process not running. Removing file.");
                     unlink($pidFile);
                 }
             } catch (Exception $e) {
-                $this->logger->error("!!!!! Помилка обробки PID файлу для пари $pairName: " . $e->getMessage());
-                // Видаляємо проблемний PID-файл
+                $this->logger->error("!!!!! Error processing PID file for pair $pairName: " . $e->getMessage());
+                // Remove problematic PID file
                 if (file_exists($pidFile)) {
-                    $this->logger->info("!!!!! Видаляємо проблемний PID файл $pidFile");
+                    $this->logger->info("!!!!! Removing problematic PID file $pidFile");
                     unlink($pidFile);
                 }
             }
         }
         
-        $this->logger->info("!!!!! Запущені процеси: " . implode(", ", $runningProcesses ?: []));
+        $this->logger->info("!!!!! Running processes: " . implode(", ", $runningProcesses ?: []));
         return $runningProcesses;
     }
 } 
