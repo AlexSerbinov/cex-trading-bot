@@ -286,6 +286,7 @@ const BotDetails = {
                        title="The minimum percentage gap between buy and sell orders."></i>
                 </div>
             </div>
+            <!--
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Market maker order probability:</div>
                 <div class="bot-detail-value">
@@ -294,6 +295,7 @@ const BotDetails = {
                        title="The probability (0-100%) that the bot will place a market maker order instead of a taker order."></i>
                 </div>
             </div>
+            -->
             <div class="bot-detail-row">
                 <div class="bot-detail-label">Created at:</div>
                 <div class="bot-detail-value">${createdAt}</div>

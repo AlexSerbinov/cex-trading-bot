@@ -1,7 +1,7 @@
 window.CONFIG = { 
-    apiUrl: 'http://localhost:8080/api',
-    swaggerUrl: 'http://localhost:8080/swagger-ui',
-    environment: 'local'
+    apiUrl: '/api',
+    swaggerUrl: '/swagger-ui',
+    environment: 'demo'
 };
 
 // Функція для динамічного оновлення URL API з заголовків
