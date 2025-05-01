@@ -192,7 +192,9 @@ class TradingBotManager
 
 // Running the bot manager if the file is called directly
 if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
-    $logger = Logger::getInstance(true, __DIR__ . '/../../data/logs/bot.log');
+    // Використовуємо шлях до звичайного файлу логів
+    $environment = getenv('ENVIRONMENT') ?: 'local';
+    $logger = Logger::getInstance(true, __DIR__ . '/../../data/logs/' . $environment . '/bot.log');
     $logger->log("=== STARTING TRADING BOT MANAGER ===");
     
     // Check if TradingBotManager is already running

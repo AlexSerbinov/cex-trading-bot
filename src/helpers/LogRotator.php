@@ -4,8 +4,8 @@ namespace App\helpers;
 
 class LogRotator
 {
-    private const MAX_TOTAL_LOG_SIZE = 10 * 1024 * 1024 * 1024; // 10 GB in bytes
-    private const MAX_FILE_SIZE = 1 *  1024 * 1024 * 1024; // 1 GB in bytes
+    private const MAX_TOTAL_LOG_SIZE = 1 * 1024 * 1024 * 1024; // 1 GB in bytes
+    private const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB in bytes
     private const MAX_LOG_AGE_DAYS = 30;
     private string $logDir;
 

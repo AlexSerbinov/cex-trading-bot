@@ -230,7 +230,7 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
             
             // Використовуємо USER_ID=5 як ідентифікатор користувача для ботів
             $userId = 5;
-            $tradeServer = new TradeServer();
+            $tradeServer = TradeServer::getInstance();
             $balances = $tradeServer->getUserBalances($userId);
             
             echo json_encode($balances);
@@ -266,7 +266,7 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
             
             // Використовуємо USER_ID=5 як ідентифікатор користувача для ботів
             $userId = 5;
-            $tradeServer = new TradeServer();
+            $tradeServer = TradeServer::getInstance();
             
             // Унікальний ідентифікатор операції (як число, а не рядок)
             $operationId = time(); // Використовуємо час як унікальний ID

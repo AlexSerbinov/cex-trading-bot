@@ -67,7 +67,7 @@ php "$PROJECT_ROOT/tools/clean_system.php"
 
 # Запускаємо бекенд
 echo "Запуск бекенду на порту 8080..."
-cd "$PROJECT_ROOT" && php -S localhost:8080 router.php 2>&1 | tee -a "$PROJECT_ROOT/data/logs/local/backend_error.log" &
+cd "$PROJECT_ROOT" && php -S localhost:8080 router.php 2>&1 | tee -a "$PROJECT_ROOT/data/logs/local/bots_error.log" &
 BACKEND_PID=$!
 echo "Бекенд запущено з PID: $BACKEND_PID"
 

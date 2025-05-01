@@ -45,8 +45,9 @@ function formatNumber(num: number): string {
 }
 
 function formatBalances(balances: Balances): string {
-    let output = '\n' + chalk.bold.yellow(`╔══════════════════════ Balances for User ID: ${USER_ID} ══════════════════════╗\n`);
-    output += chalk.bold.cyan('║ Currency      Available              Frozen                 Total                ║\n');
+    let output = '\n' + chalk.bold.yellow(`╔══════════════════════ Balances for User ID: ${USER_ID} ══════════════════════════════════╗\n`);
+    output += chalk.bold.cyan('                    Trade server url: ' + TRADE_SERVER_URL + '\n');
+    output += chalk.bold.cyan('║ Currency      Available              Frozen                 Total               ║\n');
     output += chalk.bold.yellow('╠═════════════════════════════════════════════════════════════════════════════════╣\n');
 
     Object.entries(balances)

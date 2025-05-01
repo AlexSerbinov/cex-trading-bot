@@ -8,7 +8,7 @@ services:
             - ./data/logs:/app/data/logs
             - ./src:/app/src
         environment:
-            - TRADE_SERVER_URL=${TRADE_SERVER_URL:-http://164.68.117.90:18080}
+            - TRADE_SERVER_URL=${TRADE_SERVER_URL:-http://195.7.7.93:18080}
             - ENVIRONMENT=local
         networks:
             - app-net
@@ -24,7 +24,7 @@ services:
             - ./src:/var/www/html/src
             - ./.htaccess:/var/www/html/.htaccess
         environment:
-            - TRADE_SERVER_URL=${TRADE_SERVER_URL:-http://164.68.117.90:18080}
+            - TRADE_SERVER_URL=${TRADE_SERVER_URL:-http://195.7.7.93:18080}
         ports:
             - '8080:80'
         networks:
