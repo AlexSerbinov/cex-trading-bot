@@ -5,8 +5,6 @@ declare(strict_types=1);
 require_once __DIR__ . '/ApiClient.php';
 require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/../../config/config.php'; // Assuming Config is in config/ 
-use stdClass;
-use Exception;
 
 /**
  * Class for managing interactions with the internal trade server
