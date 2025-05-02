@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // 90 dev
-const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 demo
+const TRADE_SERVER_URL = 'http://164.68.117.90:18080'; // 90 dev
+// const TRADE_SERVER_URL = 'http://195.7.7.93:18080'; // 93 demo
 const USER_ID = 5; // ID користувача
 const TARGET_USD_VALUE = 1000000; // Цільова сума в доларах (1 мільйон)
 
