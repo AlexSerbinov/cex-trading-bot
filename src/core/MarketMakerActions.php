@@ -12,6 +12,7 @@ class MarketMakerActions
     private TradingBot $bot;
     private Logger $logger;
     private string $pair;
+    private array $pairConfig;
 
     /**
      * Constructor
@@ -19,15 +20,18 @@ class MarketMakerActions
      * @param TradingBot $bot Reference to the parent TradingBot instance
      * @param Logger $logger Logger instance
      * @param string $pair Trading pair
+     * @param array $pairConfig Configuration for the pair
      */
     public function __construct(
         TradingBot $bot,
         Logger $logger,
-        string $pair
+        string $pair,
+        array $pairConfig
     ) {
         $this->bot = $bot;
         $this->logger = $logger;
         $this->pair = $pair;
+        $this->pairConfig = $pairConfig;
     }
 
     /**
@@ -37,25 +41,20 @@ class MarketMakerActions
      * @param array $currentAsks Current asks
      * @param array $pendingOrders Open orders
      * @param float $marketPrice Market price
-     * @param array $pairConfig Configuration for the pair
      */
     public function performRandomAction(
         array &$currentBids,
         array &$currentAsks,
         array $pendingOrders,
         float $marketPrice,
-        array $pairConfig
     ): void {
-        $minOrders = $pairConfig['settings']['min_orders'];
+        $minOrders = $this->pairConfig['settings']['min_orders'];
         $maxOrders = $minOrders + 1; // Derive max_orders
-        $priceFactorPercent = $pairConfig['settings']['price_factor'];
-        $marketGapPercent = $pairConfig['settings']['market_gap'];
-        
-        $priceFactorDecimal = $priceFactorPercent / 100;
-        $marketGapDecimal = $marketGapPercent / 100;
+        $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
+        $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
         
         // Ймовірність ВИКОНАННЯ РИНКОВОГО ОРДЕРА
-        $marketMakerProbability = $pairConfig['settings']['market_maker_order_probability'] / 100;
+        $marketMakerProbability = $this->pairConfig['settings']['market_maker_order_probability'] / 100;
         
         $this->logger->log(sprintf(
             '[%s] Market Order Probability: %.2f%%', 
@@ -65,9 +64,8 @@ class MarketMakerActions
         // Генеруємо випадкове число від 0 до 1
         $randomValue = mt_rand() / mt_getrandmax();
         
-        // Розрахунок базових цін
-        $askBasePrice = $marketPrice * (1 + $marketGapDecimal);
-        $bidBasePrice = $marketPrice * (1 - $marketGapDecimal);
+        // Застосовуємо market_gap до ціни (потрібно для createNewBid/Ask/updateExistingOrder)
+        $gapAdjustment = $marketPrice * $marketGap;
 
         // Перевірка, чи виконувати ринковий ордер
         if ($randomValue <= $marketMakerProbability && $marketMakerProbability > 0) {
@@ -77,7 +75,7 @@ class MarketMakerActions
                 $randomValue,
                 $marketMakerProbability
             ));
-            $this->executeMarketTrade($pendingOrders, $pairConfig);
+            $this->executeMarketTrade($pendingOrders);
         } else {
             // Якщо ринковий ордер не виконується, виконуємо одну з дій з лімітними ордерами
             $this->logger->log(sprintf(
@@ -93,19 +91,19 @@ class MarketMakerActions
             if ($limitActionValue < 0.5) {
                  // 50% шанс: Оновити існуючий ордер (скасувати + створити новий на тій же стороні)
                  $this->logger->log("[{$this->pair}] Performing Limit Action: Update Existing Order");
-                 $this->updateExistingOrder($marketPrice, $priceFactorDecimal, $marketGapDecimal, $pairConfig);
+                 $this->updateExistingOrder($marketPrice, $deviationPercent, $marketGap);
             } elseif ($limitActionValue < 0.75 && count($currentBids) < $maxOrders) {
                 // 25% шанс: Створити новий Bid (якщо є місце)
                 $this->logger->log("[{$this->pair}] Performing Limit Action: Create New Bid");
-                $this->createNewBid($marketPrice, $priceFactorDecimal, $marketGapDecimal, $pairConfig);
+                $this->createNewBid($marketPrice, $deviationPercent, $gapAdjustment);
             } elseif (count($currentAsks) < $maxOrders) {
                  // 25% шанс: Створити новий Ask (якщо є місце)
                  $this->logger->log("[{$this->pair}] Performing Limit Action: Create New Ask");
-                 $this->createNewAsk($marketPrice, $priceFactorDecimal, $marketGapDecimal, $pairConfig);
+                 $this->createNewAsk($marketPrice, $deviationPercent, $gapAdjustment);
             } else {
                 // Fallback: якщо не вдалося створити ні бід, ні аск (бо досягли максимуму), спробуємо оновити
                  $this->logger->log("[{$this->pair}] Performing Limit Action (Fallback): Update Existing Order");
-                 $this->updateExistingOrder($marketPrice, $priceFactorDecimal, $marketGapDecimal, $pairConfig);
+                 $this->updateExistingOrder($marketPrice, $deviationPercent, $marketGap);
             }
         }
     }
@@ -114,11 +112,10 @@ class MarketMakerActions
      * Update an existing order
      * 
      * @param float $marketPrice Market price
-     * @param float $priceFactorDecimal Price deviation factor (decimal)
-     * @param float $marketGapDecimal Market gap factor (decimal)
-     * @param array $pairConfig Configuration for the pair
+     * @param float $deviationPercent Price deviation percentage
+     * @param float $marketGap Market gap
      */
-    private function updateExistingOrder(float $marketPrice, float $priceFactorDecimal, float $marketGapDecimal, array $pairConfig): void
+    private function updateExistingOrder(float $marketPrice, float $deviationPercent, float $marketGap): void
     {
         // Оновлюємо список відкритих ордерів
         $this->bot->updateOpenOrders();
@@ -136,14 +133,13 @@ class MarketMakerActions
         // Вибираємо випадково біди або аски
         $useAsks = (mt_rand(0, 1) === 1 && !empty($asks)) || empty($bids);
         
-        // Розрахунок базових цін
-        $askBasePrice = $marketPrice * (1 + $marketGapDecimal);
-        $bidBasePrice = $marketPrice * (1 - $marketGapDecimal);
+        // Застосовуємо market_gap до ціни
+        $gapAdjustment = $marketPrice * $marketGap;
         
         if ($useAsks) {
-            $this->updateAskOrder($asks, $marketPrice, $askBasePrice, $priceFactorDecimal, $pairConfig);
+            $this->updateAskOrder($asks, $marketPrice, $deviationPercent, $gapAdjustment);
         } else {
-            $this->updateBidOrder($bids, $marketPrice, $bidBasePrice, $priceFactorDecimal, $pairConfig);
+            $this->updateBidOrder($bids, $marketPrice, $deviationPercent, $gapAdjustment);
         }
     }
 
@@ -152,11 +148,10 @@ class MarketMakerActions
      * 
      * @param array $asks List of ask orders
      * @param float $marketPrice Market price
-     * @param float $askBasePrice Base ask price (marketPrice * (1 + marketGapDecimal))
-     * @param float $priceFactorDecimal Price deviation factor (decimal)
-     * @param array $pairConfig Configuration for the pair
+     * @param float $deviationPercent Price deviation percentage
+     * @param float $gapAdjustment Gap adjustment
      */
-    private function updateAskOrder(array $asks, float $marketPrice, float $askBasePrice, float $priceFactorDecimal, array $pairConfig): void
+    private function updateAskOrder(array $asks, float $marketPrice, float $deviationPercent, float $gapAdjustment): void
     {
         $this->logger->log("[{$this->pair}] Updating an ask order");
 
@@ -168,7 +163,8 @@ class MarketMakerActions
         // $orderToUpdate = $asks[$orderIndex];
 
         // Select an ask order using weighted random selection based on distance from best ask
-        $orderToUpdate = $this->selectOrderWeightedByDistance($asks, $askBasePrice, false);
+        $bestAskPrice = $marketPrice + $gapAdjustment;
+        $orderToUpdate = $this->selectOrderWeightedByDistance($asks, $bestAskPrice, false);
 
         if ($orderToUpdate === null) {
             $this->logger->log("[{$this->pair}] No ask order selected for update (list might be empty).");
@@ -188,18 +184,22 @@ class MarketMakerActions
         $randBase = 0.05 + (mt_rand(0, 900) / 1000);
         $randomFactor = pow($randBase, 1/3);
         
-        $askPriceValue = $askBasePrice + ($marketPrice * $priceFactorDecimal * $randomFactor);
-        $askPrice = number_format($askPriceValue, 12, '.', '');
+        $askPrice = number_format(
+            $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
+            12,
+            '.',
+            ''
+        );
         $askAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
         $this->bot->placeLimitOrder(1, $askAmount, $askPrice);
         $this->logger->log(sprintf(
-            '[%s] Placed updated ask: %s @ %s (was @ %s, factor: %.4f, deviation from base: %.4f%%)',
+            '[%s] Placed updated ask: %s @ %s (was @ %s, factor: %.4f, gap: %.6f)',
             $this->pair,
             $askAmount,
             $askPrice,
             $orderToUpdate['price'],
-            $randomFactor,            
-            $askBasePrice > 0 ? (($askPriceValue - $askBasePrice) / $askBasePrice) * 100 : 0
+            $randomFactor,
+            $gapAdjustment
         ));
     }
 
@@ -208,11 +208,10 @@ class MarketMakerActions
      * 
      * @param array $bids List of bid orders
      * @param float $marketPrice Market price
-     * @param float $bidBasePrice Base bid price (marketPrice * (1 - marketGapDecimal))
-     * @param float $priceFactorDecimal Price deviation factor (decimal)
-     * @param array $pairConfig Configuration for the pair
+     * @param float $deviationPercent Price deviation percentage
+     * @param float $gapAdjustment Gap adjustment
      */
-    private function updateBidOrder(array $bids, float $marketPrice, float $bidBasePrice, float $priceFactorDecimal, array $pairConfig): void
+    private function updateBidOrder(array $bids, float $marketPrice, float $deviationPercent, float $gapAdjustment): void
     {
         $this->logger->log("[{$this->pair}] Updating a bid order");
 
@@ -224,7 +223,8 @@ class MarketMakerActions
         // $orderToUpdate = $bids[$orderIndex];
 
         // Select a bid order using weighted random selection based on distance from best bid
-        $orderToUpdate = $this->selectOrderWeightedByDistance($bids, $bidBasePrice, true);
+        $bestBidPrice = $marketPrice - $gapAdjustment;
+        $orderToUpdate = $this->selectOrderWeightedByDistance($bids, $bestBidPrice, true);
 
         if ($orderToUpdate === null) {
             $this->logger->log("[{$this->pair}] No bid order selected for update (list might be empty).");
@@ -244,18 +244,22 @@ class MarketMakerActions
         $randBase = 0.05 + (mt_rand(0, 900) / 1000);
         $randomFactor = pow($randBase, 1/3);
         
-        $bidPriceValue = $bidBasePrice - ($marketPrice * $priceFactorDecimal * $randomFactor);
-        $bidPrice = number_format($bidPriceValue, 12, '.', '');
+        $bidPrice = number_format(
+            $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
+            12,
+            '.',
+            ''
+        );
         $bidAmount = number_format((float)$orderToUpdate['amount'], 8, '.', '');
         $this->bot->placeLimitOrder(2, $bidAmount, $bidPrice);
         $this->logger->log(sprintf(
-            '[%s] Placed updated bid: %s @ %s (was @ %s, factor: %.4f, deviation from base: %.4f%%)',
+            '[%s] Placed updated bid: %s @ %s (was @ %s, factor: %.4f, gap: %.6f)',
             $this->pair,
             $bidAmount,
             $bidPrice,
             $orderToUpdate['price'],
-            $randomFactor,            
-            $bidBasePrice > 0 ? (($bidBasePrice - $bidPriceValue) / $bidBasePrice) * 100 : 0
+            $randomFactor,
+            $gapAdjustment
         ));
     }
 
@@ -263,25 +267,27 @@ class MarketMakerActions
      * Create a new bid
      * 
      * @param float $marketPrice Market price
-     * @param float $priceFactorDecimal Price deviation factor (decimal)
-     * @param float $marketGapDecimal Market gap factor (decimal)
-     * @param array $pairConfig Configuration for the pair
+     * @param float $deviationPercent Price deviation percentage
+     * @param float $gapAdjustment Gap adjustment
      */
-    private function createNewBid(float $marketPrice, float $priceFactorDecimal, float $marketGapDecimal, array $pairConfig): void
+    private function createNewBid(float $marketPrice, float $deviationPercent, float $gapAdjustment): void
     {
         $this->logger->log("[{$this->pair}] Placing a new bid");
 
         $randBase = 0.05 + (mt_rand(0, 900) / 1000);
         $randomFactor = pow($randBase, 1/3);
         
-        // Розрахунок базової ціни та фінальної ціни
-        $bidBasePrice = $marketPrice * (1 - $marketGapDecimal);
-        $bidPriceValue = $bidBasePrice - ($marketPrice * $priceFactorDecimal * $randomFactor);
-        $bidPrice = number_format($bidPriceValue, 12, '.', '');
+        $bidPrice = number_format(
+            $marketPrice * (1 - $deviationPercent * $randomFactor) - $gapAdjustment,
+            12,
+            '.',
+            ''
+        );
+        // $bidAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', ''); // REMOVE THIS LINE
         
         // Read min/max trade amounts from config
-        $tradeAmountMin = (float) $pairConfig['settings']['trade_amount_min'];
-        $tradeAmountMax = (float) $pairConfig['settings']['trade_amount_max'];
+        $tradeAmountMin = (float) $this->pairConfig['settings']['trade_amount_min'];
+        $tradeAmountMax = (float) $this->pairConfig['settings']['trade_amount_max'];
         
         // Ensure min is not greater than max
         if ($tradeAmountMin > $tradeAmountMax) {
@@ -302,12 +308,12 @@ class MarketMakerActions
 
         $this->bot->placeLimitOrder(2, $bidAmount, $bidPrice);
         $this->logger->log(sprintf(
-            '[%s] Placed new bid: %s @ %s (factor: %.4f, deviation from base: %.4f%%)',
+            '[%s] Placed bid: %s @ %s (factor: %.4f, gap: %.6f)',
             $this->pair, 
             $bidAmount, 
             $bidPrice,
-            $randomFactor,            
-            $bidBasePrice > 0 ? (($bidBasePrice - $bidPriceValue) / $bidBasePrice) * 100 : 0
+            $randomFactor,
+            $gapAdjustment
         ));
     }
 
@@ -315,25 +321,27 @@ class MarketMakerActions
      * Create a new ask
      * 
      * @param float $marketPrice Market price
-     * @param float $priceFactorDecimal Price deviation factor (decimal)
-     * @param float $marketGapDecimal Market gap factor (decimal)
-     * @param array $pairConfig Configuration for the pair
+     * @param float $deviationPercent Price deviation percentage
+     * @param float $gapAdjustment Gap adjustment
      */
-    private function createNewAsk(float $marketPrice, float $priceFactorDecimal, float $marketGapDecimal, array $pairConfig): void
+    private function createNewAsk(float $marketPrice, float $deviationPercent, float $gapAdjustment): void
     {
         $this->logger->log("[{$this->pair}] Placing a new ask");
 
         $randBase = 0.05 + (mt_rand(0, 900) / 1000);
         $randomFactor = pow($randBase, 1/3);
         
-        // Розрахунок базової ціни та фінальної ціни
-        $askBasePrice = $marketPrice * (1 + $marketGapDecimal);
-        $askPriceValue = $askBasePrice + ($marketPrice * $priceFactorDecimal * $randomFactor);
-        $askPrice = number_format($askPriceValue, 12, '.', '');
+        $askPrice = number_format(
+            $marketPrice * (1 + $deviationPercent * $randomFactor) + $gapAdjustment,
+            12,
+            '.',
+            ''
+        );
+        // $askAmount = number_format(0.01 + (mt_rand() / mt_getrandmax()) * 0.09, 8, '.', ''); // REMOVE THIS LINE
         
         // Read min/max trade amounts from config
-        $tradeAmountMin = (float) $pairConfig['settings']['trade_amount_min'];
-        $tradeAmountMax = (float) $pairConfig['settings']['trade_amount_max'];
+        $tradeAmountMin = (float) $this->pairConfig['settings']['trade_amount_min'];
+        $tradeAmountMax = (float) $this->pairConfig['settings']['trade_amount_max'];
         
         // Ensure min is not greater than max
         if ($tradeAmountMin > $tradeAmountMax) {
@@ -354,12 +362,12 @@ class MarketMakerActions
 
         $this->bot->placeLimitOrder(1, $askAmount, $askPrice);
         $this->logger->log(sprintf(
-            '[%s] Placed new ask: %s @ %s (factor: %.4f, deviation from base: %.4f%%)',
+            '[%s] Placed ask: %s @ %s (factor: %.4f, gap: %.6f)',
             $this->pair, 
             $askAmount, 
             $askPrice,
-            $randomFactor,            
-            $askBasePrice > 0 ? (($askPriceValue - $askBasePrice) / $askBasePrice) * 100 : 0
+            $randomFactor,
+            $gapAdjustment
         ));
     }
 
@@ -437,9 +445,8 @@ class MarketMakerActions
      * Execute a market trade
      * 
      * @param array $pendingOrders List of pending orders
-     * @param array $pairConfig Configuration for the pair
      */
-    private function executeMarketTrade(array $pendingOrders, array $pairConfig): void
+    private function executeMarketTrade(array $pendingOrders): void
     {
         $this->logger->log("[{$this->pair}] Performing a market trade");
 
