@@ -42,19 +42,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Handle Swagger UI paths
 if ($path === '/swagger-ui' || $path === '/swagger-ui/' || $path === '/swagger') {
     header('Content-Type: text/html');
-    readfile(__DIR__ . '/public/docs/index.html');
+    readfile(__DIR__ . '/public/swagger/index.html');
     exit;
 }
 
 // Handle swagger.json request
 if ($path === '/swagger.json') {
     header('Content-Type: application/json');
-    readfile(__DIR__ . '/public/docs/swagger.json');
+    readfile(__DIR__ . '/public/swagger/swagger.json');
     exit;
 }
 
-// Handle requests for static files in public/docs directory
-if (strpos($path, '/docs/') === 0) {
+// Handle requests for static files in public/swagger directory
+if (strpos($path, '/swagger/') === 0) {
     $filePath = __DIR__ . '/public' . $path;
     if (file_exists($filePath)) {
         $extension = pathinfo($filePath, PATHINFO_EXTENSION);

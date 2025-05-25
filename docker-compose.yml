@@ -16,13 +16,13 @@ services:
 
     api:
         build:
-            context: .
-            dockerfile: api/Dockerfile
+            context: ./web_api_config
+            dockerfile: Dockerfile
         volumes:
             - ./config:/var/www/html/config
             - ./data/logs:/var/www/html/data/logs
             - ./src:/var/www/html/src
-            - ./.htaccess:/var/www/html/.htaccess
+            - ./web_api_config/.htaccess:/var/www/html/.htaccess
         environment:
             - TRADE_SERVER_URL=${TRADE_SERVER_URL:-http://195.7.7.93:18080}
         ports:

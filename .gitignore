@@ -16,16 +16,19 @@ vendor/
 node_modules/
 
 # Logs and runtime data
-data/logs/
-data/locks/
-data/pids/
+data/logs/*
+!/data/logs/.gitkeep
+data/pids/*
+!/data/pids/.gitkeep
+data/storage/*
+!/data/storage/.gitkeep
 *.log
 *.pid
 
 # Environment files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Docker related
 .docker/
