@@ -53,7 +53,7 @@ class MarketMakerActions
         $deviationPercent = $this->pairConfig['settings']['price_factor'] / 100;
         $marketGap = $this->pairConfig['settings']['market_gap'] / 100;
         
-        // Ймовірність ВИКОНАННЯ РИНКОВОГО ОРДЕРА
+        // Probability of EXECUTING A MARKET ORDER
         $marketMakerProbability = $this->pairConfig['settings']['market_maker_order_probability'] / 100;
         
         $this->logger->log(sprintf(
@@ -61,13 +61,13 @@ class MarketMakerActions
             $this->pair, $marketMakerProbability * 100
         ));
     
-        // Генеруємо випадкове число від 0 до 1
+        // Generate a random number between 0 and 1
         $randomValue = mt_rand() / mt_getrandmax();
         
-        // Застосовуємо market_gap до ціни (потрібно для createNewBid/Ask/updateExistingOrder)
+        // Apply market_gap to the price (needed for createNewBid/Ask/updateExistingOrder)
         $gapAdjustment = $marketPrice * $marketGap;
 
-        // Перевірка, чи виконувати ринковий ордер
+        // Check whether to execute a market order
         if ($randomValue <= $marketMakerProbability && $marketMakerProbability > 0) {
             $this->logger->log(sprintf(
                 '[%s] Probability check PASSED (%.6f <= %.6f). Executing Market Trade.',
@@ -77,7 +77,7 @@ class MarketMakerActions
             ));
             $this->executeMarketTrade($pendingOrders);
         } else {
-            // Якщо ринковий ордер не виконується, виконуємо одну з дій з лімітними ордерами
+            // If a market order is not executed, perform one of the actions with limit orders
             $this->logger->log(sprintf(
                 '[%s] Probability check FAILED (%.6f > %.6f). Performing Limit Order Action.',
                 $this->pair,
@@ -85,23 +85,23 @@ class MarketMakerActions
                 $marketMakerProbability
             ));
 
-            // Випадково вибираємо дію з лімітними ордерами
+            // Randomly select an action with limit orders
             $limitActionValue = mt_rand() / mt_getrandmax();
 
             if ($limitActionValue < 0.5) {
-                 // 50% шанс: Оновити існуючий ордер (скасувати + створити новий на тій же стороні)
+                 // 50% chance: Update an existing order (cancel + create a new one on the same side)
                  $this->logger->log("[{$this->pair}] Performing Limit Action: Update Existing Order");
                  $this->updateExistingOrder($marketPrice, $deviationPercent, $marketGap);
             } elseif ($limitActionValue < 0.75 && count($currentBids) < $maxOrders) {
-                // 25% шанс: Створити новий Bid (якщо є місце)
+                // 25% chance: Create a new Bid (if there is space)
                 $this->logger->log("[{$this->pair}] Performing Limit Action: Create New Bid");
                 $this->createNewBid($marketPrice, $deviationPercent, $gapAdjustment);
             } elseif (count($currentAsks) < $maxOrders) {
-                 // 25% шанс: Створити новий Ask (якщо є місце)
+                 // 25% chance: Create a new Ask (if there is space)
                  $this->logger->log("[{$this->pair}] Performing Limit Action: Create New Ask");
                  $this->createNewAsk($marketPrice, $deviationPercent, $gapAdjustment);
             } else {
-                // Fallback: якщо не вдалося створити ні бід, ні аск (бо досягли максимуму), спробуємо оновити
+                // Fallback: if failed to create neither bid nor ask (because maximum was reached), try to update
                  $this->logger->log("[{$this->pair}] Performing Limit Action (Fallback): Update Existing Order");
                  $this->updateExistingOrder($marketPrice, $deviationPercent, $marketGap);
             }
@@ -117,10 +117,10 @@ class MarketMakerActions
      */
     private function updateExistingOrder(float $marketPrice, float $deviationPercent, float $marketGap): void
     {
-        // Оновлюємо список відкритих ордерів
+        // Update the list of open orders
         $this->bot->updateOpenOrders();
         
-        // Отримуємо списки бідів та асків
+        // Get lists of bids and asks
         $openOrders = $this->bot->getOpenOrders();
         $bids = array_filter($openOrders, fn($o) => $o['side'] === 2);
         $asks = array_filter($openOrders, fn($o) => $o['side'] === 1);
@@ -130,10 +130,10 @@ class MarketMakerActions
             return;
         }
         
-        // Вибираємо випадково біди або аски
+        // Randomly select bids or asks
         $useAsks = (mt_rand(0, 1) === 1 && !empty($asks)) || empty($bids);
         
-        // Застосовуємо market_gap до ціни
+        // Apply market_gap to the price
         $gapAdjustment = $marketPrice * $marketGap;
         
         if ($useAsks) {
@@ -155,10 +155,10 @@ class MarketMakerActions
     {
         $this->logger->log("[{$this->pair}] Updating an ask order");
 
-        // Сортуємо аски за ціною (від низької до високої)
+        // Sort asks by price (low to high)
         usort($asks, fn($a, $b) => (float) $a['price'] - (float) $b['price']);
         
-        // Вибираємо випадковий аск для оновлення
+        // Randomly select an ask to update
         // $orderIndex = mt_rand(0, count($asks) - 1);
         // $orderToUpdate = $asks[$orderIndex];
 
@@ -171,7 +171,7 @@ class MarketMakerActions
             return;
         }
         
-        // Скасовуємо ордер
+        // Cancel the order
         $this->bot->cancelOrder($orderToUpdate['id']);
         $this->logger->log(sprintf(
             '[%s] Cancelled ask for update: %d @ %s',
@@ -180,7 +180,7 @@ class MarketMakerActions
             $orderToUpdate['price']
         ));
         
-        // Створюємо новий аск з оновленою ціною
+        // Create a new ask with updated price
         $randBase = 0.05 + (mt_rand(0, 900) / 1000);
         $randomFactor = pow($randBase, 1/3);
         
@@ -215,10 +215,10 @@ class MarketMakerActions
     {
         $this->logger->log("[{$this->pair}] Updating a bid order");
 
-        // Сортуємо біди за ціною (від високої до низької)
+        // Sort bids by price (high to low)
         usort($bids, fn($a, $b) => (float) $b['price'] - (float) $a['price']);
         
-        // Вибираємо випадковий бід для оновлення
+        // Select a random bid for update
         // $orderIndex = mt_rand(0, count($bids) - 1);
         // $orderToUpdate = $bids[$orderIndex];
 
@@ -231,7 +231,7 @@ class MarketMakerActions
             return;
         }
         
-        // Скасовуємо ордер
+        // Cancel the order
         $this->bot->cancelOrder($orderToUpdate['id']);
         $this->logger->log(sprintf(
             '[%s] Cancelled bid for update: %d @ %s',
@@ -240,7 +240,7 @@ class MarketMakerActions
             $orderToUpdate['price']
         ));
         
-        // Створюємо новий бід з оновленою ціною
+        // Create a new bid with updated price
         $randBase = 0.05 + (mt_rand(0, 900) / 1000);
         $randomFactor = pow($randBase, 1/3);
         

@@ -7,14 +7,14 @@ declare(strict_types=1);
  */
 class Config
 {
-    // Замінено динамічний вираз на статичний метод
+    // Changed dynamic expression to static method
     public const TRADE_SERVER_URL_DEFAULT = 'http://195.7.7.93:18080'; // demo server
     // public const TRADE_SERVER_URL_DEFAULT = 'http://164.68.117.90:18080';   // dev server
     
     /**
-     * Отримання URL торгового сервера
+     * Get Trade Server URL
      *
-     * @return string URL торгового сервера
+     * @return string Trade Server URL
      */
     public static function getTradeServerUrl(): string 
     {
@@ -58,8 +58,8 @@ class Config
 
     public const DEAD_WATCHER_ENABLED = true; // Default true
     public const DEAD_WATCHER_CHECK_INTERVAL = 10; // Default 10 seconds, configurable
-    public const DEAD_WATCHER_BOT_ID = 5; // ID бота для видалення ордерів
-    public const DEAD_WATCHER_URLS = ['http://localhost:5503/dead-watcher/heartbeat']; // якщо в докері не прописано.
+    public const DEAD_WATCHER_BOT_ID = 5; // Bot ID for deleting orders
+    public const DEAD_WATCHER_URLS = ['http://localhost:5503/dead-watcher/heartbeat']; // if not specified in docker
 
     /**
      * Get Dead Watcher URLs from environment or default
@@ -386,12 +386,12 @@ class Config
                 }
             }
             
-            // Оновлюємо налаштування, якщо вони є
+            // Updating settings if they exist
             if (isset($botData['settings']) && is_array($botData['settings'])) {
                 foreach ($botData['settings'] as $key => $value) {
                     self::$config[$foundPair]['settings'][$key] = $value;
                     
-                    // Також оновлюємо відповідні поля в кореневому об'єкті для сумісності
+                    // Also update corresponding fields in the root object for compatibility
                     if ($key === 'trade_amount_min' || $key === 'trade_amount_max' || 
                         $key === 'frequency_from' || $key === 'frequency_to') {
                         self::$config[$foundPair][$key] = $value;
@@ -413,7 +413,7 @@ class Config
                     self::$config[$foundPair]['price_deviation_percent'] = 0.01;
                 }
                 
-                // Видаляємо налаштування з botData, оскільки вони вже оброблені
+                // Remove settings from botData as they have already been processed
                 unset($botData['settings']);
             }
             

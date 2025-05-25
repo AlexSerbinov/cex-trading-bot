@@ -2,58 +2,58 @@
 
 declare(strict_types=1);
 
-// Підключаємо необхідні файли
+// Include necessary files
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/src/core/Logger.php';
 require_once __DIR__ . '/src/core/ErrorHandler.php';
 require_once __DIR__ . '/src/helpers/LogManager.php';
 
-// Включаємо відображення помилок
+// Enable error display
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 
-// Враховуємо оточення для визначення шляху до логів
+// Consider environment to determine log path
 $environment = getenv('ENVIRONMENT') ?: 'local';
 $errorLogFile = __DIR__ . '/data/logs/' . $environment . '/bots_error.log';
 
-// Ініціалізуємо обробник помилок із вказанням шляху до файлу помилок
+// Initialize error handler with the error file path
 ErrorHandler::initialize($errorLogFile);
 
-// Ініціалізуємо менеджер логів при запуску
+// Initialize log manager on startup
 $logManager = App\helpers\LogManager::getInstance();
-$logManager->forceCheck(); // Примусова перевірка при запуску
+$logManager->forceCheck(); // Force check on startup
 
-// Отримуємо шлях запиту
+// Get request path
 $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
 
-// Встановлюємо заголовки для CORS - дозволяємо запити з будь-якого джерела
+// Set CORS headers - allow requests from any origin
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// Обробка OPTIONS запитів (для CORS)
+// Handle OPTIONS requests (for CORS)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
-// Обробка шляхів Swagger UI
+// Handle Swagger UI paths
 if ($path === '/swagger-ui' || $path === '/swagger-ui/' || $path === '/swagger') {
     header('Content-Type: text/html');
     readfile(__DIR__ . '/public/docs/index.html');
     exit;
 }
 
-// Обробка запиту до swagger.json
+// Handle swagger.json request
 if ($path === '/swagger.json') {
     header('Content-Type: application/json');
     readfile(__DIR__ . '/public/docs/swagger.json');
     exit;
 }
 
-// Обробка запитів до статичних файлів у директорії public/docs
+// Handle requests for static files in public/docs directory
 if (strpos($path, '/docs/') === 0) {
     $filePath = __DIR__ . '/public' . $path;
     if (file_exists($filePath)) {
@@ -70,21 +70,21 @@ if (strpos($path, '/docs/') === 0) {
     }
 }
 
-// ===== СПРОЩЕНА ОБРОБКА API-ЗАПИТІВ =====
+// ===== SIMPLIFIED API REQUEST HANDLING =====
 
-// Якщо запит стосується API
+// If the request is for the API
 if (strpos($path, '/api/') === 0 || $path === '/api') {
     
-    // Підключаємо необхідні файли
+    // Include necessary files
     require_once __DIR__ . '/config/config.php';
     require_once __DIR__ . '/src/core/Logger.php';
     require_once __DIR__ . '/src/core/ExchangeManager.php';
     require_once __DIR__ . '/src/api/BotManager.php';
     
-    // Встановлюємо заголовок JSON для всіх API-відповідей
+    // Set JSON header for all API responses
     header('Content-Type: application/json');
     
-    // Логування запиту
+    // Log the request
     $logger = Logger::getInstance();
     $logger->log("API Request: " . $path . " | Method: " . $_SERVER['REQUEST_METHOD']);
     $rawInput = file_get_contents('php://input');
@@ -92,50 +92,50 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
         $logger->log("Request body: " . $rawInput);
     }
     
-    // Видаляємо '/api' з початку шляху
-    $apiPath = substr($path, 4); // видаляємо '/api'
+    // Remove '/api' from the beginning of the path
+    $apiPath = substr($path, 4); // remove '/api'
     if (empty($apiPath)) {
         $apiPath = '/';
     }
     
-    // Розбиваємо шлях на частини
+    // Split the path into parts
     $pathParts = explode('/', trim($apiPath, '/'));
     $logger->log("API Path parts: " . json_encode($pathParts));
     
-    // Створюємо об'єкт BotManager
+    // Create BotManager object
     $botManager = new BotManager();
     
     try {
-        // Обробка API запитів
+        // API request handling
         
-        // GET /api/bots - отримати всіх ботів
+        // GET /api/bots - get all bots
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && (empty($pathParts[0]) || $pathParts[0] === 'bots') && count($pathParts) === 1) {
             $bots = $botManager->getAllBots();
             echo json_encode($bots);
             exit;
         }
         
-        // GET /api/bots/{id} - отримати бота за ID
+        // GET /api/bots/{id} - get bot by ID
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pathParts[0] === 'bots' && count($pathParts) === 2 && is_numeric($pathParts[1])) {
             $id = (int) $pathParts[1];
             $bot = $botManager->getBotById($id);
             
             if ($bot === null) {
                 http_response_code(404);
-                echo json_encode(['error' => "Бот з ID {$id} не знайдений"]);
+                echo json_encode(['error' => "Bot with ID {$id} not found"]);
             } else {
                 echo json_encode($bot);
             }
             exit;
         }
         
-        // POST /api/bots - створити нового бота
+        // POST /api/bots - create a new bot
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pathParts[0] === 'bots' && count($pathParts) === 1) {
             $data = json_decode(file_get_contents('php://input'), true);
             
             if ($data === null) {
                 http_response_code(400);
-                echo json_encode(['error' => 'Некоректні дані']);
+                echo json_encode(['error' => 'Invalid data']);
                 exit;
             }
             
@@ -144,14 +144,14 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
             exit;
         }
         
-        // PUT /api/bots/{id} - оновити бота
+        // PUT /api/bots/{id} - update bot
         if ($_SERVER['REQUEST_METHOD'] === 'PUT' && $pathParts[0] === 'bots' && count($pathParts) === 2 && is_numeric($pathParts[1])) {
             $id = (int) $pathParts[1];
             $data = json_decode(file_get_contents('php://input'), true);
             
             if ($data === null) {
                 http_response_code(400);
-                echo json_encode(['error' => 'Некоректні дані']);
+                echo json_encode(['error' => 'Invalid data']);
                 exit;
             }
             
@@ -159,56 +159,56 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
             
             if ($updatedBot === null) {
                 http_response_code(404);
-                echo json_encode(['error' => "Бот з ID {$id} не знайдений"]);
+                echo json_encode(['error' => "Bot with ID {$id} not found"]);
             } else {
                 echo json_encode($updatedBot);
             }
             exit;
         }
         
-        // DELETE /api/bots/{id} - видалити бота
+        // DELETE /api/bots/{id} - delete bot
         if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && $pathParts[0] === 'bots' && count($pathParts) === 2 && is_numeric($pathParts[1])) {
             $id = (int) $pathParts[1];
             $success = $botManager->deleteBot($id);
             
             if (!$success) {
                 http_response_code(404);
-                echo json_encode(['error' => "Бот з ID {$id} не знайдений"]);
+                echo json_encode(['error' => "Bot with ID {$id} not found"]);
             } else {
-                echo json_encode(['success' => true, 'message' => "Бот з ID {$id} був видалений"]);
+                echo json_encode(['success' => true, 'message' => "Bot with ID {$id} was deleted"]);
             }
             exit;
         }
         
-        // PUT /api/bots/{id}/enable - активувати бота
+        // PUT /api/bots/{id}/enable - enable bot
         if ($_SERVER['REQUEST_METHOD'] === 'PUT' && $pathParts[0] === 'bots' && count($pathParts) === 3 && is_numeric($pathParts[1]) && $pathParts[2] === 'enable') {
             $id = (int) $pathParts[1];
             $bot = $botManager->enableBot($id);
             
             if ($bot === null) {
                 http_response_code(404);
-                echo json_encode(['error' => "Бот з ID {$id} не знайдений"]);
+                echo json_encode(['error' => "Bot with ID {$id} not found"]);
             } else {
                 echo json_encode($bot);
             }
             exit;
         }
         
-        // PUT /api/bots/{id}/disable - деактивувати бота
+        // PUT /api/bots/{id}/disable - disable bot
         if ($_SERVER['REQUEST_METHOD'] === 'PUT' && $pathParts[0] === 'bots' && count($pathParts) === 3 && is_numeric($pathParts[1]) && $pathParts[2] === 'disable') {
             $id = (int) $pathParts[1];
             $bot = $botManager->disableBot($id);
             
             if ($bot === null) {
                 http_response_code(404);
-                echo json_encode(['error' => "Бот з ID {$id} не знайдений"]);
+                echo json_encode(['error' => "Bot with ID {$id} not found"]);
             } else {
                 echo json_encode($bot);
             }
             exit;
         }
         
-        // GET /api/exchanges - отримати список доступних бірж
+        // GET /api/exchanges - get list of available exchanges
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pathParts[0] === 'exchanges' && count($pathParts) === 1) {
             $exchangeManager = ExchangeManager::getInstance();
             $exchanges = $exchangeManager->getExchangesList();
@@ -216,7 +216,7 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
             exit;
         }
         
-        // GET /api/pairs - отримати список доступних пар
+        // GET /api/pairs - get list of available pairs
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pathParts[0] === 'pairs' && count($pathParts) === 1) {
             $exchangeManager = ExchangeManager::getInstance();
             $pairs = $exchangeManager->getPairsList();
@@ -224,11 +224,11 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
             exit;
         }
         
-        // GET /api/balances - отримати баланси ботів
+        // GET /api/balances - get bot balances
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pathParts[0] === 'balances' && count($pathParts) === 1) {
             require_once __DIR__ . '/src/core/TradeServer.php';
             
-            // Використовуємо USER_ID=5 як ідентифікатор користувача для ботів
+            // Using USER_ID=5 as user identifier for bots
             $userId = 5;
             $tradeServer = TradeServer::getInstance();
             $balances = $tradeServer->getUserBalances($userId);
@@ -237,39 +237,39 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
             exit;
         }
         
-        // POST /api/balances/topup - поповнити баланс бота
+        // POST /api/balances/topup - top up bot balance
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pathParts[0] === 'balances' && count($pathParts) === 2 && $pathParts[1] === 'topup') {
             require_once __DIR__ . '/src/core/TradeServer.php';
             
-            // Отримуємо дані з тіла запиту
+            // Get data from request body
             $data = json_decode(file_get_contents('php://input'), true);
             
             if (!isset($data['currency']) || !isset($data['amount'])) {
                 http_response_code(400);
-                echo json_encode(['error' => 'Необхідно вказати валюту та суму']);
+                echo json_encode(['error' => 'Currency and amount must be specified']);
                 exit;
             }
             
             $currency = $data['currency'];
             $amount = $data['amount'];
             
-            // Перевіряємо коректність суми (повинна бути рядком або числом, яке можна перетворити на рядок)
+            // Check if the amount is valid (must be a string or a number that can be converted to a string)
             if (!is_numeric($amount) || floatval($amount) <= 0) {
                 http_response_code(400);
-                echo json_encode(['error' => 'Сума повинна бути позитивним числом']);
+                echo json_encode(['error' => 'Amount must be a positive number']);
                 exit;
             }
             
-            // Передаємо суму як рядок без додаткового форматування
-            // Переконуємося, що amount це рядок без форматування
+            // Convert amount to a string without additional formatting
+            // Ensure amount is a string without formatting
             $amount = (string)$amount;
             
-            // Використовуємо USER_ID=5 як ідентифікатор користувача для ботів
+            // Using USER_ID=5 as user identifier for bots
             $userId = 5;
             $tradeServer = TradeServer::getInstance();
             
-            // Унікальний ідентифікатор операції (як число, а не рядок)
-            $operationId = time(); // Використовуємо час як унікальний ID
+            // Unique operation identifier (as a number, not a string)
+            $operationId = time(); // Using time as a unique ID
             
             try {
                 $logger->log("Updating balance for user {$userId} with currency {$currency}, amount {$amount}, operationId {$operationId}");
@@ -277,14 +277,14 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
                 echo json_encode(['success' => true, 'result' => $result]);
             } catch (Exception $e) {
                 http_response_code(500);
-                echo json_encode(['error' => 'Помилка поповнення балансу: ' . $e->getMessage()]);
+                echo json_encode(['error' => 'Balance update error: ' . $e->getMessage()]);
             }
             exit;
         }
         
-        // Якщо жоден з обробників не спрацював
+        // If no handlers were triggered
         http_response_code(404);
-        echo json_encode(['error' => 'Ресурс не знайдено']);
+        echo json_encode(['error' => 'Resource not found']);
         exit;
         
     } catch (Exception $e) {
@@ -294,6 +294,6 @@ if (strpos($path, '/api/') === 0 || $path === '/api') {
     }
 }
 
-// За замовчуванням перенаправляємо на документацію API
+// Default redirect to API documentation
 header('Location: /swagger-ui');
 exit; 

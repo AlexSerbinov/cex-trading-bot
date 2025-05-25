@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="uk">
+<html lang="en">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,7 +7,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css" />
         <link rel="stylesheet" href="css/styles.css" />
-        <!-- Конфігураційний файл -->
+        <!-- Configuration file -->
         <script src="js/config.js"></script>
     </head>
     <body>
@@ -244,71 +244,38 @@
                         <button id="refresh-balances-btn" class="btn btn-primary"><i class="bi bi-arrow-clockwise"></i> Refresh Balances</button>
                     </div>
                     
-                    <!-- Balances table -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">Current Balances</h5>
+                    <!-- Loading indicator -->
+                    <div id="balances-loading" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
                         </div>
-                        <div class="card-body">
-                            <!-- Loading indicator -->
-                            <div id="balances-loading" class="text-center py-4">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <p class="mt-2">Loading balances...</p>
-                            </div>
-                            
-                            <!-- Error message -->
-                            <div id="balances-error" class="d-none">
-                                <div class="alert alert-danger">
-                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                    <span id="balances-error-message">Error loading balances</span>
-                                </div>
-                            </div>
-                            
-                            <!-- Balances table -->
-                            <div id="balances-table" class="d-none">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Currency</th>
-                                                <th>Available</th>
-                                                <th>Frozen</th>
-                                                <th>Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="balances-list">
-                                            <!-- Balance rows will be added here -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                        <p class="mt-2">Loading balances...</p>
+                    </div>
+                    
+                    <!-- Error message -->
+                    <div id="balances-error" class="d-none">
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <span id="balances-error-message">Error loading balances</span>
                         </div>
                     </div>
                     
-                    <!-- Top-up form -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Top Up Balance</h5>
-                        </div>
-                        <div class="card-body">
-                            <form id="top-up-form">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="top-up-currency" class="form-label">Currency</label>
-                                        <select class="form-select" id="top-up-currency" required>
-                                            <option value="">Select currency</option>
-                                            <!-- Options will be added dynamically -->
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="top-up-amount" class="form-label">Amount</label>
-                                        <input type="number" class="form-control" id="top-up-amount" step="any" min="0" required>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-primary" id="top-up-submit">Top Up</button>
-                            </form>
+                    <!-- Balances table -->
+                    <div id="balances-table" class="d-none">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Currency</th>
+                                        <th>Available</th>
+                                        <th>Frozen</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="balances-list">
+                                    <!-- Balance rows will be added here -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

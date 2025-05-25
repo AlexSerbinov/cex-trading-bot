@@ -21,7 +21,7 @@ class BotRunner
     private $botProcess;
     private $lastCheckTime = 0;
     private $checkInterval = 5; // seconds
-    private $lastPairConfigHash = null; // Нове поле для зберігання хешу конфігурації пари
+    private $lastPairConfigHash = null; // New field to store pair configuration hash
 
     /**
      * Constructor
@@ -39,9 +39,9 @@ class BotRunner
         $this->mode = ($pair === 'manager') ? 'manager' : 'bot';
         
         if ($this->mode === 'manager') {
-            $this->logger->log("BotRunner запущений у режимі менеджера процесів");
+            $this->logger->log("BotRunner started in process manager mode");
         } else {
-            $this->logger->log("BotRunner запущений у режимі бота для пари {$this->pair}");
+            $this->logger->log("BotRunner started in bot mode for pair {$this->pair}");
         }
         
         // Registering signal handlers
@@ -64,11 +64,11 @@ class BotRunner
     public function handleSignal($signal)
     {
         if ($this->mode === 'manager') {
-            $this->logger->log("Менеджер процесів отримав сигнал {$signal}, зупиняємо всі боти...");
+            $this->logger->log("Process manager received signal {$signal}, stopping all bots...");
             $this->botProcess->stopAllProcesses();
-            $this->logger->log("Всі боти зупинені, завершуємо роботу менеджера");
+            $this->logger->log("All bots stopped, shutting down manager");
         } else {
-            $this->logger->log("Бот для пари {$this->pair} отримав сигнал {$signal}, зупиняємось");
+            $this->logger->log("Bot for pair {$this->pair} received signal {$signal}, stopping");
             
             // Clearing all orders when stopping
             if (isset($this->bot)) {
@@ -93,11 +93,11 @@ class BotRunner
     private function shutdownGracefully()
     {
         if ($this->mode === 'manager') {
-            $this->logger->log("Зупиняємо всі процеси ботів...");
+            $this->logger->log("Stopping all bot processes...");
             $this->botProcess->stopAllProcesses();
-            $this->logger->log("Всі боти зупинені, завершуємо роботу менеджера");
+            $this->logger->log("All bots stopped, shutting down manager");
         } else {
-            $this->logger->log("Зупиняємо бот для пари {$this->pair}");
+            $this->logger->log("Stopping bot for pair {$this->pair}");
             
             // Clearing all orders when stopping
             if (isset($this->bot)) {
@@ -110,7 +110,7 @@ class BotRunner
                 unlink($pidFile);
             }
             
-            $this->logger->log("Бот для пари {$this->pair} зупинено");
+            $this->logger->log("Bot for pair {$this->pair} stopped");
         }
     }
 
@@ -119,128 +119,128 @@ class BotRunner
      */
     public function run(): void
     {
-        $this->logger->log("Запуск бота для пари {$this->pair} в окремому процесі");
+        $this->logger->log("Starting bot for pair {$this->pair} in a separate process");
 
         // Forcibly clearing and reloading the configuration
-        $this->logger->log("!!!!! BotRunner: Початок перезавантаження конфігурації перед запуском бота");
+        $this->logger->log("!!!!! BotRunner: Starting configuration reload before bot startup");
         Config::reloadConfig();
-        $this->logger->log("!!!!! BotRunner: Конфігурацію перезавантажено");
+        $this->logger->log("!!!!! BotRunner: Configuration reloaded");
 
         // Checking if the pair exists and is active
         $enabledPairs = Config::getEnabledPairs();
-        $this->logger->log("!!!!! BotRunner: Активні пари в конфігурації: " . implode(", ", $enabledPairs));
+        $this->logger->log("!!!!! BotRunner: Active pairs in configuration: " . implode(", ", $enabledPairs));
         if (!in_array($this->pair, $enabledPairs)) {
-            $this->logger->error("!!!!! BotRunner: Пара {$this->pair} не знайдена в активних парах, зупиняємо бота");
+            $this->logger->error("!!!!! BotRunner: Pair {$this->pair} not found in active pairs, stopping bot");
             exit(1);
         }
 
         // Path to the configuration file
         $lastConfigModTime = file_exists($this->configFile) ? filemtime($this->configFile) : 0;
-        $this->logger->log("!!!!! BotRunner: Час останньої модифікації конфігурації: " . date('Y-m-d H:i:s', $lastConfigModTime));
+        $this->logger->log("!!!!! BotRunner: Last modification time of configuration: " . date('Y-m-d H:i:s', $lastConfigModTime));
 
         try {
             // Getting the configuration for the pair
             $pairConfig = Config::getPairConfig($this->pair);
             
             if ($pairConfig === null) {
-                $this->logger->error("!!!!! BotRunner: Конфігурація для пари {$this->pair} не знайдена");
+                $this->logger->error("!!!!! BotRunner: Configuration for pair {$this->pair} not found");
                 exit(1);
             }
             
-            // Ініціалізуємо хеш конфігурації пари
+            // Initialize pair configuration hash
             $this->lastPairConfigHash = md5(json_encode($pairConfig));
-            $this->logger->log("!!!!! BotRunner: Початковий хеш конфігурації для пари {$this->pair}: {$this->lastPairConfigHash}");
+            $this->logger->log("!!!!! BotRunner: Initial configuration hash for pair {$this->pair}: {$this->lastPairConfigHash}");
             
             // Logging the values for verification
             $frequency_from = $pairConfig['settings']['frequency_from'];
             $frequency_to = $pairConfig['settings']['frequency_to'];
             
-            $this->logger->log("!!!!! BotRunner: Завантажена конфігурація для {$this->pair}: frequency_from={$frequency_from}, frequency_to={$frequency_to}");
-            $this->logger->log("!!!!! BotRunner: Повна конфігурація для бота: " . json_encode($pairConfig));
+            $this->logger->log("!!!!! BotRunner: Loaded configuration for {$this->pair}: frequency_from={$frequency_from}, frequency_to={$frequency_to}");
+            $this->logger->log("!!!!! BotRunner: Full configuration for the bot: " . json_encode($pairConfig));
             
             // Creating a bot
-            $this->logger->log("!!!!! BotRunner: Створення бота для пари {$this->pair}");
+            $this->logger->log("!!!!! BotRunner: Creating bot for pair {$this->pair}");
             $this->bot = new TradingBot($this->pair, $pairConfig);
             
             // Initializing the bot
-            $this->logger->log("!!!!! BotRunner: Початок ініціалізації бота для пари {$this->pair}");
+            $this->logger->log("!!!!! BotRunner: Starting initialization of bot for pair {$this->pair}");
             $this->bot->initialize();
-            $this->logger->log("!!!!! BotRunner: Ініціалізацію бота для пари {$this->pair} завершено");
+            $this->logger->log("!!!!! BotRunner: Initialization of bot for pair {$this->pair} completed");
             
             // Main bot loop
             while (!$this->terminate) {
                 try {
                     // Forcibly reloading the configuration on each cycle
-                    $this->logger->log("!!!!! BotRunner: Перезавантаження конфігурації на початку циклу");
+                    $this->logger->log("!!!!! BotRunner: Reloading configuration at the beginning of the cycle");
                     Config::reloadConfig();
                     
-                    // Перевіряємо, чи пара все ще активна
+                    // Check if the pair is still active
                     $enabledPairs = Config::getEnabledPairs();
                     if (!in_array($this->pair, $enabledPairs)) {
-                        $this->logger->log("!!!!! BotRunner: Пара {$this->pair} деактивована, зупиняємо бота");
+                        $this->logger->log("!!!!! BotRunner: Pair {$this->pair} is deactivated, stopping bot");
                         break;
                     }
                     
-                    // Отримуємо оновлену конфігурацію пари
+                    // Get updated pair configuration
                     $pairConfig = Config::getPairConfig($this->pair);
                     if ($pairConfig === null) {
-                        $this->logger->error("!!!!! BotRunner: Конфігурація для пари {$this->pair} не знайдена під час оновлення");
+                        $this->logger->error("!!!!! BotRunner: Configuration for pair {$this->pair} not found during update");
                         break;
                     }
                     
-                    // Розраховуємо новий хеш конфігурації
+                    // Calculate new configuration hash
                     $currentPairConfigHash = md5(json_encode($pairConfig));
                     
-                    // Перевіряємо, чи змінилася конфігурація
+                    // Check if the configuration has changed
                     $configChanged = ($currentPairConfigHash !== $this->lastPairConfigHash);
                     
-                    // Логуємо хеші для налагодження
-                    $this->logger->log("!!!!! BotRunner: Поточний хеш конфігурації пари: {$currentPairConfigHash}, попередній: {$this->lastPairConfigHash}");
-                    $this->logger->log("!!!!! BotRunner: Конфігурація пари змінилася: " . ($configChanged ? "ТАК" : "НІ"));
+                    // Log hashes for debugging
+                    $this->logger->log("!!!!! BotRunner: Current pair configuration hash: {$currentPairConfigHash}, previous: {$this->lastPairConfigHash}");
+                    $this->logger->log("!!!!! BotRunner: Pair configuration changed: " . ($configChanged ? "YES" : "NO"));
                     
                     if ($configChanged) {
-                        $this->logger->log("!!!!! BotRunner: Виявлено зміни в конфігурації пари {$this->pair}");
+                        $this->logger->log("!!!!! BotRunner: Configuration change detected for pair {$this->pair}");
                         
                         $frequency_from = $pairConfig['settings']['frequency_from'];
                         $frequency_to = $pairConfig['settings']['frequency_to'];
                         
-                        $this->logger->log("!!!!! BotRunner: Оновлена конфігурація для {$this->pair}: frequency_from={$frequency_from}, frequency_to={$frequency_to}");
-                        $this->logger->log("!!!!! BotRunner: Повна оновлена конфігурація для бота: " . json_encode($pairConfig));
+                        $this->logger->log("!!!!! BotRunner: Updated configuration for {$this->pair}: frequency_from={$frequency_from}, frequency_to={$frequency_to}");
+                        $this->logger->log("!!!!! BotRunner: Full updated configuration for the bot: " . json_encode($pairConfig));
                         
-                        // НОВА ЛОГІКА: Оновлення конфігурації існуючого бота
-                        $this->logger->log("!!!!! BotRunner: Оновлення конфігурації існуючого бота");
+                        // NEW LOGIC: Updating existing bot configuration
+                        $this->logger->log("!!!!! BotRunner: Updating existing bot configuration");
                         
-                        // Очищаємо всі ордери перед оновленням конфігурації
-                        $this->logger->log("!!!!! BotRunner: Очищення всіх ордерів перед оновленням конфігурації");
+                        // Clear all orders before updating configuration
+                        $this->logger->log("!!!!! BotRunner: Clearing all orders before updating configuration");
                         $this->bot->clearAllOrders();
                         
-                        // Оновлюємо конфігурацію бота
-                        $this->logger->log("!!!!! BotRunner: Застосування нової конфігурації до бота");
+                        // Apply new configuration to the bot
+                        $this->logger->log("!!!!! BotRunner: Applying new configuration to the bot");
                         $this->bot->updateConfig($pairConfig);
                         
-                        // Ініціалізуємо бота з новою конфігурацією
-                        $this->logger->log("!!!!! BotRunner: Повторна ініціалізація бота з оновленою конфігурацією");
+                        // Reinitialize the bot with new configuration
+                        $this->logger->log("!!!!! BotRunner: Reinitializing bot with updated configuration");
                         $this->bot->initialize();
-                        $this->logger->log("!!!!! BotRunner: Ініціалізацію бота з оновленою конфігурацією завершено");
+                        $this->logger->log("!!!!! BotRunner: Reinitialization of bot with updated configuration completed");
                         
-                        // Оновлюємо хеш конфігурації
+                        // Update configuration hash
                         $this->lastPairConfigHash = $currentPairConfigHash;
                     } else {
-                        $this->logger->log("!!!!! BotRunner: Конфігурація для пари {$this->pair} не змінилася");
+                        $this->logger->log("!!!!! BotRunner: Configuration for pair {$this->pair} not changed");
                     }
                     
                     // Running a single cycle of the bot
-                    $this->logger->log("!!!!! BotRunner: Запуск одного циклу бота для пари {$this->pair}");
+                    $this->logger->log("!!!!! BotRunner: Running a single cycle of the bot for pair {$this->pair}");
                     $this->bot->runSingleCycle();
-                    $this->logger->log("!!!!! BotRunner: Цикл бота для пари {$this->pair} завершено");
+                    $this->logger->log("!!!!! BotRunner: Bot cycle for pair {$this->pair} completed");
                     
                     // Forcibly getting the latest configuration before the delay
-                    $this->logger->log("!!!!! BotRunner: Отримання оновленої конфігурації перед затримкою");
+                    $this->logger->log("!!!!! BotRunner: Getting latest configuration before delay");
                     Config::reloadConfig();
                     $pairConfig = Config::getPairConfig($this->pair);
                     
                     if ($pairConfig === null) {
-                        $this->logger->error("!!!!! BotRunner: Конфігурація для пари {$this->pair} не знайдена перед затримкою");
+                        $this->logger->error("!!!!! BotRunner: Configuration for pair {$this->pair} not found before delay");
                         break;
                     }
                     
@@ -257,10 +257,10 @@ class BotRunner
                         $delay = mt_rand($minDelay, $maxDelay);
                     }
                     
-                    $this->logger->log("!!!!! BotRunner: Бот для пари {$this->pair} очікує {$delay} секунд до наступного циклу");
+                    $this->logger->log("!!!!! BotRunner: Bot for pair {$this->pair} waiting for {$delay} seconds until next cycle");
                     
                     // Splitting the delay into short intervals to react faster to changes
-                    $shortInterval = 1; // 1 секунда
+                    $shortInterval = 1; // 1 second
                     $remainingDelay = $delay;
                     
                     while ($remainingDelay > 0 && !$this->terminate) {
@@ -269,23 +269,23 @@ class BotRunner
                         $remainingDelay -= $sleepTime;
                         
                         // Forcibly reloading the configuration
-                        $this->logger->log("!!!!! BotRunner: Перевірка змін конфігурації під час затримки, залишилось {$remainingDelay} сек.");
+                        $this->logger->log("!!!!! BotRunner: Checking configuration changes during delay, remaining delay: {$remainingDelay} sec.");
                         Config::reloadConfig();
                         
                         // Checking if the pair is still active
                         $enabledPairs = Config::getEnabledPairs();
                         if (!in_array($this->pair, $enabledPairs)) {
-                            $this->logger->log("!!!!! BotRunner: Пара {$this->pair} деактивована під час очікування, зупиняємо бота");
+                            $this->logger->log("!!!!! BotRunner: Pair {$this->pair} deactivated during waiting, stopping bot");
                             break 2; // Exiting both loops
                         }
                         
-                        // Перевіряємо, чи змінилася конфігурація пари
+                        // Checking if the pair configuration has changed
                         $pairConfig = Config::getPairConfig($this->pair);
                         if ($pairConfig !== null) {
                             $newPairConfigHash = md5(json_encode($pairConfig));
                             if ($newPairConfigHash !== $this->lastPairConfigHash) {
-                                $this->logger->log("!!!!! BotRunner: Виявлено зміни конфігурації пари під час очікування, перериваємо очікування");
-                                $this->logger->log("!!!!! BotRunner: Новий хеш: {$newPairConfigHash}, старий: {$this->lastPairConfigHash}");
+                                $this->logger->log("!!!!! BotRunner: Configuration change detected during waiting, interrupting waiting");
+                                $this->logger->log("!!!!! BotRunner: New hash: {$newPairConfigHash}, old: {$this->lastPairConfigHash}");
                                 $remainingDelay = 0; // Exiting the inner loop
                             }
                         }
@@ -295,7 +295,7 @@ class BotRunner
                     pcntl_signal_dispatch();
 
                 } catch (Exception $e) {
-                    $this->logger->error("!!!!! BotRunner: Помилка під час виконання циклу бота для пари {$this->pair}: " . $e->getMessage());
+                    $this->logger->error("!!!!! BotRunner: Error during bot cycle for pair {$this->pair}: " . $e->getMessage());
                     $this->logger->error("!!!!! BotRunner: Stack trace: " . $e->getTraceAsString());
                     
                     // Sleeping for a short period before the next cycle in case of an error
@@ -303,10 +303,10 @@ class BotRunner
                 }
             }
             
-            $this->logger->log("!!!!! BotRunner: Бот для пари {$this->pair} завершив роботу");
+            $this->logger->log("!!!!! BotRunner: Bot for pair {$this->pair} finished");
             
         } catch (Exception $e) {
-            $this->logger->error("!!!!! BotRunner: Критична помилка при запуску бота для пари {$this->pair}: " . $e->getMessage());
+            $this->logger->error("!!!!! BotRunner: Critical error during bot startup for pair {$this->pair}: " . $e->getMessage());
             $this->logger->error("!!!!! BotRunner: Stack trace: " . $e->getTraceAsString());
             exit(1);
         }
@@ -320,16 +320,16 @@ class BotRunner
      */
     public function runAsManager(): void
     {
-        $this->logger->log("Запуск менеджера процесів ботів");
+        $this->logger->log("Starting process manager for bots");
         
         // Forcibly reloading the configuration
         Config::reloadConfig();
         
-        // Чистимо старі PID-файли
+        // Clean up old PID files
         $this->botProcess->cleanupInvalidPidFiles();
         
-        // Запускаємо процеси для всіх активних пар
-        $this->logger->log("Ініціалізація процесів для всіх активних пар");
+        // Start processes for all active pairs
+        $this->logger->log("Initializing processes for all active pairs");
         $this->botProcess->startAllProcesses();
         
         // Main loop of the process manager
@@ -343,17 +343,17 @@ class BotRunner
                 // Checking if it's time to update processes
                 $currentTime = time();
                 if (($currentTime - $this->lastCheckTime) >= $this->checkInterval) {
-                    $this->logger->log("Менеджер процесів: перевірка стану процесів...");
+                    $this->logger->log("Process manager: checking process status...");
                     
                     // Checking if the configuration has changed
                     if (file_exists($this->configFile)) {
                         $configModTime = filemtime($this->configFile);
-                        $this->logger->log("Менеджер процесів: час останньої модифікації конфігурації: " . date('Y-m-d H:i:s', $configModTime));
+                        $this->logger->log("Process manager: last modification time of configuration: " . date('Y-m-d H:i:s', $configModTime));
                         
-                        // Оновлюємо процеси у відповідності до поточної конфігурації
-                        $this->logger->log("Менеджер процесів: оновлення процесів...");
+                        // Update processes according to current configuration
+                        $this->logger->log("Process manager: updating processes...");
                         $this->botProcess->updateProcesses();
-                        $this->logger->log("Менеджер процесів: процеси оновлено");
+                        $this->logger->log("Process manager: processes updated");
                     }
                     
                     $this->lastCheckTime = $currentTime;
@@ -363,20 +363,20 @@ class BotRunner
                 sleep(1);
                 
             } catch (Exception $e) {
-                $this->logger->error("Менеджер процесів: помилка - " . $e->getMessage());
-                $this->logger->error("Менеджер процесів: stack trace - " . $e->getTraceAsString());
+                $this->logger->error("Process manager: error - " . $e->getMessage());
+                $this->logger->error("Process manager: stack trace - " . $e->getTraceAsString());
                 
                 // Short sleep in case of an error
                 sleep(5);
             }
         }
         
-        $this->logger->log("Менеджер процесів завершує роботу");
+        $this->logger->log("Process manager finished");
         $this->shutdownGracefully();
     }
 }
 
-// Запуск скрипта
+// Run script
 if (count($argv) > 1) {
     $pair = $argv[1];
     $runner = new BotRunner($pair);

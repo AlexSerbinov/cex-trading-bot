@@ -23,7 +23,7 @@ class TradeServer {
         $this->apiClient = new ApiClient();
         $this->logger = Logger::getInstance();
         
-        // Використовуємо URL з конфігурації або значення за замовчуванням
+        // Using URL from configuration or default value
         $this->logger->log('-=-=-=-=-=-=-= Trade Server URL: ' . Config::getTradeServerUrl() . ' -=-=-=-=-=-=-=');
         $this->tradeServerUrl = Config::getTradeServerUrl();
         if (empty($this->tradeServerUrl)) {
@@ -44,10 +44,10 @@ class TradeServer {
     }
     
     /**
-     * Отримати баланси користувача
+     * Get user balances
      * 
-     * @param int $userId ID користувача
-     * @return array Баланси користувача
+     * @param int $userId ID of the user
+     * @return array Balances of the user
      */
     public function getUserBalances(int $userId): array {
         try {
@@ -65,33 +65,33 @@ class TradeServer {
     }
     
     /**
-     * Оновити баланс користувача
+     * Update user balance
      * 
-     * @param int $userId ID користувача
-     * @param string $currency Валюта
-     * @param string $type Тип операції (deposit/withdraw)
-     * @param int $operationId Унікальний ID операції (повинен бути числом!)
-     * @param string $amount Сума
-     * @param array $extra Додаткові параметри
-     * @return array Результат операції
+     * @param int $userId ID of the user
+     * @param string $currency Currency
+     * @param string $type Operation type (deposit/withdraw)
+     * @param int $operationId Unique operation ID (must be a number!)
+     * @param string $amount Amount
+     * @param array $extra Additional parameters
+     * @return array Result of the operation
      */
     public function updateBalance(int $userId, string $currency, string $type, int $operationId, string $amount, array $extra = []): array {
         try {
-            // Переконуємося, що amount це рядок
+            // Make sure amount is a string
             if (!is_string($amount)) {
                 $amount = (string)$amount;
             }
             
-            // Переконуємося, що extra серіалізується як пустий об'єкт {}, а не масив []
+            // Make sure extra serializes as an empty object {}, not an array []
             if (empty($extra)) {
-                $extraObj = new stdClass(); // Пустий об'єкт {} в JSON
+                $extraObj = new stdClass(); // Empty object {} in JSON
             } else {
-                $extraObj = (object)$extra; // Перетворюємо масив на об'єкт
+                $extraObj = (object)$extra; // Convert array to object
             }
             
             $this->logger->log("Sending balance update request: userId={$userId}, currency={$currency}, type={$type}, operationId={$operationId}, amount={$amount}");
             
-            // ВАЖЛИВО: operationId передається як число, без приведення до рядка
+            // IMPORTANT: operationId is passed as a number, without casting to string
             $response = $this->sendRequest('balance.update', [$userId, $currency, $type, $operationId, $amount, $extraObj]);
             
             if (isset($response['result'])) {
@@ -113,9 +113,9 @@ class TradeServer {
     }
     
     /**
-     * Отримати список доступних пар на трейд-сервері
+     * Get list of available pairs on the trade server
      * 
-     * @return array Список пар
+     * @return array List of pairs
      */
     public function getMarketPairs(): array {
         try {
@@ -134,11 +134,11 @@ class TradeServer {
     }
     
     /**
-     * Відправити запит на трейд-сервер
+     * Send request to the trade server
      * 
-     * @param string $method Метод API
-     * @param array $params Параметри
-     * @return array Відповідь
+     * @param string $method API method
+     * @param array $params Parameters
+     * @return array Response
      */
     private function sendRequest(string $method, array $params): array {
         $data = [
@@ -312,13 +312,13 @@ class TradeServer {
         ];
         
         try {
-            // Use the getTradeServerUrl method instead of the constant
+            // Using getTradeServerUrl method instead of a constant
             $url = Config::getTradeServerUrl();
             // $this->logger->log("[{$pair}] Sending request to: {$url}");
             
             $json = json_encode($body);
             
-            // Add a shorter timeout for faster problem detection
+            // Adding a shorter timeout for faster problem detection
             $startTime = microtime(true);
             $response = $this->apiClient->post($url, $json);
             $endTime = microtime(true);
@@ -352,12 +352,12 @@ class TradeServer {
         ];
         
         try {
-            // Use the getTradeServerUrl method instead of the constant
+            // Using getTradeServerUrl method instead of a constant
             $url = Config::getTradeServerUrl();
             
             $json = json_encode($body);
             
-            // Add tracking of execution time
+            // Adding tracking of execution time
             $startTime = microtime(true);
             $response = $this->apiClient->post($url, $json);
             $endTime = microtime(true);

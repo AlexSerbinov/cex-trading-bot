@@ -1,20 +1,20 @@
 #!/bin/bash
 
-# Визначаємо кореневу директорію проекту
+# Determine the project root directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-# Перевірка існування необхідних конфігураційних файлів
+# Check if necessary config files exist
 if [ ! -f "$PROJECT_ROOT/config/bots_config.json" ]; then
-    echo "Створення порожнього bots_config.json..."
+    echo "Creating empty bots_config.json..."
     echo '{"enabledPairs": ["BTC_USDT", "ETH_USDT"]}' > "$PROJECT_ROOT/config/bots_config.json"
 fi
 
-# Перевірка існування основного конфігураційного файлу
+# Check if main config file exists
 if [ ! -f "$PROJECT_ROOT/config/config.php" ]; then
-    echo "Конфігураційний файл config.php відсутній!"
-    echo "Створіть файл config.php з необхідними параметрами"
+    echo "Config file config.php is missing!"
+    echo "Create config.php with the required parameters"
     exit 1
 fi
 
-echo "Конфігураційні файли підготовлено!" 
+echo "Config files prepared!" 

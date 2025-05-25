@@ -1,4 +1,4 @@
-Я розумію ваше завдання. Створю для вас детальну карту маршрутизації портів та монтування папок для обох конфігурацій: dev і demo. Спочатку проаналізую всі необхідні файли.
+I understand your task. I will create a detailed map of port routing and folder mounting for both configurations: dev and demo. First, I will analyze all necessary files.
 
 Read file: docker-compose-dev.yml
 
@@ -27,147 +27,148 @@ Read file: src/core/BotProcess.php
 Read file: config/config.php
 
 Read file: src/api/BotStorage.php
-На основі проаналізованих файлів, я створю детальну карту маршрутизації портів та монтування папок для обох конфігурацій: dev і demo.
 
-## Карта маршрутизації для DEV середовища
+Based on the analyzed files, I will create a detailed map of port routing and folder mounting for both configurations: dev and demo.
 
-### 1. Маршрутизація портів (DEV)
+## Routing map for DEV environment
 
-| Сервіс | Порт хоста | Порт контейнера | Опис |
+### 1. Port Routing (DEV)
+
+| Service | Host Port | Container Port | Description |
 |--------|------------|-----------------|------|
-| backend-dev | 5501 | 8080 | PHP-сервер для бекенду, запускається через `php -S 0.0.0.0:8080 router.php` |
-| frontend-dev | 5502 | 80 | Nginx-сервер для фронтенду |
+| backend-dev | 5501 | 8080 | PHP server for backend, started via `php -S 0.0.0.0:8080 router.php` |
+| frontend-dev | 5502 | 80 | Nginx server for frontend |
 
-### 2. Маршрутизація HTTP-запитів (DEV)
+### 2. HTTP Request Routing (DEV)
 
-| URL запиту | Перенаправлення | Опис |
+| Request URL | Redirect | Description |
 |------------|-----------------|------|
-| http://localhost:5502/api/* | http://backend-dev:8080/* | Запити до API перенаправляються на бекенд з видаленням префіксу `/api` |
-| http://localhost:5502/swagger | http://backend-dev:8080/swagger-ui | Перенаправлення на Swagger UI |
-| http://localhost:5502/swagger-ui | http://backend-dev:8080/swagger-ui | Перенаправлення на Swagger UI |
-| http://localhost:5502/swagger.json | http://backend-dev:8080/swagger.json | Отримання Swagger-специфікації |
-| http://localhost:5502/* | Статичні файли з `/usr/share/nginx/html` | Обслуговування статичних файлів фронтенду |
+| http://localhost:5502/api/* | http://backend-dev:8080/* | API requests are redirected to the backend with the `/api` prefix removed |
+| http://localhost:5502/swagger | http://backend-dev:8080/swagger-ui | Redirect to Swagger UI |
+| http://localhost:5502/swagger-ui | http://backend-dev:8080/swagger-ui | Redirect to Swagger UI |
+| http://localhost:5502/swagger.json | http://backend-dev:8080/swagger.json | Get Swagger specification |
+| http://localhost:5502/* | Static files from `/usr/share/nginx/html` | Serving frontend static files |
 
-### 3. Монтування папок (DEV)
+### 3. Folder Mounting (DEV)
 
 #### Backend-dev:
-| Шлях хоста | Шлях контейнера | Опис |
+| Host Path | Container Path | Description |
 |------------|-----------------|------|
-| ./config | /app/config | Конфігураційні файли |
-| ./data | /app/data | Дані, логи, PID-файли |
-| ./src | /app/src | Вихідний код |
-| ./router.php | /app/router.php | Файл маршрутизації для PHP-сервера |
-| ./index.php | /app/index.php | Головний файл PHP |
-| ./public | /app/public | Публічні файли (Swagger UI) |
+| ./config | /app/config | Configuration files |
+| ./data | /app/data | Data, logs, PID files |
+| ./src | /app/src | Source code |
+| ./router.php | /app/router.php | Routing file for PHP server |
+| ./index.php | /app/index.php | Main PHP file |
+| ./public | /app/public | Public files (Swagger UI) |
 
 #### Frontend-dev:
-| Шлях хоста | Шлях контейнера | Опис |
+| Host Path | Container Path | Description |
 |------------|-----------------|------|
-| ./frontend | /usr/share/nginx/html | Файли фронтенду |
-| ./frontend/nginx-dev.conf | /etc/nginx/conf.d/default.conf | Конфігурація Nginx для dev середовища |
+| ./frontend | /usr/share/nginx/html | Frontend files |
+| ./frontend/nginx-dev.conf | /etc/nginx/conf.d/default.conf | Nginx configuration for dev environment |
 
-### 4. Структура даних (DEV)
+### 4. Data Structure (DEV)
 
-| Шлях | Опис |
+| Path | Description |
 |------|------|
-| ./config/bots_config.json | Конфігурація ботів |
-| ./data/logs/bot.log | Логи ботів |
-| ./data/logs/router.log | Логи маршрутизатора |
-| ./data/pids/*.pid | PID-файли для процесів ботів |
+| ./config/bots_config.json | Bot configuration |
+| ./data/logs/bot.log | Bot logs |
+| ./data/logs/router.log | Router logs |
+| ./data/pids/*.pid | PID files for bot processes |
 
-## Карта маршрутизації для DEMO середовища
+## Routing map for DEMO environment
 
-### 1. Маршрутизація портів (DEMO)
+### 1. Port Routing (DEMO)
 
-| Сервіс | Порт хоста | Порт контейнера | Опис |
+| Service | Host Port | Container Port | Description |
 |--------|------------|-----------------|------|
-| backend-demo | 6501 | 8080 | PHP-сервер для бекенду, запускається через `php -S 0.0.0.0:8080 router.php` |
-| frontend-demo | 6502 | 80 | Nginx-сервер для фронтенду |
+| backend-demo | 6501 | 8080 | PHP server for backend, started via `php -S 0.0.0.0:8080 router.php` |
+| frontend-demo | 6502 | 80 | Nginx server for frontend |
 
-### 2. Маршрутизація HTTP-запитів (DEMO)
+### 2. HTTP Request Routing (DEMO)
 
-| URL запиту | Перенаправлення | Опис |
+| Request URL | Redirect | Description |
 |------------|-----------------|------|
-| http://localhost:6502/api/* | http://backend-demo:8080/* | Запити до API перенаправляються на бекенд з видаленням префіксу `/api` |
-| http://localhost:6502/swagger | http://backend-demo:8080/swagger-ui | Перенаправлення на Swagger UI |
-| http://localhost:6502/swagger-ui | http://backend-demo:8080/swagger-ui | Перенаправлення на Swagger UI |
-| http://localhost:6502/swagger.json | http://backend-demo:8080/swagger.json | Отримання Swagger-специфікації |
-| http://localhost:6502/* | Статичні файли з `/usr/share/nginx/html` | Обслуговування статичних файлів фронтенду |
+| http://localhost:6502/api/* | http://backend-demo:8080/* | API requests are redirected to the backend with the `/api` prefix removed |
+| http://localhost:6502/swagger | http://backend-demo:8080/swagger-ui | Redirect to Swagger UI |
+| http://localhost:6502/swagger-ui | http://backend-demo:8080/swagger-ui | Redirect to Swagger UI |
+| http://localhost:6502/swagger.json | http://backend-demo:8080/swagger.json | Get Swagger specification |
+| http://localhost:6502/* | Static files from `/usr/share/nginx/html` | Serving frontend static files |
 
-### 3. Монтування папок (DEMO)
+### 3. Folder Mounting (DEMO)
 
 #### Backend-demo:
-| Шлях хоста | Шлях контейнера | Опис |
+| Host Path | Container Path | Description |
 |------------|-----------------|------|
-| ./config | /app/config | Конфігураційні файли |
-| ./data | /app/data | Дані, логи, PID-файли |
-| ./src | /app/src | Вихідний код |
-| ./router.php | /app/router.php | Файл маршрутизації для PHP-сервера |
-| ./index.php | /app/index.php | Головний файл PHP |
-| ./public | /app/public | Публічні файли (Swagger UI) |
+| ./config | /app/config | Configuration files |
+| ./data | /app/data | Data, logs, PID files |
+| ./src | /app/src | Source code |
+| ./router.php | /app/router.php | Routing file for PHP server |
+| ./index.php | /app/index.php | Main PHP file |
+| ./public | /app/public | Public files (Swagger UI) |
 
 #### Frontend-demo:
-| Шлях хоста | Шлях контейнера | Опис |
+| Host Path | Container Path | Description |
 |------------|-----------------|------|
-| ./frontend | /usr/share/nginx/html | Файли фронтенду |
-| ./frontend/nginx-demo.conf | /etc/nginx/conf.d/default.conf | Конфігурація Nginx для demo середовища |
+| ./frontend | /usr/share/nginx/html | Frontend files |
+| ./frontend/nginx-demo.conf | /etc/nginx/conf.d/default.conf | Nginx configuration for demo environment |
 
-### 4. Структура даних (DEMO)
+### 4. Data Structure (DEMO)
 
-| Шлях | Опис |
+| Path | Description |
 |------|------|
-| ./config/bots_config.json | Конфігурація ботів |
-| ./data/logs/bot.log | Логи ботів |
-| ./data/logs/router.log | Логи маршрутизатора |
-| ./data/pids/*.pid | PID-файли для процесів ботів |
+| ./config/bots_config.json | Bot configuration |
+| ./data/logs/bot.log | Bot logs |
+| ./data/logs/router.log | Router logs |
+| ./data/pids/*.pid | PID files for bot processes |
 
-## Детальна карта API-ендпоінтів
+## Detailed API Endpoints Map
 
-| Метод | Ендпоінт | Опис |
+| Method | Endpoint | Description |
 |-------|----------|------|
-| GET | /api/bots | Отримання списку всіх ботів |
-| GET | /api/bots/{id} | Отримання бота за ID |
-| POST | /api/bots | Створення нового бота |
-| PUT | /api/bots/{id} | Оновлення бота |
-| DELETE | /api/bots/{id} | Видалення бота |
-| PUT | /api/bots/{id}/enable | Активація бота |
-| PUT | /api/bots/{id}/disable | Деактивація бота |
-| GET | /api/exchanges | Отримання списку доступних бірж |
-| GET | /api/pairs | Отримання списку доступних пар |
+| GET | /api/bots | Get a list of all bots |
+| GET | /api/bots/{id} | Get bot by ID |
+| POST | /api/bots | Create a new bot |
+| PUT | /api/bots/{id} | Update bot |
+| DELETE | /api/bots/{id} | Delete bot |
+| PUT | /api/bots/{id}/enable | Activate bot |
+| PUT | /api/bots/{id}/disable | Deactivate bot |
+| GET | /api/exchanges | Get a list of available exchanges |
+| GET | /api/pairs | Get a list of available pairs |
 
-## Схема роботи системи
+## System Operation Scheme
 
-1. **Фронтенд** (Nginx) отримує запити від користувача:
-   - Статичні файли обслуговуються напряму з `/usr/share/nginx/html`
-   - Запити до API перенаправляються на бекенд через внутрішню мережу Docker
+1. **Frontend** (Nginx) receives user requests:
+   - Static files are served directly from `/usr/share/nginx/html`
+   - API requests are forwarded to the backend via the internal Docker network
 
-2. **Бекенд** (PHP-сервер) обробляє запити:
-   - API-запити обробляються через `index.php`
-   - Статичні файли для Swagger UI обслуговуються з `/app/public/docs`
-   - Конфігурація ботів зберігається в `/app/config/bots_config.json`
+2. **Backend** (PHP server) processes requests:
+   - API requests are handled via `index.php`
+   - Static files for Swagger UI are served from `/app/public/docs`
+   - Bot configuration is stored in `/app/config/bots_config.json`
 
-3. **Процеси ботів**:
-   - Запускаються через `TradingBotManager.php`
-   - Кожен бот працює в окремому процесі
-   - PID-файли зберігаються в `/app/data/pids`
-   - Логи записуються в `/app/data/logs/bot.log`
+3. **Bot Processes**:
+   - Started via `TradingBotManager.php`
+   - Each bot runs in a separate process
+   - PID files are stored in `/app/data/pids`
+   - Logs are written to `/app/data/logs/bot.log`
 
-4. **Конфігурація**:
-   - Основні налаштування в `config/config.php`
-   - Конфігурація ботів в `config/bots_config.json`
-   - Конфігурація Nginx в `frontend/nginx-dev.conf` або `frontend/nginx-demo.conf`
+4. **Configuration**:
+   - Main settings in `config/config.php`
+   - Bot configuration in `config/bots_config.json`
+   - Nginx configuration in `frontend/nginx-dev.conf` or `frontend/nginx-demo.conf`
 
-5. **Мережі Docker**:
-   - DEV: `app-dev-net` - внутрішня мережа для комунікації між контейнерами
-   - DEMO: `app-demo-net` - внутрішня мережа для комунікації між контейнерами
+5. **Docker Networks**:
+   - DEV: `app-dev-net` - internal network for communication between containers
+   - DEMO: `app-demo-net` - internal network for communication between containers
 
-## Особливості монтування
+## Mounting Features
 
-Важливо відзначити, що в обох конфігураціях (DEV і DEMO) директорія `./data` монтується як volume, що означає:
-1. Зміни в файлах на хості відображаються в контейнері
-2. Зміни в файлах в контейнері відображаються на хості
-3. Видалення файлів на хості призводить до їх зникнення в контейнері
+It is important to note that in both configurations (DEV and DEMO), the `./data` directory is mounted as a volume, which means:
+1. Changes in files on the host are reflected in the container
+2. Changes in files in the container are reflected on the host
+3. Deleting files on the host leads to their disappearance in the container
 
-Це пояснює проблему, яку ви описали, коли видалення файлу `config/bots_config.json` на локальній машині призводить до його зникнення в контейнері.
+This explains the problem you described when deleting the `config/bots_config.json` file on the local machine leads to its disappearance in the container.
 
-Ця детальна карта маршрутизації повинна допомогти вам краще зрозуміти, як налаштована ваша система і як взаємодіють різні компоненти.
+This detailed routing map should help you better understand how your system is set up and how different components interact.

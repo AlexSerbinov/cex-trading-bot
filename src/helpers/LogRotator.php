@@ -11,7 +11,7 @@ class LogRotator
 
     public function __construct()
     {
-        // Визначаємо директорію логів залежно від середовища
+        // Determine the log directory based on the environment
         $environment = getenv('ENVIRONMENT') ?: 'local';
         $this->logDir = __DIR__ . '/../../data/logs/' . $environment . '/';
         

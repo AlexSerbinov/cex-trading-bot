@@ -1,37 +1,37 @@
 #!/bin/bash
 
-# Отримання параметрів
+# Get parameters
 ENVIRONMENT=$1
 HOST=$2
 PORT=$3
 
-# Визначаємо кореневу директорію проекту
+# Determine the project root directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-echo "Налаштування фронтенду для середовища: $ENVIRONMENT (хост: $HOST, порт: $PORT)"
+echo "Configuring frontend for environment: $ENVIRONMENT (host: $HOST, port: $PORT)"
 
-# Визначення URL для API та Swagger в залежності від середовища
+# Define URL for API and Swagger depending on the environment
 if [ "$ENVIRONMENT" = "local" ]; then
-    # Для локального середовища використовуємо повну адресу
+    # For local environment, use the full address
     API_URL="http://$HOST:$PORT/api"
     SWAGGER_URL="http://$HOST:$PORT/swagger-ui"
 else
-    # Для інших середовищ (dev, demo) використовуємо відносні шляхи
+    # For other environments (dev, demo), use relative paths
     API_URL="/api"
     SWAGGER_URL="/swagger-ui"
 fi
 
-# Створення конфігурації для фронтенду
+# Create frontend configuration
 CONFIG_JS="window.CONFIG = { 
     apiUrl: '$API_URL',
     swaggerUrl: '$SWAGGER_URL',
     environment: '$ENVIRONMENT'
 };
 
-// Функція для динамічного оновлення URL API з заголовків
+// Function for dynamic update of API URL from headers
 window.addEventListener('DOMContentLoaded', function() {
-    // Перевіряємо, чи є заголовки X-API-URL і X-SWAGGER-URL
+    // Check if X-API-URL and X-SWAGGER-URL headers are present
     fetch('/')
         .then(response => {
             const apiUrl = response.headers.get('X-API-URL');
@@ -39,23 +39,23 @@ window.addEventListener('DOMContentLoaded', function() {
             
             if (apiUrl) {
                 window.CONFIG.apiUrl = apiUrl;
-                console.log('API URL оновлено з заголовка:', apiUrl);
+                console.log('API URL updated from header:', apiUrl);
             }
             
             if (swaggerUrl) {
                 window.CONFIG.swaggerUrl = swaggerUrl;
-                console.log('Swagger URL оновлено з заголовка:', swaggerUrl);
+                console.log('Swagger URL updated from header:', swaggerUrl);
             }
         })
         .catch(error => {
-            console.error('Помилка при отриманні заголовків:', error);
+            console.error('Error getting headers:', error);
         });
 });"
 
-# Запис конфігурації у файл
+# Write configuration to file
 echo "${CONFIG_JS}" > "$PROJECT_ROOT/frontend/js/config.js"
 
-echo "Фронтенд налаштовано:"
+echo "Frontend configured:"
 echo "API URL: ${API_URL}"
 echo "Swagger URL: ${SWAGGER_URL}"
 echo "Environment: ${ENVIRONMENT}" 
