@@ -8,12 +8,12 @@ class ErrorHandler
     private static bool $initialized = false;
     
     /**
-     * Шлях до файлу логів за замовчуванням
+     * Path to the default log file
      */
     public const DEFAULT_ERROR_LOG_PATH = '/../data/logs/%s/bots_error.log';
 
     /**
-     * Перевіряє, чи обробник помилок вже ініціалізовано
+     * Checks if the error handler has already been initialized
      */
     public static function isInitialized(): bool
     {
@@ -21,19 +21,19 @@ class ErrorHandler
     }
 
     /**
-     * Ініціалізує обробник помилок
+     * Initializes the error handler
      * 
-     * @param string|null $errorLogFile Шлях до файлу логів помилок
+     * @param string|null $errorLogFile Path to the error log file
      */
     public static function initialize(?string $errorLogFile = null): void
     {
-        // Якщо errorLogFile не вказано, генеруємо шлях за замовчуванням
+        // If errorLogFile is not specified, generate the default path
         if ($errorLogFile === null) {
             $environment = getenv('ENVIRONMENT') ?: 'local';
             $errorLogFile = __DIR__ . sprintf(self::DEFAULT_ERROR_LOG_PATH, $environment);
         }
         
-        // Переконуємося, що директорія для логів існує
+        // Make sure the log directory exists
         $logDir = dirname($errorLogFile);
         if (!is_dir($logDir)) {
             mkdir($logDir, 0755, true);
@@ -42,21 +42,21 @@ class ErrorHandler
         self::$logger = Logger::getInstance(true, $errorLogFile);
         self::$initialized = true;
 
-        // Встановлюємо обробник помилок
+        // Set error handler
         set_error_handler([self::class, 'handleError']);
         
-        // Встановлюємо обробник виключень
+        // Set exception handler
         set_exception_handler([self::class, 'handleException']);
         
-        // Встановлюємо обробник для фатальних помилок
+        // Set handler for fatal errors
         register_shutdown_function([self::class, 'handleFatalError']);
         
-        // Включаємо відображення помилок
+        // Enable error display
         ini_set('display_errors', '1');
         ini_set('display_startup_errors', '1');
         error_reporting(E_ALL);
         
-        // Зафіксуємо початок роботи обробника помилок
+        // Log the start of the error handler
         if (self::$logger) {
             self::$logger->log("ErrorHandler initialized. Errors will be logged to: {$errorLogFile}");
         }
@@ -95,27 +95,27 @@ class ErrorHandler
             $errline
         );
 
-        // Логуємо помилку
+        // Log the error
         if (self::$logger) {
             self::$logger->error($message);
         } else {
-            // Якщо логгер не ініціалізовано, використовуємо error_log для запису на диск
+            // If logger is not initialized, use error_log to write to disk
             $environment = getenv('ENVIRONMENT') ?: 'local';
             $backupErrorLog = __DIR__ . sprintf(self::DEFAULT_ERROR_LOG_PATH, $environment);
             
-            // Переконуємося, що директорія для логів існує
+            // Make sure the log directory exists
             $logDir = dirname($backupErrorLog);
             if (!is_dir($logDir)) {
                 mkdir($logDir, 0755, true);
             }
             
-            // Записуємо помилку в файл
+            // Write error to file
             $timestamp = date('Y-m-d H:i:s');
             $formattedMessage = "[{$timestamp}] {$message}";
             error_log($formattedMessage, 3, $backupErrorLog);
         }
 
-        // Виводимо в консоль, якщо це CLI
+        // Output to console if it's CLI
         if (php_sapi_name() === 'cli') {
             fwrite(STDERR, $message . "\n");
         }
@@ -134,27 +134,27 @@ class ErrorHandler
             $exception->getTraceAsString()
         );
 
-        // Логуємо виключення
+        // Log exception
         if (self::$logger) {
             self::$logger->critical($message);
         } else {
-            // Якщо логгер не ініціалізовано, використовуємо error_log для запису на диск
+            // If logger is not initialized, use error_log to write to disk
             $environment = getenv('ENVIRONMENT') ?: 'local';
             $backupErrorLog = __DIR__ . sprintf(self::DEFAULT_ERROR_LOG_PATH, $environment);
             
-            // Переконуємося, що директорія для логів існує
+            // Make sure the log directory exists
             $logDir = dirname($backupErrorLog);
             if (!is_dir($logDir)) {
                 mkdir($logDir, 0755, true);
             }
             
-            // Записуємо помилку в файл
+            // Write error to file
             $timestamp = date('Y-m-d H:i:s');
             $formattedMessage = "[{$timestamp}] [CRITICAL] {$message}";
             error_log($formattedMessage, 3, $backupErrorLog);
         }
 
-        // Виводимо в консоль, якщо це CLI
+        // Output to console if it's CLI
         if (php_sapi_name() === 'cli') {
             fwrite(STDERR, $message . "\n");
             fwrite(STDERR, "--------------------------------\n");
@@ -174,27 +174,27 @@ class ErrorHandler
                 $error['line']
             );
 
-            // Логуємо фатальну помилку
+            // Log fatal error
             if (self::$logger) {
                 self::$logger->critical($message);
             } else {
-                // Якщо логгер не ініціалізовано, використовуємо error_log для запису на диск
+                // If logger is not initialized, use error_log to write to disk
                 $environment = getenv('ENVIRONMENT') ?: 'local';
                 $backupErrorLog = __DIR__ . sprintf(self::DEFAULT_ERROR_LOG_PATH, $environment);
                 
-                // Переконуємося, що директорія для логів існує
+                // Make sure the log directory exists
                 $logDir = dirname($backupErrorLog);
                 if (!is_dir($logDir)) {
                     mkdir($logDir, 0755, true);
                 }
                 
-                // Записуємо помилку в файл
+                // Write error to file
                 $timestamp = date('Y-m-d H:i:s');
                 $formattedMessage = "[{$timestamp}] [CRITICAL] {$message}";
                 error_log($formattedMessage, 3, $backupErrorLog);
             }
 
-            // Виводимо в консоль, якщо це CLI
+            // Output to console if it's CLI
             if (php_sapi_name() === 'cli') {
                 fwrite(STDERR, $message . "\n");
             }

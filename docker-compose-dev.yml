@@ -14,12 +14,12 @@ services:
             - ENVIRONMENT=dev
             - DEAD_WATCHER_URLS=http://164.68.117.90:5503/dead-watcher/heartbeat # if you have 2 or more instances of dead-watcher, you can add this via comma separated values
         ports:
-            - '5501:8080' # Порт 5501 для Dev-середовища
+            - '5501:8080' # Port 5501 for Dev environment
         networks:
             - app-dev-net
         restart: unless-stopped
         container_name: trading-bot-backend-dev
-        command: both # Запуск і сервера, і менеджера ботів
+        command: both # Start both server and bot manager
 
     frontend-dev:
         build:
@@ -33,7 +33,7 @@ services:
             - SWAGGER_URL=/swagger-ui
             - ENVIRONMENT=dev
         ports:
-            - '5502:80' # Порт 5502 для Dev-середовища
+            - '5502:80' # Port 5502 for Dev environment
         depends_on:
             - backend-dev
         networks:

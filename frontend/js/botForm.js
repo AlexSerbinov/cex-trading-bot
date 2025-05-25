@@ -113,7 +113,7 @@ const BotForm = {
                 exchange: this.form.exchange.value,
                 settings: {
                     min_orders: parseInt(this.form.min_orders.value),
-                    // Для max_orders використовуємо те ж саме значення, оскільки в UI тепер є тільки одне поле "Orders"
+                    // We use the same value for max_orders as there is only one "Orders" field in the UI now
                     trade_amount_min: parseFloat(this.form.trade_amount_min.value),
                     trade_amount_max: parseFloat(this.form.trade_amount_max.value),
                     frequency_from: parseInt(this.form.frequency_from.value),

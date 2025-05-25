@@ -18,218 +18,218 @@ class BotController
     }
     
     /**
-     * Вивід довідки
+     * Show help
      */
     public function showHelp(): void
     {
-        echo "Використання:\n";
-        echo "  php BotController.php <команда> [аргументи]\n\n";
-        echo "Доступні команди:\n";
-        echo "  start <пара>       - Запустити бота для вказаної пари\n";
-        echo "  stop <пара>        - Зупинити бота для вказаної пари\n";
-        echo "  restart <пара>     - Перезапустити бота для вказаної пари\n";
-        echo "  start-all          - Запустити всіх ботів для активних пар\n";
-        echo "  stop-all           - Зупинити всіх ботів\n";
-        echo "  status [пара]      - Перевірити статус бота для пари або всіх ботів\n";
-        echo "  list               - Вивести список активних пар в конфігурації\n";
-        echo "  check-config       - Перевірити конфігурацію\n";
-        echo "  update-processes   - Оновити всі процеси ботів згідно поточної конфігурації\n";
-        echo "  start-manager      - Запустити менеджер процесів ботів\n";
-        echo "  help               - Показати цю довідку\n";
+        echo "Usage:\n";
+        echo "  php BotController.php <command> [arguments]\n\n";
+        echo "Available commands:\n";
+        echo "  start <pair>       - Start the bot for the specified pair\n";
+        echo "  stop <pair>        - Stop the bot for the specified pair\n";
+        echo "  restart <pair>     - Restart the bot for the specified pair\n";
+        echo "  start-all          - Start all bots for active pairs\n";
+        echo "  stop-all           - Stop all bots\n";
+        echo "  status [pair]      - Check the status of the bot for a pair or all bots\n";
+        echo "  list               - List active pairs in the configuration\n";
+        echo "  check-config       - Check configuration\n";
+        echo "  update-processes   - Update all bot processes according to current configuration\n";
+        echo "  start-manager      - Start the bot process manager\n";
+        echo "  help               - Show this help message\n";
     }
     
     /**
-     * Запуск бота для пари
+     * Start the bot for a pair
      */
     public function startBot(string $pair): void
     {
-        $this->logger->log("Запуск бота для пари {$pair}");
+        $this->logger->log("Starting bot for pair {$pair}");
         
         if (empty($pair)) {
-            echo "Помилка: Пара не вказана\n";
+            echo "Error: Pair not specified\n";
             exit(1);
         }
         
-        // Перевірка, чи пара існує та активна
+        // Check if the pair exists and is active
         Config::reloadConfig();
         $enabledPairs = Config::getEnabledPairs();
         
         if (!in_array($pair, $enabledPairs)) {
-            echo "Помилка: Пара {$pair} не активна або не існує в конфігурації\n";
+            echo "Error: Pair {$pair} is not active or does not exist in the configuration\n";
             exit(1);
         }
         
         if ($this->botProcess->isProcessRunning($pair)) {
-            echo "Бот для пари {$pair} вже запущений\n";
+            echo "Bot for pair {$pair} is already running\n";
         } else {
             if ($this->botProcess->startProcess($pair)) {
-                echo "Бот для пари {$pair} успішно запущений\n";
+                echo "Bot for pair {$pair} successfully started\n";
             } else {
-                echo "Помилка: Не вдалося запустити бот для пари {$pair}\n";
+                echo "Error: Failed to start bot for pair {$pair}\n";
                 exit(1);
             }
         }
     }
     
     /**
-     * Зупинка бота для пари
+     * Stop the bot for a pair
      */
     public function stopBot(string $pair): void
     {
-        $this->logger->log("Зупинка бота для пари {$pair}");
+        $this->logger->log("Stopping bot for pair {$pair}");
         
         if (empty($pair)) {
-            echo "Помилка: Пара не вказана\n";
+            echo "Error: Pair not specified\n";
             exit(1);
         }
         
         if (!$this->botProcess->isProcessRunning($pair)) {
-            echo "Бот для пари {$pair} не запущений\n";
+            echo "Bot for pair {$pair} is not running\n";
         } else {
             if ($this->botProcess->stopProcess($pair)) {
-                echo "Бот для пари {$pair} успішно зупинений\n";
+                echo "Bot for pair {$pair} successfully stopped\n";
             } else {
-                echo "Помилка: Не вдалося зупинити бот для пари {$pair}\n";
+                echo "Error: Failed to stop bot for pair {$pair}\n";
                 exit(1);
             }
         }
     }
     
     /**
-     * Перезапуск бота для пари
+     * Restart the bot for a pair
      */
     public function restartBot(string $pair): void
     {
-        $this->logger->log("Перезапуск бота для пари {$pair}");
+        $this->logger->log("Restarting bot for pair {$pair}");
         
         if (empty($pair)) {
-            echo "Помилка: Пара не вказана\n";
+            echo "Error: Pair not specified\n";
             exit(1);
         }
         
-        // Перевірка, чи пара існує та активна
+        // Check if the pair exists and is active
         Config::reloadConfig();
         $enabledPairs = Config::getEnabledPairs();
         
         if (!in_array($pair, $enabledPairs)) {
-            echo "Помилка: Пара {$pair} не активна або не існує в конфігурації\n";
+            echo "Error: Pair {$pair} is not active or does not exist in the configuration\n";
             exit(1);
         }
         
-        // Зупиняємо бота, якщо запущений
+        // Stop the bot if running
         if ($this->botProcess->isProcessRunning($pair)) {
-            echo "Зупиняємо бот для пари {$pair}...\n";
+            echo "Stopping bot for pair {$pair}...\n";
             if (!$this->botProcess->stopProcess($pair)) {
-                echo "Помилка: Не вдалося зупинити бот для пари {$pair}\n";
+                echo "Error: Failed to stop bot for pair {$pair}\n";
                 exit(1);
             }
-            // Затримка перед запуском
+            // Delay before starting
             sleep(2);
         }
         
-        // Запускаємо бота
-        echo "Запускаємо бот для пари {$pair}...\n";
+        // Start the bot
+        echo "Starting bot for pair {$pair}...\n";
         if ($this->botProcess->startProcess($pair)) {
-            echo "Бот для пари {$pair} успішно перезапущений\n";
+            echo "Bot for pair {$pair} successfully restarted\n";
         } else {
-            echo "Помилка: Не вдалося запустити бот для пари {$pair}\n";
+            echo "Error: Failed to start bot for pair {$pair}\n";
             exit(1);
         }
     }
     
     /**
-     * Запуск всіх ботів
+     * Start all bots
      */
     public function startAllBots(): void
     {
-        $this->logger->log("Запуск всіх ботів для активних пар");
+        $this->logger->log("Starting all bots for active pairs");
         
-        // Спочатку оновлюємо конфігурацію
+        // First, update the configuration
         Config::reloadConfig();
         
-        // Отримуємо активні пари
+        // Get active pairs
         $enabledPairs = Config::getEnabledPairs();
         
         if (empty($enabledPairs)) {
-            echo "Немає активних пар в конфігурації\n";
+            echo "No active pairs in configuration\n";
             exit(0);
         }
         
-        echo "Запуск ботів для наступних пар: " . implode(", ", $enabledPairs) . "\n";
+        echo "Starting bots for the following pairs: " . implode(", ", $enabledPairs) . "\n";
         
-        // Запускаємо боти для кожної активної пари
+        // Start bots for each active pair
         $successCount = 0;
         $failCount = 0;
         
         foreach ($enabledPairs as $pair) {
-            echo "Запуск бота для пари {$pair}...\n";
+            echo "Starting bot for pair {$pair}...\n";
             
             if ($this->botProcess->isProcessRunning($pair)) {
-                echo "Бот для пари {$pair} вже запущений\n";
+                echo "Bot for pair {$pair} is already running\n";
                 $successCount++;
             } else {
                 if ($this->botProcess->startProcess($pair)) {
-                    echo "Бот для пари {$pair} успішно запущений\n";
+                    echo "Bot for pair {$pair} successfully started\n";
                     $successCount++;
-                    // Невелика затримка між запусками
-                    usleep(500000); // 0.5 секунди
+                    // Small delay between starts
+                    usleep(500000); // 0.5 seconds
                 } else {
-                    echo "Помилка: Не вдалося запустити бот для пари {$pair}\n";
+                    echo "Error: Failed to start bot for pair {$pair}\n";
                     $failCount++;
                 }
             }
         }
         
-        echo "Запуск ботів завершено. Успішно: {$successCount}, з помилками: {$failCount}\n";
+        echo "Bots startup completed. Successful: {$successCount}, with errors: {$failCount}\n";
     }
     
     /**
-     * Зупинка всіх ботів
+     * Stop all bots
      */
     public function stopAllBots(): void
     {
-        $this->logger->log("Зупинка всіх ботів");
+        $this->logger->log("Stopping all bots");
         $this->botProcess->stopAllProcesses();
-        echo "Всі боти зупинені\n";
+        echo "All bots stopped\n";
     }
     
     /**
-     * Перевірка статусу ботів
+     * Check bot status
      */
     public function checkStatus(?string $pair = null): void
     {
-        $this->logger->log("Перевірка статусу ботів");
+        $this->logger->log("Checking bot status");
         
-        // Якщо вказана конкретна пара
+        // If a specific pair is specified
         if (!empty($pair)) {
             if ($this->botProcess->isProcessRunning($pair)) {
-                echo "Бот для пари {$pair} запущений\n";
+                echo "Bot for pair {$pair} is running\n";
             } else {
-                echo "Бот для пари {$pair} не запущений\n";
+                echo "Bot for pair {$pair} is not running\n";
             }
             return;
         }
         
-        // Перевіряємо всі активні пари
+        // Check all active pairs
         Config::reloadConfig();
         $enabledPairs = Config::getEnabledPairs();
         
         if (empty($enabledPairs)) {
-            echo "Немає активних пар в конфігурації\n";
+            echo "No active pairs in configuration\n";
             return;
         }
         
-        echo "Статус ботів для активних пар:\n";
+        echo "Bots status for active pairs:\n";
         echo "--------------------------------\n";
         
         $runningCount = 0;
         $stoppedCount = 0;
         
         foreach ($enabledPairs as $pair) {
-            $status = $this->botProcess->isProcessRunning($pair) ? "запущений" : "зупинений";
+            $status = $this->botProcess->isProcessRunning($pair) ? "running" : "stopped";
             echo "{$pair}: {$status}\n";
             
-            if ($status === "запущений") {
+            if ($status === "running") {
                 $runningCount++;
             } else {
                 $stoppedCount++;
@@ -237,11 +237,11 @@ class BotController
         }
         
         echo "--------------------------------\n";
-        echo "Всього: " . count($enabledPairs) . ", запущено: {$runningCount}, зупинено: {$stoppedCount}\n";
+        echo "Total: " . count($enabledPairs) . ", running: {$runningCount}, stopped: {$stoppedCount}\n";
     }
     
     /**
-     * Вивід списку активних пар
+     * List active pairs
      */
     public function listActivePairs(): void
     {
@@ -249,11 +249,11 @@ class BotController
         $enabledPairs = Config::getEnabledPairs();
         
         if (empty($enabledPairs)) {
-            echo "Немає активних пар в конфігурації\n";
+            echo "No active pairs in configuration\n";
             return;
         }
         
-        echo "Активні пари в конфігурації:\n";
+        echo "Active pairs in configuration:\n";
         echo "----------------------------\n";
         
         foreach ($enabledPairs as $pair) {
@@ -265,105 +265,105 @@ class BotController
                 
                 echo "{$pair}: frequency_from={$frequency_from}, frequency_to={$frequency_to}\n";
             } else {
-                echo "{$pair}: конфігурація не знайдена\n";
+                echo "{$pair}: configuration not found\n";
             }
         }
     }
     
     /**
-     * Перевірка конфігурації
+     * Check configuration
      */
     public function checkConfig(): void
     {
-        $this->logger->log("Перевірка конфігурації");
+        $this->logger->log("Checking configuration");
         
         try {
             Config::reloadConfig();
             $configFile = __DIR__ . '/../../config/bots_config.json';
             
             if (!file_exists($configFile)) {
-                echo "Помилка: Файл конфігурації не знайдений: {$configFile}\n";
+                echo "Error: Configuration file not found: {$configFile}\n";
                 exit(1);
             }
             
             $configString = file_get_contents($configFile);
             
             if (empty($configString)) {
-                echo "Помилка: Файл конфігурації порожній\n";
+                echo "Error: Configuration file is empty\n";
                 exit(1);
             }
             
             $config = json_decode($configString, true);
             
             if (json_last_error() !== JSON_ERROR_NONE) {
-                echo "Помилка: Невірний формат JSON в файлі конфігурації: " . json_last_error_msg() . "\n";
+                echo "Error: Invalid JSON format in configuration file: " . json_last_error_msg() . "\n";
                 exit(1);
             }
             
             $enabledPairs = Config::getEnabledPairs();
             
-            echo "Конфігурація перевірена успішно\n";
-            echo "Файл конфігурації: {$configFile}\n";
-            echo "Останнє оновлення: " . date('Y-m-d H:i:s', filemtime($configFile)) . "\n";
-            echo "Активні пари: " . implode(", ", $enabledPairs) . "\n";
+            echo "Configuration checked successfully\n";
+            echo "Configuration file: {$configFile}\n";
+            echo "Last update: " . date('Y-m-d H:i:s', filemtime($configFile)) . "\n";
+            echo "Active pairs: " . implode(", ", $enabledPairs) . "\n";
             
         } catch (Exception $e) {
-            echo "Помилка при перевірці конфігурації: " . $e->getMessage() . "\n";
+            echo "Error: Failed to check configuration: " . $e->getMessage() . "\n";
             exit(1);
         }
     }
     
     /**
-     * Оновити процеси ботів
+     * Update bot processes
      */
     public function updateProcesses(): void
     {
-        $this->logger->log("Оновлення процесів ботів");
+        $this->logger->log("Updating bot processes");
         
         try {
             $this->botProcess->updateProcesses();
-            echo "Процеси ботів успішно оновлені\n";
+            echo "Bot processes updated successfully\n";
             
         } catch (Exception $e) {
-            echo "Помилка при оновленні процесів ботів: " . $e->getMessage() . "\n";
+            echo "Error: Failed to update bot processes: " . $e->getMessage() . "\n";
             exit(1);
         }
     }
     
     /**
-     * Запуск менеджера процесів
+     * Start the bot process manager
      */
     public function startManager(): void
     {
-        $this->logger->log("Запуск менеджера процесів ботів");
+        $this->logger->log("Starting bot process manager");
         
-        // Перевіряємо, чи менеджер вже запущений
+        // Check if the manager is already running
         $scriptPath = __DIR__ . '/TradingBotProcessManager.php';
         
         if (!file_exists($scriptPath)) {
-            echo "Помилка: Скрипт менеджера процесів не знайдений: {$scriptPath}\n";
+            echo "Error: Bot process manager script not found: {$scriptPath}\n";
             exit(1);
         }
         
-        // Команда для запуску менеджера процесів у фоновому режимі
+        // Command to start the bot process manager in the background
         $command = sprintf(
             'php %s > /dev/null 2>&1 & echo $!',
             escapeshellarg($scriptPath)
         );
         
-        echo "Запуск менеджера процесів...\n";
+        echo "Starting bot process manager...\n";
         $pid = exec($command);
         
         if (empty($pid)) {
-            echo "Помилка: Не вдалося запустити менеджер процесів\n";
+            echo "Error: Failed to start bot process manager\n";
             exit(1);
         }
         
-        echo "Менеджер процесів успішно запущений з PID: {$pid}\n";
+        echo "Bot process manager started successfully with PID: {$pid}\n";
     }
 }
 
-// Виконання команди
+// Execute command
 if ($argc < 2) {
     $controller = new BotController();
     $controller->showHelp();
@@ -376,7 +376,7 @@ $command = $argv[1];
 switch ($command) {
     case 'start':
         if ($argc < 3) {
-            echo "Помилка: Не вказана пара\n";
+            echo "Error: Pair not specified\n";
             exit(1);
         }
         $controller->startBot($argv[2]);
@@ -384,7 +384,7 @@ switch ($command) {
     
     case 'stop':
         if ($argc < 3) {
-            echo "Помилка: Не вказана пара\n";
+            echo "Error: Pair not specified\n";
             exit(1);
         }
         $controller->stopBot($argv[2]);
@@ -392,7 +392,7 @@ switch ($command) {
     
     case 'restart':
         if ($argc < 3) {
-            echo "Помилка: Не вказана пара\n";
+            echo "Error: Pair not specified\n";
             exit(1);
         }
         $controller->restartBot($argv[2]);
@@ -432,7 +432,7 @@ switch ($command) {
         break;
     
     default:
-        echo "Невідома команда: {$command}\n";
+        echo "Unknown command: {$command}\n";
         $controller->showHelp();
         exit(1);
 } 

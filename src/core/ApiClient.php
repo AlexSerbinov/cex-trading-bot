@@ -28,11 +28,11 @@ class ApiClient
         curl_close($ch);
         
         if ($response === false) {
-            throw new RuntimeException("Помилка CURL: {$error}");
+            throw new RuntimeException("CURL error: {$error}");
         }
         
         if ($httpCode >= 400) {
-            throw new RuntimeException("Помилка HTTP {$httpCode}: {$response}");
+            throw new RuntimeException("HTTP error {$httpCode}: {$response}");
         }
         
         return $response;

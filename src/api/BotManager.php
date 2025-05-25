@@ -190,10 +190,18 @@ class BotManager
             return null;
         }
         
-        // Перевіряємо наявність налаштувань в даних запиту
+        // Check for settings in the request data
+        // If settings is not passed, but there are other settings parameters,
+        // create a settings object from these parameters
+        // Remove the field from the root object to avoid duplication
+        // Update settings
+        // Update other fields (except settings, which have already been processed)
+        // Update update date
+        // Save the updated bot
         if (!isset($data['settings'])) {
-            // Якщо settings не передано, але є інші параметри налаштувань, 
-            // створюємо об'єкт settings з цих параметрів
+            // If settings is not passed, but there are other settings parameters,
+            // create a settings object from these parameters
+            // Remove the field from the root object to avoid duplication
             $settingsFields = [
                 'min_orders', 'trade_amount_min', 'trade_amount_max',
                 'frequency_from', 'frequency_to', 'price_factor', 'market_gap',
@@ -204,7 +212,7 @@ class BotManager
             foreach ($settingsFields as $field) {
                 if (isset($data[$field])) {
                     $settings[$field] = $data[$field];
-                    // Видаляємо поле з кореневого об'єкта, щоб уникнути дублювання
+                    // Remove the field from the root object to avoid duplication
                     unset($data[$field]);
                 }
             }
@@ -223,7 +231,7 @@ class BotManager
             }
         }
         
-        // Оновлюємо налаштування
+        // Update settings
         if (isset($data['settings']) && is_array($data['settings'])) {
             foreach ($data['settings'] as $key => $value) {
                 if ($value !== null) {
@@ -232,17 +240,17 @@ class BotManager
             }
         }
         
-        // Оновлюємо інші поля (крім settings, які вже оброблені)
+        // Update other fields (except settings, which have already been processed)
         foreach ($data as $key => $value) {
             if ($key !== 'settings' && $key !== 'id' && $key !== 'market' && $value !== null) {
                 $bot[$key] = $value;
             }
         }
         
-        // Оновлюємо дату оновлення
+        // Update update date
         $bot['updated_at'] = date('Y-m-d H:i:s');
         
-        // Зберігаємо оновленого бота
+        // Save the updated bot
         $updatedBot = $storage->updateBot($id, $bot);
         
         if (!$updatedBot) {
@@ -250,7 +258,7 @@ class BotManager
             return null;
         }
         
-        // Якщо статус бота змінився, оновлюємо процес
+        // If status of the bot changed, update process
         if (isset($data['isActive'])) {
             if ($data['isActive']) {
                 $this->enableBot($id);
@@ -277,31 +285,31 @@ class BotManager
         
         if (!$bot) {
             $this->logger->warning("Bot with ID {$id} not found for deletion (already deleted or never existed)");
-            return true; // Повертаємо true, тому що для користувача важливо, що бота більше немає в системі
+            return true; // Return true, because for the user it is important that the bot no longer exists in the system
         }
         
-        // Запам'ятаємо інформацію перед видаленням
+        // Remember information before deletion
         $pair = $bot['market'];
         
         // Stop the process for the pair
         $this->botProcess->stopProcess($pair);
         
-        // Видаляємо бота з конфігурації
+        // Remove bot from configuration
         Config::deleteBot($id);
         
-        // Видаляємо бота зі сховища даних
+        // Remove bot from storage
         $result = $storage->deleteBot($id);
         
         if ($result) {
             $this->logger->log("Deleted bot: ID={$id}, Pair={$pair}");
         } else {
-            // Якщо видалення зі сховища не вдалося, але бот вже видалений з конфігурації
-            // ми все одно вважаємо операцію успішною, оскільки бот вже не активний
+            // If deletion from storage failed, but bot was already removed from configuration
+            // we still consider the operation successful, because the bot is no longer active
             $this->logger->warning("Bot ID={$id} was removed from active configuration but storage deletion failed");
             return true;
         }
         
-        return true; // Завжди повертаємо true, навіть якщо видалення зі сховища не вдалося
+        return true; // Always return true, even if deletion from storage failed
     }
 
     /**
@@ -459,13 +467,12 @@ class BotManager
             return null;
         }
         
-        
-        // Додаємо значення за замовчуванням для відсутніх полів
+        // Add default values for missing fields
         $isActive = isset($bot['isActive']) ? $bot['isActive'] : true;
         $createdAt = isset($bot['created_at']) ? $bot['created_at'] : date('Y-m-d H:i:s');
         $updatedAt = isset($bot['updated_at']) ? $bot['updated_at'] : date('Y-m-d H:i:s');
         
-        // Отримуємо налаштування з вкладеного масиву settings або з кореневих полів
+        // Get settings from the nested settings array or from root fields
         $settings = $bot['settings'] ?? [];
         
         return [
@@ -534,10 +541,9 @@ class BotManager
         }
     }
 
-    
     /**
-     * Проксі-метод для сумісності з фронтендом
-     * Просто викликає addBot
+     * Proxy method for frontend compatibility
+     * Simply calls addBot
      */
     public function createBot(array $data): ?array
     {

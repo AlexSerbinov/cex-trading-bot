@@ -23,18 +23,59 @@ class TradingBotManager
      */
     public function __construct()
     {
-        // Враховуємо оточення для визначення шляху до логів
+        // Consider environment to determine log path
+        // Path to regular logs
+        // Path to error logs
+        // Initialize logger for regular messages
+        // Make sure ErrorHandler is initialized
+        // Registering a signal handler for proper termination
+        // Adding SIGHUP handling for better compatibility
+        // TradingBotManager successfully initialized
+        // Method for clearing all orders for active pairs
+        // Starting clearing of orders for all active pairs
+        // Clearing of orders for all active pairs completed
+        // Start processes for all active pairs
+        // All processes for active pairs started
+        // Remembering the last modification time of the configuration
+        // Setting the last update time to the current time,
+        // to avoid double process creation immediately after their creation
+        // Main loop of the manager
+        // Checking if the configuration has changed
+        // Forcefully updating processes every 60 seconds
+        // Using a static variable with the initial value we set earlier
+        // First, clean up invalid PID files
+        // Scheduled process update completed
+        // Short delay before the next check
+        // Running the bot manager if the file is called directly
+        // Use path to regular log file
+        // Check if TradingBotManager is already running
+        // Docker-specific check for running processes
+        // Found existing lock file with PID: {$pid}
+        // Check if the process with this PID is still running
+        // Check method 1: via /proc (main method in Linux)
+        // PID {$pid} exists in /proc
+        // Additional check via cmdline
+        // Command line of the process: " . $cmdline
+        // Process confirmed as TradingBotManager
+        // Check method 2: via posix_kill function (if available)
+        // Signal 0 - check if the process exists without sending a signal
+        // PID {$pid} confirmed via posix_kill
+        // PID {$pid} does not exist via posix_kill check
+        // TradingBotManager already running with PID {$pid}. Exiting.
+        // Process with PID {$pid} not found or it is not TradingBotManager. Removing the old lock file.
+        // Lock file not found. Creating a new one.
+        // ... existing code ...
         $environment = getenv('ENVIRONMENT') ?: 'local';
         
-        // Шлях до звичайних логів
+        // Path to regular logs
         $logFile = __DIR__ . '/../../data/logs/' . $environment . '/bot.log';
-        // Шлях до логів помилок
+        // Path to error logs
         $errorLogFile = __DIR__ . '/../../data/logs/' . $environment . '/bots_error.log';
         
-        // Ініціалізуємо логер для звичайних повідомлень
+        // Initialize logger for regular messages
         $this->logger = Logger::getInstance(true, $logFile);
         
-        // Переконуємося, що ErrorHandler ініціалізовано
+        // Make sure ErrorHandler is initialized
         require_once __DIR__ . '/ErrorHandler.php';
         if (!ErrorHandler::isInitialized()) {
             ErrorHandler::initialize($errorLogFile);
@@ -134,7 +175,7 @@ class TradingBotManager
         $this->botProcess->stopAllProcesses();
         $this->logger->log("All existing processes stopped");
         
-        // Очищення всіх ордерів для активних пар
+        // Clearing all orders for active pairs
         $this->logger->log("Starting clearing of orders for all active pairs");
         $this->clearAllOrdersForActivePairs();
         $this->logger->log("Clearing of orders for all active pairs completed");
@@ -176,7 +217,7 @@ class TradingBotManager
                 $this->logger->log("Scheduled process update (every 60 seconds)");
                 $this->logger->log("Time since last update: " . ($currentTime - $lastUpdateTime) . " seconds");
                 
-                // Спочатку очищаємо недійсні PID-файли
+                // First, clean up invalid PID files
                 $this->botProcess->cleanupInvalidPidFiles();
                 $this->botProcess->updateProcesses();
                 $lastUpdateTime = $currentTime;
@@ -192,7 +233,7 @@ class TradingBotManager
 
 // Running the bot manager if the file is called directly
 if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
-    // Використовуємо шлях до звичайного файлу логів
+    // Use path to regular log file
     $environment = getenv('ENVIRONMENT') ?: 'local';
     $logger = Logger::getInstance(true, __DIR__ . '/../../data/logs/' . $environment . '/bot.log');
     $logger->log("=== STARTING TRADING BOT MANAGER ===");

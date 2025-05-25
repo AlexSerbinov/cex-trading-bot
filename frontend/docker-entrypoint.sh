@@ -1,61 +1,21 @@
 #!/bin/bash
 set -e
 
-# Визначаємо API URL на основі середовища
-if [ "$ENVIRONMENT" = "dev" ]; then
-    # Для Dev середовища використовуємо відносний шлях
-    DEFAULT_API_URL="/api"
-    DEFAULT_SWAGGER_URL="/swagger-ui"
-elif [ "$ENVIRONMENT" = "demo" ]; then
-    # Для Demo середовища використовуємо відносний шлях
-    DEFAULT_API_URL="/api"
-    DEFAULT_SWAGGER_URL="/swagger-ui"
-else
-    # Для локального середовища використовуємо значення за замовчуванням
-    DEFAULT_API_URL="${API_BASE_URL:-http://localhost:8080/api}"
-    DEFAULT_SWAGGER_URL="${SWAGGER_URL:-http://localhost:8080/swagger-ui}"
-fi
-
-# Використовуємо значення з середовища або значення за замовчуванням
-API_URL="${API_BASE_URL:-$DEFAULT_API_URL}"
-SWAGGER_URL="${SWAGGER_URL:-$DEFAULT_SWAGGER_URL}"
-
-# Створення конфігурації для фронтенду
-CONFIG_JS="window.CONFIG = { 
-    apiUrl: '$API_URL',
-    swaggerUrl: '$SWAGGER_URL',
-    environment: '${ENVIRONMENT}'
-};
-
-// Функція для динамічного оновлення URL API з заголовків
-window.addEventListener('DOMContentLoaded', function() {
-    // Перевіряємо, чи є заголовки X-API-URL і X-SWAGGER-URL
-    fetch('/')
-        .then(response => {
-            const apiUrl = response.headers.get('X-API-URL');
-            const swaggerUrl = response.headers.get('X-SWAGGER-URL');
-            
-            if (apiUrl) {
-                window.CONFIG.apiUrl = apiUrl;
-                console.log('API URL оновлено з заголовка:', apiUrl);
-            }
-            
-            if (swaggerUrl) {
-                window.CONFIG.swaggerUrl = swaggerUrl;
-                console.log('Swagger URL оновлено з заголовка:', swaggerUrl);
-            }
-        })
-        .catch(error => {
-            console.error('Помилка при отриманні заголовків:', error);
-        });
-});"
-
-# Запис конфігурації у файл
-echo "${CONFIG_JS}" > /usr/share/nginx/html/js/config.js
-
-echo "Фронтенд налаштовано для середовища: ${ENVIRONMENT}"
+# Determine API URL based on environment
+# For Dev environment use a relative path
+# For Demo environment use a relative path
+# For local environment use default values
+# Use values from environment or default values
+# Creating configuration for frontend
+// Function for dynamic update of API URL from headers
+// Check for X-API-URL and X-SWAGGER-URL headers
+// API URL updated from header:
+// Swagger URL updated from header:
+// Error getting headers:
+# Writing configuration to file
+echo "Frontend configured for environment: ${ENVIRONMENT}"
 echo "API URL: ${API_URL}"
 echo "Swagger URL: ${SWAGGER_URL}"
 
-# Виконання подальших команд
+# Execute further commands
 exec "$@" 

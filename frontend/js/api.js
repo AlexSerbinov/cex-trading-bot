@@ -2,12 +2,12 @@
  * Module for working with the API
  */
 const API = {
-    // Base API URL, отримується з конфігурації або використовує значення за замовчуванням
+    // Base API URL, obtained from configuration or using default value
     get baseUrl() {
         if (window.CONFIG && window.CONFIG.apiUrl) {
             return window.CONFIG.apiUrl;
         }
-        return 'http://localhost:8080/api'; // Значення за замовчуванням для локальної розробки
+        return 'http://localhost:8080/api'; // Default value for local development
     },
 
     /**
@@ -175,7 +175,7 @@ const API = {
     },
 
     /**
-     * Отримання списку доступних пар
+     * Get list of available pairs
      */
     async getAvailablePairs() {
         try {

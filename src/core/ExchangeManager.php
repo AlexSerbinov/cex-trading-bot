@@ -41,7 +41,7 @@ class ExchangeManager
      */
     public function getExchangesList(): array
     {
-        // Повертаємо фіксований список підтримуваних бірж
+        // Returning a fixed list of supported exchanges
         return ['binance', 'kraken', 'kucoin'];
     }
 
@@ -51,14 +51,14 @@ class ExchangeManager
      */
     public function getPairsList(): array
     {
-        // Отримуємо доступні пари з торгового сервера
+        // Get available pairs from the trade server
         $serverPairs = $this->getAvailablePairsOnTradeServer();
         
-        // Формуємо результат у потрібному форматі для API
+        // Format the result in the required format for the API
         $result = [];
         foreach ($serverPairs as $pair) {
-            // Для кожної пари вказуємо, на яких біржах вона доступна
-            // Тут для прикладу припускаємо, що основні пари доступні на обох біржах
+            // For each pair, indicate on which exchanges it is available
+            // Here, for example, we assume that the main pairs are available on both exchanges
             if (in_array($pair, ['BTC_USDT', 'ETH_USDT', 'ETH_BTC'])) {
                 $result[] = [
                     'name' => $pair,
@@ -455,13 +455,13 @@ class ExchangeManager
         ];
         
         try {
-            // Використовуємо метод getTradeServerUrl замість константи
+            // Using getTradeServerUrl method instead of a constant
             $url = Config::getTradeServerUrl();
             // $this->logger->log("[{$pair}] Sending request to: {$url}");
             
             $json = json_encode($body);
             
-            // Додаємо більш короткий таймаут для швидшого виявлення проблем
+            // Adding a shorter timeout for faster problem detection
             $startTime = microtime(true);
             $response = $this->apiClient->post($url, $json);
             $endTime = microtime(true);
@@ -496,12 +496,12 @@ class ExchangeManager
         ];
         
         try {
-            // Використовуємо метод getTradeServerUrl замість константи
+            // Using getTradeServerUrl method instead of a constant
             $url = Config::getTradeServerUrl();
             
             $json = json_encode($body);
             
-            // Додаємо відстеження часу виконання
+            // Adding a shorter timeout for faster problem detection
             $startTime = microtime(true);
             $response = $this->apiClient->post($url, $json);
             $endTime = microtime(true);

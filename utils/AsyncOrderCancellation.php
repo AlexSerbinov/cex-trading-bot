@@ -23,7 +23,7 @@ class AsyncOrderCancellation
     }
 
     /**
-     * Асинхронне скасування ордера
+     * Asynchronously cancel an order
      */
     private function cancelOrder(int $orderId, string $pair): Promise
     {
@@ -39,18 +39,18 @@ class AsyncOrderCancellation
         ->then(
             function (ResponseInterface $response) use ($orderId) {
                 $result = json_decode((string) $response->getBody(), true);
-                echo "✅ Ордер {$orderId} успішно скасовано\n";
+                echo "✅ Order {$orderId} successfully cancelled\n";
                 return $result;
             },
             function (\Exception $e) use ($orderId) {
-                echo "❌ Помилка скасування ордера {$orderId}: " . $e->getMessage() . "\n";
+                echo "❌ Error cancelling order {$orderId}: " . $e->getMessage() . "\n";
                 throw $e;
             }
         );
     }
 
     /**
-     * Отримання списку відкритих ордерів
+     * Getting the list of open orders
      */
     private function getOpenOrders(string $pair): Promise
     {
@@ -69,36 +69,36 @@ class AsyncOrderCancellation
                 if (isset($result['result']['records'])) {
                     return $result['result']['records'];
                 }
-                throw new \Exception('Не вдалося отримати список ордерів');
+                throw new \Exception('Failed to get the list of orders');
             }
         );
     }
 
     /**
-     * Асинхронне скасування всіх ордерів для пари
+     * Asynchronously cancel all orders for a pair
      */
     public function cancelAllOrders(string $pair): void
     {
-        echo "🔄 Отримання списку відкритих ордерів для пари {$pair}...\n";
+        echo "🔄 Fetching open orders list for pair {$pair}...\n";
 
         $this->getOpenOrders($pair)
             ->then(function ($orders) use ($pair) {
-                echo "📋 Знайдено " . count($orders) . " відкритих ордерів\n";
+                echo "📋 Found " . count($orders) . " open orders\n";
                 
-                // Створюємо масив промісів для кожного ордера
+                // Create an array of promises for each order
                 $promises = array_map(
                     fn($order) => $this->cancelOrder($order['id'], $pair),
                     $orders
                 );
                 
-                // Чекаємо завершення всіх скасувань
+                // Wait for all cancellations to complete
                 \React\Promise\all($promises)->then(
                     function () {
-                        echo "✨ Всі ордери успішно скасовано\n";
+                        echo "✨ All orders successfully cancelled\n";
                         Loop::stop();
                     },
                     function (\Exception $e) {
-                        echo "❌ Помилка під час скасування ордерів: " . $e->getMessage() . "\n";
+                        echo "❌ Error during order cancellation: " . $e->getMessage() . "\n";
                         Loop::stop();
                     }
                 );
@@ -108,10 +108,10 @@ class AsyncOrderCancellation
     }
 }
 
-// Використання
+// Usage
 if (count($argv) < 2) {
-    echo "Використання: php AsyncOrderCancellation.php PAIR\n";
-    echo "Приклад: php AsyncOrderCancellation.php LTC_USDT\n";
+    echo "Usage: php AsyncOrderCancellation.php PAIR\n";
+    echo "Example: php AsyncOrderCancellation.php LTC_USDT\n";
     exit(1);
 }
 

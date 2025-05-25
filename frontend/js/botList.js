@@ -23,7 +23,7 @@ const BotList = {
             }
         } catch (error) {
             console.error('Error loading config:', error);
-            // Не показуємо помилку користувачу, просто логуємо
+            // We do not show the error to the user, just log it
         }
     },
     

@@ -149,29 +149,24 @@ class BotStorage
      */
     public function addBot(array $bot): ?array
     {
-        // Перевірка, що $bot не null
+        // Check that $bot is not null
         if ($bot === null) {
             $this->logger->error("Cannot add null bot");
             return null;
         }
         
-        // Validate required fields
-        if (!isset($bot['market']) || !isset($bot['exchange'])) {
-            return null;
-        }
-        
-        // Перевірка на порожню пару
+        // Check for empty pair
         if (empty($bot['market'])) {
             $this->logger->error("Cannot add bot with empty market");
             return null;
         }
         
-        // Додаємо ID, якщо його немає
+        // Add ID if it doesn't exist
         if (!isset($bot['id'])) {
             $bot['id'] = $this->getNextId();
         }
         
-        // Додаємо дати, якщо їх немає
+        // Add dates if they don't exist
         if (!isset($bot['created_at'])) {
             $bot['created_at'] = date('Y-m-d H:i:s');
         }
@@ -179,12 +174,12 @@ class BotStorage
             $bot['updated_at'] = date('Y-m-d H:i:s');
         }
         
-        // Додаємо статус, якщо його немає
+        // Add status if it doesn't exist
         if (!isset($bot['isActive'])) {
             $bot['isActive'] = true;
         }
         
-        // Перевіряємо наявність налаштувань
+        // Check for settings
         if (!isset($bot['settings']) && (isset($bot['trade_amount_min']) || isset($bot['trade_amount_max']) || 
             isset($bot['frequency_from']) || isset($bot['frequency_to']) || 
             isset($bot['price_factor']) || isset($bot['market_gap']))) {
@@ -250,45 +245,45 @@ class BotStorage
             return null;
         }
         
-        // Зберігаємо оригінальний market
+        // Store the original market
         $market = $botData['market'] ?? $foundPair;
         
-        // Перевіряємо, чи змінився market
+        // Check if the market has changed
         if ($market !== $foundPair) {
-            // Якщо market змінився, перевіряємо, чи не існує вже бот з таким market
+            // If the market has changed, check if a bot with this market already exists
             if (isset($this->bots[$market])) {
                 $this->logger->error("Bot with market {$market} already exists");
                 return null;
             }
             
-            // Копіюємо бота зі старим market
+            // Copy the bot with the old market
             $bot = $this->bots[$foundPair];
             
-            // Оновлюємо дані бота
+            // Update bot data
             foreach ($botData as $key => $value) {
-                if ($key !== 'id') { // ID не змінюємо
+                if ($key !== 'id') { // Do not change ID
                     $bot[$key] = $value;
                 }
             }
             
-            // Видаляємо старого бота
+            // Delete the old bot
             unset($this->bots[$foundPair]);
             
-            // Додаємо нового бота з новим market
+            // Add the new bot with the new market
             $this->bots[$market] = $bot;
         } else {
-            // Якщо market не змінився, просто оновлюємо дані бота
+            // If the market has not changed, simply update the bot data
             foreach ($botData as $key => $value) {
-                if ($key !== 'id') { // ID не змінюємо
+                if ($key !== 'id') { // Do not change ID
                     $this->bots[$foundPair][$key] = $value;
                 }
             }
         }
         
-        // Зберігаємо дані
+        // Save data
         $this->saveBots();
         
-        // Повертаємо оновленого бота
+        // Return the updated bot
         $updatedBot = $this->bots[$market];
         $updatedBot['market'] = $market;
         
@@ -342,7 +337,7 @@ class BotStorage
         // Delete the bot
         unset($this->bots[$foundPair]);
         
-        // Автоматично перенумеровуємо боти після видалення
+        // Automatically reindex bots after deletion
         $this->reindexBots();
         
         // Save the changes
@@ -387,19 +382,19 @@ class BotStorage
             return 1;
         }
         
-        // Переконуємося, що ключі масиву - це числа
+        // Make sure the array keys are numbers
         $ids = array_map(function($key) {
             return is_numeric($key) ? (int)$key : 0;
         }, array_keys($this->bots));
         
-        // Також перевіряємо ID всередині об'єктів ботів
+        // Also check the ID inside bot objects
         foreach ($this->bots as $bot) {
             if (isset($bot['id']) && is_numeric($bot['id'])) {
                 $ids[] = (int)$bot['id'];
             }
         }
         
-        // Якщо масив порожній після фільтрації, повертаємо 1
+        // If the array is empty after filtering, return 1
         if (empty($ids)) {
             return 1;
         }
@@ -409,7 +404,7 @@ class BotStorage
 
     private function transformBotConfig($config, $pair, $id)
     {
-        // Перевірка на null або відсутність необхідних полів
+        // Check for null or missing required fields
         if ($config === null || !isset($pair) || !isset($id)) {
             $this->logger->error("Invalid parameters for transformBotConfig");
             return null;
@@ -421,7 +416,7 @@ class BotStorage
             'id' => $id
         ]));
         
-        // Перевірка наявності налаштувань
+        // Check for settings availability
         $settings = $config['settings'] ?? [];
         $this->logger->log("Settings from config: " . json_encode($settings));
         
@@ -437,7 +432,7 @@ class BotStorage
             'trade_amount_max' => $settings['trade_amount_max'],
             'frequency_from' => $settings['frequency_from'],
             'frequency_to' => $settings['frequency_to'],
-            'price_deviation_percent' => $settings['price_factor'],
+            'price_factor' => $settings['price_factor'],
             'market_gap' => $settings['market_gap'],
             'min_orders' => $settings['min_orders'],
             'market_maker_order_probability' => $settings['market_maker_order_probability']
@@ -451,19 +446,19 @@ class BotStorage
     {
         $this->logger->log("Transforming bot to config format: " . json_encode($bot));
         
-        // Перевірка наявності необхідних полів
+        // Check for missing required fields
         if (!isset($bot['market']) || !isset($bot['exchange'])) {
             $this->logger->error("Missing required fields in bot data");
             return null;
         }
         
-        // Отримання ID (або генерація нового, якщо відсутній)
+        // Get ID (or generate a new one if missing)
         $id = $bot['id'] ?? $this->getNextId();
         
-        // Базові налаштування з параметрів або значень за замовчуванням
+        // Basic settings from parameters or default values
         $settings = $bot['settings'] ?? [];
         
-        // Створюємо конфігурацію тільки з налаштуваннями в settings
+        // Create configuration with only settings in settings
         return [
             'id' => $id,
             'market' => $bot['market'],
@@ -486,12 +481,12 @@ class BotStorage
 
     private function transformToApiFormat($bot)
     {
-        // Перевірка на null
+        // Check for null
         if ($bot === null) {
             return null;
         }
         
-        // Перевірка наявності необхідних полів
+        // Check for missing required fields
         if (!isset($bot['id']) || !isset($bot['market'])) {
             $this->logger->error("Missing required fields in bot data for API format");
             return null;
@@ -507,28 +502,28 @@ class BotStorage
                 'trade_amount_max' => $bot['trade_amount_max'],
                 'frequency_from' => $bot['frequency_from'],
                 'frequency_to' => $bot['frequency_to'],
-                'price_factor' => $bot['price_deviation_percent'],
+                'price_factor' => $bot['price_factor'],
                 'market_gap' => $bot['market_gap'],
                 'market_maker_order_probability' => $bot['market_maker_order_probability']
-            ]
+            ],
+            'isActive' => $bot['isActive'] ?? false,
+            'created_at' => $bot['created_at'] ?? date('Y-m-d H:i:s'),
+            'updated_at' => $bot['updated_at'] ?? date('Y-m-d H:i:s')
         ];
     }
 
     /**
-     * Getting a bot by market pair
+     * Getting a bot by market
      */
     public function getBotByMarket(string $market): ?array
     {
         // Reload data from file to get the latest
         $this->loadBots();
         
-        foreach ($this->bots as $pair => $bot) {
-            if ($pair === $market) {
-                $bot['market'] = $pair;
-                return $bot;
-            }
+        if (!isset($this->bots[$market])) {
+            return null;
         }
         
-        return null;
+        return $this->transformToApiFormat($this->bots[$market]);
     }
 } 

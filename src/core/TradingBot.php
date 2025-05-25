@@ -32,7 +32,7 @@ class TradingBot
     {
         $this->pair = $pair;
         
-        // Отримуємо конфігурацію для пари
+        // Get configuration for the pair
         $this->pairConfig = $dynamicConfig ?? Config::getPairConfig($pair);
         
         $this->apiClient = new ApiClient();
@@ -41,7 +41,7 @@ class TradingBot
         
         $this->logger->log("Created a bot for the pair {$pair}");
         
-        // Логування завантаженої конфігурації для діагностики
+        // Logging the loaded configuration for diagnostics
         $settings = $this->pairConfig['settings'];
         $this->logger->log(sprintf(
             'Settings for %s: min_orders=%s, max_orders=%s, trade_amount_min=%s, trade_amount_max=%s, frequency_from=%s, frequency_to=%s, probability=%s, market_gap=%s, price_factor=%s',
@@ -57,7 +57,7 @@ class TradingBot
             $settings['price_factor']
         ));
 
-        // Ініціалізуємо клас MarketMakerActions
+        // Initialize the MarketMakerActions class
         $this->marketMakerActions = new MarketMakerActions(
             $this,
             $this->logger,
@@ -74,36 +74,33 @@ class TradingBot
      */
     public function updateConfig(array $newConfig): void
     {
-        $this->logger->log("!!!!! TradingBot: Оновлення конфігурації для пари {$this->pair}");
+        $this->logger->log("!!!!! TradingBot: Configuration update for pair {$this->pair}");
         
-        // Зберігаємо старі значення для логування
-        $oldFrequencyFrom = $this->pairConfig['settings']['frequency_from'] ?? 'Не встановлено';
-        $oldFrequencyTo = $this->pairConfig['settings']['frequency_to'] ?? 'Не встановлено';
-        $oldOrderCount = $this->pairConfig['settings']['order_count'] ?? 'Не встановлено';
-        $oldVolume = $this->pairConfig['settings']['volume'] ?? 'Не встановлено';
+        // Save old values for logging
+        $oldFrequencyFrom = $this->pairConfig['settings']['frequency_from'] ?? 'Not set';
+        $oldFrequencyTo = $this->pairConfig['settings']['frequency_to'] ?? 'Not set';
+        $oldOrderCount = $this->pairConfig['settings']['order_count'] ?? 'Not set';
+        $oldVolume = $this->pairConfig['settings']['volume'] ?? 'Not set';
         
-        // Оновлюємо конфігурацію
-        $this->pairConfig = $newConfig;
+        // Log changes in main parameters
+        $newFrequencyFrom = $this->pairConfig['settings']['frequency_from'] ?? 'Not set';
+        $newFrequencyTo = $this->pairConfig['settings']['frequency_to'] ?? 'Not set';
+        $newOrderCount = $this->pairConfig['settings']['order_count'] ?? 'Not set';
+        $newVolume = $this->pairConfig['settings']['volume'] ?? 'Not set';
         
-        // Логуємо зміни в основних параметрах
-        $newFrequencyFrom = $this->pairConfig['settings']['frequency_from'] ?? 'Не встановлено';
-        $newFrequencyTo = $this->pairConfig['settings']['frequency_to'] ?? 'Не встановлено';
-        $newOrderCount = $this->pairConfig['settings']['order_count'] ?? 'Не встановлено';
-        $newVolume = $this->pairConfig['settings']['volume'] ?? 'Не встановлено';
+        $this->logger->log("!!!!! TradingBot: Changes in configuration for pair {$this->pair}:");
+        $this->logger->log("!!!!! TradingBot: - Frequency from: {$oldFrequencyFrom} -> {$newFrequencyFrom}");
+        $this->logger->log("!!!!! TradingBot: - Frequency to: {$oldFrequencyTo} -> {$newFrequencyTo}");
+        $this->logger->log("!!!!! TradingBot: - Number of orders: {$oldOrderCount} -> {$newOrderCount}");
+        $this->logger->log("!!!!! TradingBot: - Volume: {$oldVolume} -> {$newVolume}");
         
-        $this->logger->log("!!!!! TradingBot: Зміни в конфігурації для пари {$this->pair}:");
-        $this->logger->log("!!!!! TradingBot: - Частота від: {$oldFrequencyFrom} -> {$newFrequencyFrom}");
-        $this->logger->log("!!!!! TradingBot: - Частота до: {$oldFrequencyTo} -> {$newFrequencyTo}");
-        $this->logger->log("!!!!! TradingBot: - Кількість ордерів: {$oldOrderCount} -> {$newOrderCount}");
-        $this->logger->log("!!!!! TradingBot: - Обсяг: {$oldVolume} -> {$newVolume}");
-        
-        // Оновлення стратегії, якщо вона змінилася
+        // Update strategy if it has changed
         if (isset($newConfig['settings']['strategy']) && isset($this->pairConfig['settings']['strategy'])) {
-            $oldStrategy = $this->marketMakerActions ? get_class($this->marketMakerActions) : 'Не встановлено';
-            $this->logger->log("!!!!! TradingBot: - Стратегія: {$oldStrategy} -> буде оновлено під час ініціалізації");
+            $oldStrategy = $this->marketMakerActions ? get_class($this->marketMakerActions) : 'Not set';
+            $this->logger->log("!!!!! TradingBot: - Strategy: {$oldStrategy} -> will be updated during initialization");
         }
         
-        $this->logger->log("!!!!! TradingBot: Конфігурація для пари {$this->pair} успішно оновлена");
+        $this->logger->log("!!!!! TradingBot: Configuration for pair {$this->pair} successfully updated");
     }
 
     /**
@@ -111,32 +108,32 @@ class TradingBot
      */
     public function initialize(): void
     {
-        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Початок ініціалізації бота...");
+        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Starting bot initialization...");
         
         if ($this->isInitialized) {
-            $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Бот вже ініціалізований, пропускаємо ініціалізацію");
+            $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Bot is already initialized, skipping initialization");
             return;
         }
         
-        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Бот не ініціалізований, виконуємо ініціалізацію...");
+        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Bot is not initialized, performing initialization...");
         
-        // Очищення всіх ордерів
-        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Очищення всіх ордерів");
+        // Clearing all orders
+        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Clearing all orders");
         $this->clearAllOrders();
-        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Всі ордери очищені");
+        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] All orders cleared");
         
-        // Отримання ордербука із зовнішнього API
-        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Отримання ордербука із зовнішнього API");
+        // Getting order book from external API
+        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Requesting order book from external API");
         $orderBook = $this->getExternalOrderBook();
-        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Отримано ордербук: " . count($orderBook['bids']) . " bid, " . count($orderBook['asks']) . " ask");
+        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Received order book: " . count($orderBook['bids']) . " bid, " . count($orderBook['asks']) . " ask");
         
-        // Ініціалізація початкових ордерів
-        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Ініціалізація ордербука");
+        // Initializing initial orders
+        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Initializing order book");
         $this->initializeOrderBook($orderBook);
-        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Ордербук ініціалізовано");
+        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Order book initialized");
         
         $this->isInitialized = true;
-        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Ініціалізацію бота успішно завершено");
+        $this->logger->log("!!!!! TradingBot::initialize(): [{$this->pair}] Bot initialization successfully completed");
     }
 
     /**
@@ -145,33 +142,33 @@ class TradingBot
     public function runSingleCycle(): void
     {
         if (!$this->isInitialized) {
-            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Бот не ініціалізований, пропускаємо цикл");
+            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Bot is not initialized, skipping cycle");
             return;
         }
         
-        $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Початок торгового циклу");
+        $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Starting trading cycle");
         
         try {
-            // Отримуємо ордербук
-            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Запит на отримання ордербука");
+            // Get order book
+            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Requesting order book");
             $orderBook = $this->getExternalOrderBook();
-            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Отримано ордербук: " . count($orderBook['bids']) . " bid, " . count($orderBook['asks']) . " ask");
+            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Received order book: " . count($orderBook['bids']) . " bid, " . count($orderBook['asks']) . " ask");
             
-            // Отримуємо поточні ордери
-            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Запит на отримання поточних ордерів");
+            // Get current orders
+            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Requesting current orders");
             $pendingOrders = $this->getPendingOrders();
-            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Отримано поточних ордерів: " . count($pendingOrders));
+            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Received current orders: " . count($pendingOrders));
             
-            // Підтримка ордерів
-            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Початок підтримки ордерів");
+            // Maintain orders
+            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Starting order maintenance");
             $this->maintainOrders($orderBook, $pendingOrders);
-            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Підтримка ордерів завершена");
+            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Order maintenance completed");
 
-            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Торговий цикл успішно завершено");
+            $this->logger->log("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Trading cycle successfully completed");
         } catch (Exception $e) {
-            $this->logger->error("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Помилка в торговому циклі: " . $e->getMessage());
-            // Додаємо логування стек трейсу для відстеження джерела помилки
-            $this->logger->logStackTrace("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Стек трейс помилки торгового циклу:");
+            $this->logger->error("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Error in trading cycle: " . $e->getMessage());
+            // Add stack trace logging to track the source of the error
+            $this->logger->logStackTrace("!!!!! TradingBot::runSingleCycle(): [{$this->pair}] Trading cycle error stack trace:");
         }
     }
 
@@ -215,7 +212,7 @@ class TradingBot
                 $this->randomDelay(Config::DELAY_RUN_MIN, Config::DELAY_RUN_MAX);
             } catch (Exception $e) {
                 $this->logger->error("[{$this->pair}] Error: " . $e->getMessage());
-                // Додаємо логування стек трейсу для відстеження джерела помилки
+                // Add stack trace logging to track the source of the error
                 $this->logger->logStackTrace("[{$this->pair}] Stack trace for main loop error:");
                 $this->randomDelay(Config::DELAY_RUN_MIN, Config::DELAY_RUN_MAX);
             }
@@ -238,7 +235,7 @@ class TradingBot
             return $this->exchangeManager->getOrderBook($exchange, $this->pair);
         } catch (Exception $e) {
             $this->logger->error("[{$this->pair}] Unable to get the order book: " . $e->getMessage());
-            // Додаємо логування стек трейсу для відстеження джерела помилки
+            // Add stack trace logging to track the source of the error
             $this->logger->logStackTrace("[{$this->pair}] Stack trace for order book error:");
             throw new RuntimeException("Error getting order book: " . $e->getMessage());
         }
@@ -314,14 +311,14 @@ class TradingBot
 
         $pendingOrders = $data['result']['records'] ?? [];
         
-        // Детальне логування стакану
+        // Detailed logging of the order book
         if (!empty($pendingOrders)) {
             $bids = array_filter($pendingOrders, fn($o) => $o['side'] === 2);
             $asks = array_filter($pendingOrders, fn($o) => $o['side'] === 1);
             
-            // Сортуємо ордери за ціною
-            usort($bids, fn($a, $b) => (float)$b['price'] - (float)$a['price']); // Біди сортуємо за спаданням
-            usort($asks, fn($a, $b) => (float)$a['price'] - (float)$b['price']); // Аски сортуємо за зростанням
+            // Sort orders by price
+            usort($bids, fn($a, $b) => (float)$b['price'] - (float)$a['price']); // Sort bids in descending order
+            usort($asks, fn($a, $b) => (float)$a['price'] - (float)$b['price']); // Sort asks in ascending order
             
             $orderBookLog = "\nOrder Book Details:\n";
             $orderBookLog .= "=== ASKS (Sell Orders) ===\n";
@@ -357,26 +354,26 @@ class TradingBot
      */
     public function clearAllOrders(): void
     {
-        $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Початок очищення всіх ордерів");
+        $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Starting clearing all orders");
         
-        // Отримання списку відкритих ордерів
+        // Getting list of open orders
         $openOrders = $this->exchangeManager->getOpenOrders($this->pair);
-        $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Знайдено " . count($openOrders) . " відкритих ордерів для очищення");
+        $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Found " . count($openOrders) . " open orders for clearing");
         
-        // Збираємо всі ID для скасування
+        // Collecting all IDs for cancellation
         $orderIds = array_map(function($order) {
             return $order['id'];
         }, $openOrders);
         
-        // Скасовуємо ордери пакетно
+        // Cancelling orders in batch
         foreach ($orderIds as $orderId) {
-            $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Скасування ордера: {$orderId}");
+            $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Cancelling order: {$orderId}");
             $this->cancelOrder($orderId);
-            // Додаємо невелику затримку між скасуваннями ордерів
-            usleep(100000); // 100 мс
+            // Add a small delay between order cancellations
+            usleep(100000); // 100 ms
         }
         
-        $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] Всі ордери очищено");
+        $this->logger->log("!!!!! TradingBot::clearAllOrders(): [{$this->pair}] All orders cleared");
     }
 
     /**
@@ -446,12 +443,12 @@ class TradingBot
             $result = $this->exchangeManager->cancelOrder($orderId, $this->pair);
             
             if (isset($result['error']) && $result['error'] !== null) {
-                // Перевіряємо на помилку "order not found"
+                // Check for "order not found" error
                 if (isset($result['error']['code']) && $result['error']['code'] == 10) {
                     $this->logger->log("[{$this->pair}] Order {$orderId} already executed or cancelled, skipping");
                 } else {
                     $this->logger->error("[{$this->pair}] Error cancelling order {$orderId}: " . json_encode($result['error']));
-                    // Додаємо логування стек трейсу при помилці в результаті запиту
+                    // Add stack trace logging for error in API result
                     $this->logger->logStackTrace("[{$this->pair}] Stack trace for cancelling order error (API result):");
                 }
             } else {
@@ -461,7 +458,7 @@ class TradingBot
             $this->randomDelay(Config::DELAY_CLEAR_MIN, Config::DELAY_CLEAR_MAX);
         } catch (Exception $e) {
             $this->logger->error("[{$this->pair}] Exception when cancelling order {$orderId}: " . $e->getMessage());
-            // Додаємо логування стек трейсу для відстеження джерела помилки
+            // Add stack trace logging to track the source of the error
             $this->logger->logStackTrace("[{$this->pair}] Stack trace for cancelling order exception:");
         }
     }

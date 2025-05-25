@@ -1,47 +1,47 @@
 #!/bin/bash
 
-# Визначаємо кореневу директорію проекту
+# Determine the project root directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-# Створення необхідних директорій для даних, якщо вони не існують
+# Create necessary data directories if they don't exist
 mkdir -p "$PROJECT_ROOT/data/logs"
 mkdir -p "$PROJECT_ROOT/data/pids"
 mkdir -p "$PROJECT_ROOT/data/storage"
 
-# Надання прав на запис для директорій даних
+# Set write permissions for data directories
 chmod -R 777 "$PROJECT_ROOT/data"
 
-# Підготовка конфігураційних файлів
-echo "Підготовка конфігураційних файлів..."
+# Prepare configuration files
+echo "Preparing configuration files..."
 "$SCRIPT_DIR/prepare-configs.sh"
 
-echo "Зупинка всіх контейнерів..."
+echo "Stopping all containers..."
 cd "$PROJECT_ROOT" && docker-compose -f docker-compose-dev.yml down
 cd "$PROJECT_ROOT" && docker-compose -f docker-compose-demo.yml down
 
-echo "Перебілдування Dev-середовища Trading Bot..."
+echo "Rebuilding Trading Bot Dev environment..."
 cd "$PROJECT_ROOT" && docker-compose -f docker-compose-dev.yml build
 
-# echo "Перебілдування Demo-середовища Trading Bot..."
+# echo "Rebuilding Trading Bot Demo environment..."
 cd "$PROJECT_ROOT" && docker-compose -f docker-compose-demo.yml build 
 
-echo "Запуск Dev-середовища Trading Bot..."
+echo "Starting Trading Bot Dev environment..."
 cd "$PROJECT_ROOT" && docker-compose -f docker-compose-dev.yml up -d
 
-echo "Запуск Demo-середовища Trading Bot..."
+echo "Starting Trading Bot Demo environment..."
 cd "$PROJECT_ROOT" && docker-compose -f docker-compose-demo.yml up -d
 
-echo "Обидва середовища перебілдовано та запущено!"
+echo "Both environments rebuilt and started!"
 echo ""
-echo "Dev-середовище:"
-echo "Backend доступний на: http://localhost:5501"
-echo "Swagger UI доступний на: http://localhost:5501/swagger-ui"
-echo "Frontend доступний на: http://localhost:5502"
+echo "Dev Environment:"
+echo "Backend available at: http://localhost:5501"
+echo "Swagger UI available at: http://localhost:5501/swagger-ui"
+echo "Frontend available at: http://localhost:5502"
 echo ""
-echo "Demo-середовище:"
-echo "Backend доступний на: http://localhost:6501"
-echo "Swagger UI доступний на: http://localhost:6501/swagger-ui"
-echo "Frontend доступний на: http://localhost:6502"
+echo "Demo Environment:"
+echo "Backend available at: http://localhost:6501"
+echo "Swagger UI available at: http://localhost:6501/swagger-ui"
+echo "Frontend available at: http://localhost:6502"
 echo ""
-echo "Для зупинки всіх контейнерів використовуйте: ./scripts/stop-all.sh" 
+echo "To stop all containers use: ./scripts/stop-all.sh" 

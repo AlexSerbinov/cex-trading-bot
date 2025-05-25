@@ -1,74 +1,74 @@
 #!/bin/bash
 
-# Визначаємо кореневу директорію проекту
+# Determine the project root directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-# Зупиняємо всі існуючі процеси
-echo "Зупинка всіх існуючих процесів..."
+# Stop all existing processes
+echo "Stopping all existing processes..."
 "$SCRIPT_DIR/stop_all.sh"
 
-# Очищаємо всі PID-файли
-echo "Видалення всіх PID-файлів..."
+# Clean up all PID files
+echo "Removing all PID files..."
 rm -f "$PROJECT_ROOT/data/pids"/*.pid
 
-# Очищаємо системний кеш
-echo "Очищення системного кешу..."
+# Clean the system cache
+echo "Cleaning the system cache..."
 php "$PROJECT_ROOT/tools/clean_system.php"
 
-# Налаштовуємо конфігурацію фронтенду
+# Configure the frontend
 "$SCRIPT_DIR/configure_frontend.sh" "local" "localhost" "8080"
 
-# Запускаємо бекенд
-echo "Запуск бекенду на порту 8080..."
+# Start the backend
+echo "Starting backend on port 8080..."
 cd "$PROJECT_ROOT" && php -S localhost:8080 router.php > /dev/null 2>&1 &
 BACKEND_PID=$!
-echo "Бекенд запущено з PID: $BACKEND_PID"
+echo "Backend started with PID: $BACKEND_PID"
 
-# Запускаємо фронтенд
-echo "Запуск фронтенду на порту 8081..."
+# Start the frontend
+echo "Starting frontend on port 8081..."
 cd "$PROJECT_ROOT" && php -S localhost:8081 -t frontend > /dev/null 2>&1 &
 FRONTEND_PID=$!
-echo "Фронтенд запущено з PID: $FRONTEND_PID"
+echo "Frontend started with PID: $FRONTEND_PID"
 
-# Запускаємо ботів
-echo "Запуск ботів..."
-# Перевіряємо, чи не запущений уже TradingBotManager
+# Start the bots
+echo "Starting bots..."
+# Check if TradingBotManager is already running
 BOT_MANAGER_LOCK="$PROJECT_ROOT/data/pids/trading_bot_manager.lock"
 
 if [ -f "$BOT_MANAGER_LOCK" ]; then
     LOCK_PID=$(cat "$BOT_MANAGER_LOCK")
-    echo "Знайдено лок-файл TradingBotManager з PID: $LOCK_PID"
+    echo "Found TradingBotManager lock file with PID: $LOCK_PID"
     
-    # Перевіряємо, чи процес із цим PID існує і чи це TradingBotManager
+    # Check if the process with this PID exists and if it is TradingBotManager
     if ps -p $LOCK_PID > /dev/null && grep -q TradingBotManager /proc/$LOCK_PID/cmdline 2>/dev/null; then
-        echo "TradingBotManager уже запущений з PID: $LOCK_PID. Використовуємо існуючий процес."
+        echo "TradingBotManager is already running with PID: $LOCK_PID. Using existing process."
         BOTS_PID=$LOCK_PID
     else
-        echo "Лок-файл існує, але процес не запущений або це не TradingBotManager. Видаляємо старий лок-файл."
+        echo "Lock file exists, but the process is not running or it is not TradingBotManager. Removing the old lock file."
         rm -f "$BOT_MANAGER_LOCK"
         cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php > /dev/null 2>&1 &
         BOTS_PID=$!
-        echo "Боти запущені з новим PID: $BOTS_PID"
+        echo "Bots started with new PID: $BOTS_PID"
     fi
 else
     cd "$PROJECT_ROOT" && php src/core/TradingBotManager.php > /dev/null 2>&1 &
     BOTS_PID=$!
-    echo "Боти запущені з PID: $BOTS_PID"
+    echo "Bots started with PID: $BOTS_PID"
 fi
 
-# Зберігаємо PID-и в файли
+# Save PIDs to files
 echo $BACKEND_PID > "$PROJECT_ROOT/data/pids/backend.pid"
 echo $FRONTEND_PID > "$PROJECT_ROOT/data/pids/frontend.pid"
 echo $BOTS_PID > "$PROJECT_ROOT/data/pids/bots.pid"
 
 echo ""
-echo "Система запущена!"
-echo "Бекенд доступний на: http://localhost:8080"
-echo "Swagger UI доступний на: http://localhost:8080/swagger-ui"
-echo "Фронтенд доступний на: http://localhost:8081"
+echo "System started!"
+echo "Backend available at: http://localhost:8080"
+echo "Swagger UI available at: http://localhost:8080/swagger-ui"
+echo "Frontend available at: http://localhost:8081"
 echo ""
-echo "Для зупинки всіх процесів використовуйте: ./scripts/stop_all.sh"
+echo "To stop all processes use: ./scripts/stop_all.sh"
 echo ""
-echo "Показ логів..."
+echo "Showing logs..."
 tail -f "$PROJECT_ROOT/data/logs/bot.log" 

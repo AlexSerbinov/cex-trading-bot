@@ -21,7 +21,7 @@ $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
 $pathParts = explode('/', trim($path, '/'));
 
-// Додаємо логування для діагностики
+// Add logging for diagnostics
 $logger = Logger::getInstance();
 $logger->log("API Request: " . $path . ", Parts: " . json_encode($pathParts));
 
@@ -30,7 +30,7 @@ if (count($pathParts) > 0 && $pathParts[0] === 'api') {
     array_shift($pathParts);
 }
 
-// Додаткове логування після обробки шляху
+// Additional logging after path processing
 $logger->log("API Path after processing: " . json_encode($pathParts));
 
 // Create the bot manager

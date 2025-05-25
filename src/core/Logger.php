@@ -11,7 +11,7 @@ use App\helpers\LogManager;
  */
 class Logger
 {
-    // Константи для рівнів логування
+    // Constants for logging levels
     public const DEBUG = 0;
     public const INFO = 1;
     public const WARNING = 2;
@@ -29,21 +29,23 @@ class Logger
      * 
      * @param bool $consoleOutput Output logs to the console
      * @param string|null $logFile Path to the log file (if null, the default path is used)
-     * @param int $logLevel Minimum log level to record (default: INFO)
+     * @param int $logLevel Minimum log level to record (default: WARNING)
      */
     private function __construct(bool $consoleOutput = true, ?string $logFile = null, int $logLevel = self::WARNING)
     {
         $this->consoleOutput = $consoleOutput;
         
-        // Враховуємо оточення для визначення шляху до логів
+        // Consider environment to determine log path
+        // If the log path is not specified explicitly, use the default path
+        // Path to the log considering the environment
         $environment = getenv('ENVIRONMENT') ?: 'local';
         
-        // Якщо шлях до логу не вказано явно, використовуємо шлях за замовчуванням
+        // If the log path is not specified explicitly, use the default path
         if ($logFile === null) {
-            // Шлях до логу з урахуванням середовища
+            // Path to the log considering the environment
             $this->logFile = __DIR__ . '/../../data/logs/' . $environment . '/bot.log';
         } else {
-            // Використовуємо вказаний шлях
+            // Use the specified path
             $this->logFile = $logFile;
         }
         
@@ -66,7 +68,7 @@ class Logger
             self::$instance = new self($consoleOutput, $logFile, $logLevel);
         } 
         else if ($logFile !== null && self::$instance->logFile !== $logFile) {
-            // Якщо вказано інший файл для логів, створюємо новий екземпляр
+            // If a different log file is specified, create a new instance
             self::$instance = new self($consoleOutput, $logFile, $logLevel);
         }
         return self::$instance;
@@ -110,11 +112,11 @@ class Logger
         if ($this->logLevel <= self::ERROR) {
             $this->log('[ERROR] ' . $message);
             
-            // Додатково записуємо помилки в файл bots_error.log
+            // Additionally log errors to the bots_error.log file
             $environment = getenv('ENVIRONMENT') ?: 'local';
             $errorLogFile = __DIR__ . '/../../data/logs/' . $environment . '/bots_error.log';
             
-            // Якщо поточний файл логу не є файлом помилок, записуємо також у файл помилок
+            // If the current log file is not the error file, also write to the error file
             if ($this->logFile !== $errorLogFile) {
                 $errorMessage = '[' . date('Y-m-d H:i:s') . '] [ERROR] ' . $message;
                 file_put_contents($errorLogFile, $errorMessage . PHP_EOL, FILE_APPEND);
@@ -130,11 +132,11 @@ class Logger
         if ($this->logLevel <= self::CRITICAL) {
             $this->log('[CRITICAL] ' . $message);
             
-            // Додатково записуємо критичні помилки в файл bots_error.log
+            // Additionally log critical errors to the bots_error.log file
             $environment = getenv('ENVIRONMENT') ?: 'local';
             $errorLogFile = __DIR__ . '/../../data/logs/' . $environment . '/bots_error.log';
             
-            // Якщо поточний файл логу не є файлом помилок, записуємо також у файл помилок
+            // If the current log file is not the error file, also write to the error file
             if ($this->logFile !== $errorLogFile) {
                 $errorMessage = '[' . date('Y-m-d H:i:s') . '] [CRITICAL] ' . $message;
                 file_put_contents($errorLogFile, $errorMessage . PHP_EOL, FILE_APPEND);
@@ -150,7 +152,7 @@ class Logger
         $stackTrace = debug_backtrace();
         $traceStr = $message . "\n";
         
-        // Пропускаємо перший елемент, бо це сам виклик logStackTrace
+        // Skip the first element because it is the logStackTrace call itself
         for ($i = 1; $i < count($stackTrace); $i++) {
             $frame = $stackTrace[$i];
             $class = $frame['class'] ?? '';
@@ -162,7 +164,7 @@ class Logger
             $traceStr .= "#{$i}: {$class}{$type}{$function} called at [{$file}:{$line}]\n";
         }
         
-        $this->log($traceStr, false); // Вже включає час, тому не додаємо часову мітку
+        $this->log($traceStr, false); // Already includes time, so do not add a timestamp
     }
 
     /**
@@ -189,7 +191,7 @@ class Logger
             if (php_sapi_name() === 'cli') {
                 echo $logMessage . PHP_EOL;
                 
-                // Примусове скидання буфера в CLI
+                // Force buffer flush in CLI
                 if (function_exists('ob_flush') && function_exists('flush')) {
                     @ob_flush();
                     @flush();

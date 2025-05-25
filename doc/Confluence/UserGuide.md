@@ -1,157 +1,157 @@
-# Гайд Користувача: Керування Depth-Bot
+# User Guide: Managing the Depth-Bot
 
-## 1. Вступ
+## 1. Introduction
 
-Ласкаво просимо до гайду користувача Depth-Bot!
+Welcome to the Depth-Bot user guide!
 
-**Depth-Bot** — це автоматизований інструмент, розроблений для імітації активного та ліквідного ринку на нашій криптовалютній біржі. Він наповнює книгу ордерів (стакан) для обраних торгових пар, створює видимість торгової активності та забезпечує базову ліквідність для користувачів.
+**Depth-Bot** is an automated tool designed to simulate an active and liquid market on our cryptocurrency exchange. It populates the order book for selected trading pairs, creates the appearance of trading activity, and provides basic liquidity for users.
 
-Цей гайд призначений для адміністраторів та осіб, відповідальних за керування ботами. Він фокусується на використанні **веб-інтерфейсу керування ботами** для їх налаштування, запуску, зупинки та моніторингу. Процес інсталяції бота тут **не** розглядається.
+This guide is intended for administrators and those responsible for managing the bots. It focuses on using the **web interface for bot management** to configure, start, stop, and monitor them. The bot installation process is **not** covered here.
 
-## 2. Доступ до Інтерфейсу Керування
+## 2. Accessing the Management Interface
 
-Веб-інтерфейс для керування ботами доступний за різними адресами для тестових та демонстраційних середовищ:
+The web interface for managing bots is available at different addresses for test and demo environments:
 
-*   **Dev Середовище (Розробка):**
-    *   Frontend Керування Ботами: [`http://164.68.117.90:5502/`](http://164.68.117.90:5502/)
-    *   *Додатково:* API Swagger (документація API): [`http://164.68.117.90:5501/`](http://164.68.117.90:5501/)
-    *   *Додатково:* Основний Frontend Біржі: `dev.newexchanger.com`
-*   **Demo Середовище (Демонстрація):**
-    *   Frontend Керування Ботами: [`http://164.68.117.90:6502/`](http://164.68.117.90:6502/)
-    *   *Додатково:* API Swagger: [`http://164.68.117.90:6501/`](http://164.68.117.90:6501/)
-    *   *Додатково:* Основний Frontend Біржі: `new.newexchanger.com`
+*   **Dev Environment (Development):**
+    *   Bot Management Frontend: [`http://164.68.117.90:5502/`](http://164.68.117.90:5502/)
+    *   *Additional:* API Swagger (API documentation): [`http://164.68.117.90:5501/`](http://164.68.117.90:5501/)
+    *   *Additional:* Main Exchange Frontend: `dev.newexchanger.com`
+*   **Demo Environment (Demonstration):**
+    *   Bot Management Frontend: [`http://164.68.117.90:6502/`](http://164.68.117.90:6502/)
+    *   *Additional:* API Swagger: [`http://164.68.117.90:6501/`](http://164.68.117.90:6501/)
+    *   *Additional:* Main Exchange Frontend: `new.newexchanger.com`
 
-Далі в цьому гайді будуть використовуватися скріншоти для ілюстрації інтерфейсу.
+Screenshots will be used later in this guide to illustrate the interface.
 
-## 3. Принцип Роботи Бота (Коротко)
+## 3. How the Bot Works (Briefly)
 
-Бот працює в безперервному циклі для кожної активної торгової пари:
+The bot operates in a continuous cycle for each active trading pair:
 
-1.  **Отримує дані:** Запитує актуальні ціни та обсяги зі стакану зовнішньої біржі (`binance` або `kraken`).
-2.  **Розраховує ціни:** Визначає діапазон цін для своїх ордерів на основі даних зовнішньої біржі та параметрів `market_gap` і `price_factor`.
-3.  **Розраховує обсяги:** Вибирає випадковий обсяг для нових ордерів в межах `trade_amount_min` та `trade_amount_max`.
-4.  **Керує ордерами:**
-    *   Перевіряє поточну кількість своїх ордерів на біржі.
-    *   Якщо ордерів замало (менше `min_orders`), додає нові лімітні ордери на купівлю та продаж.
-    *   Якщо ордерів забагато (більше `min_orders + 1`), скасовує "зайві" (зазвичай найменш вигідні).
-    *   Періодично скасовує та одразу ставить нові ордери, навіть якщо кількість в нормі, для імітації динаміки ринку.
-5.  **Взаємодіє з користувачами:** Якщо реальний користувач біржі виконує ордер, розміщений ботом, відбувається звичайна угода.
-6.  **Пауза:** Робить випадкову паузу (згідно `frequency_from`/`to`) перед наступним циклом.
+1.  **Receives Data:** Requests current prices and volumes from the order book of an external exchange (`binance` or `kraken`).
+2.  **Calculates Prices:** Determines the price range for its orders based on external exchange data and the `market_gap` and `price_factor` parameters.
+3.  **Calculates Volumes:** Selects a random volume for new orders within `trade_amount_min` and `trade_amount_max`.
+4.  **Manages Orders:**
+    *   Checks the current number of its orders on the exchange.
+    *   If there are too few orders (less than `min_orders`), it adds new limit buy and sell orders.
+    *   If there are too many orders (more than `min_orders + 1`), it cancels the "excess" ones (usually the least favorable).
+    *   Periodically cancels and immediately places new orders, even if the quantity is within the norm, to simulate market dynamics.
+5.  **Interacts with Users:** If a real exchange user executes an order placed by the bot, a regular trade occurs.
+6.  **Pause:** Takes a random pause (according to `frequency_from`/`to`) before the next cycle.
 
-`[СКРІНШОТ: Приклад стакану (order book) на біржі, де видно ордери, розміщені ботом]`
+`[SCREENSHOT: Example of an order book on the exchange showing orders placed by the bot]`
 
-**Безпека (`DeadWatcher`):** Існує окремий сервіс `DeadWatcher`, який стежить за активністю ботів. Якщо бот не надсилає сигнал "я живий" протягом певного часу, `DeadWatcher` автоматично скасовує всі ордери цього бота на біржі для запобігання "завислим" ордерам у разі збою.
+**Safety (`DeadWatcher`):** There is a separate `DeadWatcher` service that monitors bot activity. If a bot doesn't send a "I'm alive" signal for a certain period, `DeadWatcher` automatically cancels all orders of that bot on the exchange to prevent "stuck" orders in case of a failure.
 
-## 4. Огляд Головного Екрану (`Bots list`)
+## 4. Overview of the Main Screen (`Bots list`)
 
-Після входу в інтерфейс ви побачите головний екран зі списком усіх налаштованих ботів.
+After logging into the interface, you will see the main screen with a list of all configured bots.
 
-`[СКРІНШОТ: Головний екран зі списком ботів (`Bots list`)]`
+`[SCREENSHOT: Main screen with the list of bots (`Bots list`)]`
 
-Таблиця містить наступні колонки:
+The table contains the following columns:
 
-*   `Pair`: Торгова пара, якою керує бот (напр., `BTC_USDC`).
-*   `Exchange`: Зовнішня біржа, з якої бот бере ринкові дані (`binance` або `kraken`).
-*   `Status`: Поточний стан бота:
-    *   `ACTIVE`: Бот працює та розміщує ордери.
-    *   `INACTIVE`: Бот зупинений і неактивний.
-*   `Orders`: Мінімальна цільова кількість ордерів (`min_orders`).
-*   `Min/Max amount`: Діапазон обсягу одного ордера (`trade_amount_min`/`max`).
-*   `Frequency (sec)`: Діапазон затримки між циклами (`frequency_from`/`to`).
-*   `Deviation (%)`: Параметри ціноутворення (`price_factor`, `market_gap`).
-*   `Market maker (%)`: Ймовірність ринкового ордера (`market_maker_order_probability`). **Рекомендовано 0%.**
-*   `Actions`: Доступні дії для кожного бота:
-    *   **Перегляд (Синя іконка ока):** Відкриває детальну сторінку налаштувань та балансів цього бота (`Bot details`).
-    *   **Зупинити/Запустити (Жовта іконка паузи / Зелена іконка play):** Змінює статус бота між `ACTIVE` та `INACTIVE`. **Важливо:** При зупинці (`INACTIVE`) бот автоматично **скасовує всі свої активні ордери** на біржі.
-    *   **Видалити (Червона іконка кошика):** Повністю видаляє конфігурацію бота з системи. **Важливо:** При видаленні бот також **скасовує всі свої активні ордери**.
+*   `Pair`: The trading pair managed by the bot (e.g., `BTC_USDC`).
+*   `Exchange`: The external exchange from which the bot gets market data (`binance` or `kraken`).
+*   `Status`: The current state of the bot:
+    *   `ACTIVE`: The bot is running and placing orders.
+    *   `INACTIVE`: The bot is stopped and inactive.
+*   `Orders`: Minimum target number of orders (`min_orders`).
+*   `Min/Max amount`: The range of the volume of a single order (`trade_amount_min`/`max`).
+*   `Frequency (sec)`: The range of delay between cycles (`frequency_from`/`to`).
+*   `Deviation (%)`: Pricing parameters (`price_factor`, `market_gap`).
+*   `Market maker (%)`: Probability of a market order (`market_maker_order_probability`). **Recommended 0%.**
+*   `Actions`: Available actions for each bot:
+    *   **View (Blue eye icon):** Opens the detailed configuration and balance page for this bot (`Bot details`).
+    *   **Stop/Start (Yellow pause icon / Green play icon):** Changes the bot's status between `ACTIVE` and `INACTIVE`. **Important:** When stopping (`INACTIVE`), the bot automatically **cancels all its active orders** on the exchange.
+    *   **Delete (Red trash bin icon):** Completely removes the bot's configuration from the system. **Important:** When deleting, the bot also **cancels all its active orders**.
 
-У верхній частині екрану є кнопка `Create bot`, яка використовується для додавання нового бота.
+At the top of the screen, there is a `Create bot` button used to add a new bot.
 
-## 5. Створення Нового Бота
+## 5. Creating a New Bot
 
-Щоб додати нового бота для керування певною торговою парою:
+To add a new bot to manage a specific trading pair:
 
-1.  Натисніть кнопку `Create bot` на головному екрані.
-2.  Заповніть форму налаштувань нового бота.
+1.  Click the `Create bot` button on the main screen.
+2.  Fill out the configuration form for the new bot.
 
-`[СКРІНШОТ: Форма створення нового бота (`Create bot`)]`
+`[SCREENSHOT: New bot creation form (`Create bot`)]`
 
-Основні параметри для налаштування (детальний опис див. у `BotConfig_Parameters.md`):
+Key parameters for configuration (for detailed description, see `BotConfig_Parameters.md`):
 
-*   `Pair Name`: Введіть назву торгової пари точно так, як вона існує на біржі (напр., `BTC_USDT`, `ETH_BTC`).
-*   `Exchange`: Виберіть зовнішню біржу (`binance` або `kraken`), з якої бот буде брати дані про ціни.
-*   `Min Orders`: Цільова мінімальна кількість ордерів на кожній стороні стакану (купівля/продаж), яку бот буде підтримувати.
-*   `Min Amount` (`trade_amount_min`): Мінімальний обсяг одного ордера.
-*   `Max Amount` (`trade_amount_max`): Максимальний обсяг одного ордера. **Дуже важливо:** Переконайтеся, що на рахунку бота в адмін-панелі біржі достатньо коштів для покриття цього максимального обсягу!
-*   `Frequency From` (`frequency_from`): Мінімальна випадкова затримка (сек) між циклами дій бота.
-*   `Frequency To` (`frequency_to`): Максимальна випадкова затримка (сек) між циклами дій бота.
-    *   **Чому діапазон?** Використання діапазону частоти (наприклад, від 0 до 5 секунд) замість фіксованого значення робить дії бота менш передбачуваними та роботизованими. Це краще імітує природну, нерівномірну активність реального ринку, де угоди та оновлення ордерів відбуваються з різними інтервалами.
-*   `Price Factor` (`price_factor`): Визначає "ширину" цінового діапазону (в %), в якому бот розміщує ордери відносно базової ціни. Цей параметр візуально впливає на щільність ордерів у стакані: **менше значення (напр., 1-2%)** означає, що ордери будуть сконцентровані ближче до поточної ринкової ціни, створюючи "щільніший" вигляд стакану. **Більше значення (напр., 10%)** розкидає ордери ширше, роблячи стакан візуально "рідшим".
-*   `Market Gap` (`market_gap`): Гарантований мінімальний відсоток відступу ордерів бота від реальних ринкових цін зовнішньої біржі. Це **ключовий параметр безпеки**, оскільки він гарантує, що:
-    *   **Захист від арбітражу:** Ордери бота ніколи не будуть вигіднішими за ціни на зовнішній біржі, що унеможливлює миттєвий арбітраж проти бота.
-    *   **Потенційна вигода для біржі:** Коли користувач укладає угоду з ордером бота, біржа (через бота) купує трохи дешевше або продає трохи дорожче, ніж поточна ціна на зовнішньому ринку.
-*   `Market Maker Order Probability`: Ймовірність (в %) того, що бот виконає ринковий ордер замість лімітного. **Рекомендовано встановлювати 0% через нестабільність функції.**
+*   `Pair Name`: Enter the name of the trading pair exactly as it exists on the exchange (e.g., `BTC_USDT`, `ETH_BTC`).
+*   `Exchange`: Select the external exchange (`binance` or `kraken`) from which the bot will get price data.
+*   `Min Orders`: The target minimum number of orders on each side of the order book (buy/sell) that the bot will maintain.
+*   `Min Amount` (`trade_amount_min`): Minimum volume of a single order.
+*   `Max Amount` (`trade_amount_max`): Maximum volume of a single order. **Very important:** Make sure the bot's account in the exchange admin panel has enough funds to cover this maximum volume!
+*   `Frequency From` (`frequency_from`): Minimum random delay (sec) between bot action cycles.
+*   `Frequency To` (`frequency_to`): Maximum random delay (sec) between bot action cycles.
+    *   **Why a range?** Using a frequency range (e.g., from 0 to 5 seconds) instead of a fixed value makes the bot's actions less predictable and robotic. This better simulates the natural, uneven activity of a real market where trades and order updates occur at different intervals.
+*   `Price Factor` (`price_factor`): Determines the "width" of the price range (in %) within which the bot places orders relative to the base price. This parameter visually affects the density of orders in the order book: **a smaller value (e.g., 1-2%)** means orders will be concentrated closer to the current market price, creating a "denser" order book appearance. **A larger value (e.g., 10%)** spreads orders wider, making the order book visually "thinner".
+*   `Market Gap` (`market_gap`): Guaranteed minimum percentage offset of the bot's orders from the real market prices of the external exchange. This is a **key safety parameter** as it guarantees that:
+    *   **Arbitrage Protection:** The bot's orders will never be more favorable than prices on the external exchange, making instant arbitrage against the bot impossible.
+    *   **Potential Benefit for the Exchange:** When a user trades with a bot's order, the exchange (through the bot) buys slightly cheaper or sells slightly more expensive than the current price on the external market.
+*   `Market Maker Order Probability`: The probability (in %) that the bot will execute a market order instead of a limit order. **It is recommended to set this to 0% due to function instability.**
 
-Після заповнення всіх полів натисніть кнопку для збереження конфігурації. Новий бот з'явиться у списку зі статусом `INACTIVE`.
+After filling in all the fields, click the button to save the configuration. The new bot will appear in the list with the status `INACTIVE`.
 
-### 5.1. Рекомендовані Стартові Налаштування
+### 5.1. Recommended Starting Settings
 
-Наведені нижче параметри є **рекомендованими стартовими значеннями** для нового бота, що використовує **Binance** як джерело даних. Їх, можливо, потрібно буде коригувати залежно від конкретної торгової пари, її волатильності та бажаної щільності стакану:
+The parameters listed below are **recommended starting values** for a new bot using **Binance** as a data source. These may need to be adjusted depending on the specific trading pair, its volatility, and the desired order book density:
 
 *   `Exchange`: `binance`
 *   `Min Orders`: `12`
-*   `Min Amount`: `0.1` (або мінімально допустимий обсяг для пари)
-*   `Max Amount`: `1` (або обсяг, який відповідає середній активності пари та наявним балансам)
+*   `Min Amount`: `0.1` (or the minimum allowable volume for the pair)
+*   `Max Amount`: `1` (or a volume that matches the pair's average activity and available balances)
 *   `Frequency From`: `0`
 *   `Frequency To`: `5`
-*   `Price Factor`: `2` (для відносно щільного стакану)
-*   `Market Gap`: `1` (стандартний безпечний відступ)
+*   `Price Factor`: `2` (for a relatively dense order book)
+*   `Market Gap`: `1` (standard safe offset)
 *   `Market Maker Order Probability`: `0`
 
-**Завжди перевіряйте наявність достатніх балансів перед запуском бота!**
+**Always check for sufficient balances before launching the bot!**
 
-## 6. Перегляд та Керування Існуючим Ботом (`Bot details`)
+## 6. Viewing and Managing an Existing Bot (`Bot details`)
 
-Щоб переглянути детальну конфігурацію, баланси та керувати існуючим ботом, натисніть іконку **ока** у списку ботів. Відкриється сторінка `Bot details`.
+To view the detailed configuration, balances, and manage an existing bot, click the **eye** icon in the list of bots. The `Bot details` page will open.
 
-`[СКРІНШОТ: Сторінка деталей бота (`Bot details`)]`
+`[SCREENSHOT: Bot details page (`Bot details`)]`
 
-На цій сторінці ви побачите:
+On this page, you will see:
 
-*   **Повні параметри конфігурації** бота, які ви вказали при створенні або редагуванні.
-*   **Кнопки керування:**
-    *   `Edit`: Відкриває форму для зміни параметрів цього бота (аналогічну формі створення).
-    *   `Enable`/`Disable`: Запускає (`ACTIVE`) або зупиняє (`INACTIVE`) бота. Пам'ятайте, що зупинка скасовує ордери.
-    *   `Delete`: Видаляє конфігурацію бота та скасовує його ордери.
-*   **Баланси Бота для Цієї Пари (`Bot Balances`):** Ця секція показує **поточні реальні баланси** на рахунку бота **саме для тих двох валют, що складають цю торгову пару**. Дані оновлюються в реальному часі.
-    *   `Available`: Доступно для торгівлі.
-    *   `Frozen`: Заблоковано у відкритих ордерах (зазвичай 0, якщо ордери ставить лише бот).
-    *   `Total`: Загальний баланс валюти.
-    *   **Примітка:** Баланси можуть змінюватися, навіть якщо цей конкретний бот зупинений, якщо інші активні боти торгують тими ж валютами.
+*   **Full configuration parameters** of the bot that you specified during creation or editing.
+*   **Management buttons:**
+    *   `Edit`: Opens the form for changing the parameters of this bot (similar to the creation form).
+    *   `Enable`/`Disable`: Starts (`ACTIVE`) or stops (`INACTIVE`) the bot. Remember that stopping cancels orders.
+    *   `Delete`: Removes the bot's configuration and cancels its orders.
+*   **Bot Balances for This Pair (`Bot Balances`):** This section shows the **current real balances** in the bot's account **specifically for the two currencies that make up this trading pair**. The data is updated in real time.
+    *   `Available`: Available for trading.
+    *   `Frozen`: Locked in open orders (usually 0 if only the bot places orders).
+    *   `Total`: Total currency balance.
+    *   **Note:** Balances may change even if this specific bot is stopped, if other active bots are trading the same currencies.
 
-`[СКРІНШОТ: Форма редагування бота (після натискання `Edit`)]`
+`[SCREENSHOT: Bot editing form (after clicking `Edit`)]`
 
-## 7. Моніторинг Балансів
+## 7. Monitoring Balances
 
-Окрім балансів для конкретної пари на сторінці `Bot details`, існує окрема вкладка/розділ `Bot Balances` (назва може трохи відрізнятися в інтерфейсі), де відображаються **загальні поточні баланси всіх валют** на рахунку, який використовується усіма ботами.
+In addition to the balances for a specific pair on the `Bot details` page, there is a separate tab/section `Bot Balances` (the name may differ slightly in the interface) that displays the **total current balances of all currencies** in the account used by all bots.
 
-`[СКРІНШОТ: Вкладка/Сторінка загальних балансів бота (`Bot Balances`)]`
+`[SCREENSHOT: Bot Balances tab/page (`Bot Balances`)]`
 
-*   Використовуйте кнопку `Refresh Balances`, щоб оновити дані.
-*   Форма `Top Up Balance` призначена **лише для імітації** поповнення під час тестування і **не виконує реального зарахування коштів**.
+*   Use the `Refresh Balances` button to update the data.
+*   The `Top Up Balance` form is intended **only for simulating** top-up during testing and **does not perform actual crediting of funds**.
 
-**Критично Важливо: Підтримка Реальних Балансів!**
+**Critically Important: Maintaining Real Balances!**
 
-Для коректної роботи всіх ботів **необхідно постійно підтримувати достатній реальний баланс** усіх необхідних валют на спеціальному рахунку бота. Це робиться через **адміністративну панель самої біржі**, а не через інтерфейс керування ботами.
+For all bots to function correctly, it is **necessary to constantly maintain sufficient real balance** of all required currencies in the dedicated bot account. This is done through the **administrative panel of the exchange itself**, not through the bot management interface.
 
-*   Переконайтеся, що баланс кожної валюти достатній для покриття `trade_amount_max`, встановленого для ботів, що торгують цією валютою.
-*   Регулярно перевіряйте та поповнюйте баланси через адмін-панель біржі (URL для розробки: `https://newexchanger.com/admin/payment/wallet/fill_request/list`, URL для демо уточніть). Недостатній баланс призведе до збоїв у роботі бота та неможливості розмістити ордери потрібного обсягу.
+*   Ensure that the balance of each currency is sufficient to cover the `trade_amount_max` set for bots trading that currency.
+*   Regularly check and top up balances through the exchange admin panel (development URL: `https://newexchanger.com/admin/payment/wallet/fill_request/list`, clarify demo URL). Insufficient balance will lead to bot failures and inability to place orders of the required volume.
 
-## 8. Важливі Аспекти
+## 8. Important Aspects
 
-*   **Вимоги до Балансу:** Повторимо: **завжди підтримуйте достатній реальний баланс** в адмін-панелі біржі. Це найважливіша умова стабільної роботи.
-*   **Збереження Конфігурації:** Налаштування ботів зберігаються у файлі `bots_config.json` **всередині Docker-контейнера**. Якщо контейнер буде перезапущено без збереження цього файлу назовні (через Docker Volumes), всі зміни, зроблені через інтерфейс, **будуть втрачені**. Зверніться до DevOps для налаштування збереження конфігурації.
-*   **Безпека Інтерфейсу:** На даний момент **відсутня авторизація** для доступу до інтерфейсу керування ботами та його API. Це становить ризик несанкціонованого доступу. Необхідно впровадити механізми автентифікації/авторизації.
-*   **Цикл Прибутку:** Бот наразі не реалізує повний цикл фіксації прибутку (наприклад, через хеджування на зовнішній біржі). Зміна балансу відбувається лише локально в результаті угод з користувачами.
+*   **Balance Requirements:** To reiterate: **always maintain sufficient real balance** in the exchange admin panel. This is the most important condition for stable operation.
+*   **Configuration Saving:** Bot settings are saved in the `bots_config.json` file **inside the Docker container**. If the container is restarted without saving this file externally (via Docker Volumes), all changes made through the interface **will be lost**. Contact DevOps to configure configuration saving.
+*   **Interface Security:** Currently, there is **no authentication** for accessing the bot management interface and its API. This poses a risk of unauthorized access. Authentication/authorization mechanisms need to be implemented.
+*   **Profit Cycle:** The bot currently does not implement a full profit realization cycle (e.g., through hedging on an external exchange). Balance changes only occur locally as a result of trades with users.
 
-Сподіваємося, цей гайд допоможе вам ефективно керувати Depth-Bot. 
+We hope this guide helps you effectively manage the Depth-Bot. 
